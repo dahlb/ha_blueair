@@ -1,0 +1,11 @@
+{
+  "domain": "ha_blueair",
+  "name": "Blueair",
+  "documentation": "https://github.com/dahlb/ha_blueair",
+  "issue_tracker": "https://github.com/dahlb/ha_blueair/issues",
+  "codeowners": ["@dahlb"],
+  "requirements": ["blueair-api>=1.4.0"],
+  "version": "0.0",
+  "config_flow": true,
+  "iot_class": "cloud_polling"
+}

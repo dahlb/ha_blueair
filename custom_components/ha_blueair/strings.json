@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "BlueAir Auth",
+        "description": "Configure your Credentials.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "[%key:common::config_flow::title::reauth%]",
+        "description": "The BlueAir integration needs to re-authenticate your account."
+      }
+    },
+    "error": {
+      "auth": "Login failed. Please use official app to logout and log back in and try again."
+    }
+  }
+}

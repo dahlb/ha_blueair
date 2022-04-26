@@ -1,0 +1,93 @@
+import logging
+
+import voluptuous as vol
+
+from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.typing import ConfigType
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from blueair_api import get_devices
+import asyncio
+
+from .updater import BlueairDataUpdateCoordinator
+from .const import (
+    DOMAIN,
+    PLATFORMS,
+    DATA_DEVICES,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Required(CONF_USERNAME): cv.string,
+                vol.Required(CONF_PASSWORD): cv.string,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
+
+async def async_setup(hass: HomeAssistant, config_entry: ConfigType) -> bool:
+    hass.data.setdefault(DOMAIN, {})
+    _LOGGER.debug(f"async setup")
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+    _LOGGER.debug(f"async setup entry: {config_entry}")
+    username = config_entry.data[CONF_USERNAME]
+    password = config_entry.data[CONF_PASSWORD]
+
+    data = {}
+
+    client_session = async_get_clientsession(hass)
+    cloud_api, devices = await get_devices(username=username, password=password, client_session=client_session)
+
+    def create_updaters(device):
+        return BlueairDataUpdateCoordinator(
+            hass=hass,
+            blueair_api_device=device,
+        )
+
+    data[DATA_DEVICES] = list(map(create_updaters, devices))
+
+    for updater in data[DATA_DEVICES]:
+        await updater.async_config_entry_first_refresh()
+
+    for platform in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(config_entry, platform)
+        )
+
+    hass.data[DOMAIN] = data
+
+    return True
+
+
+async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry):
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+    _LOGGER.debug(f"unload entry")
+    unload_ok = all(
+        await asyncio.gather(
+            *[
+                hass.config_entries.async_forward_entry_unload(config_entry, platform)
+                for platform in PLATFORMS
+            ]
+        )
+    )
+    if unload_ok:
+        hass.data[DOMAIN] = None
+
+    return unload_ok
