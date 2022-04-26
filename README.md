@@ -3,7 +3,6 @@
 A custom integration for Blueair Filters.
 
 Warning; this has only been tested with classic_205
-Warning ahead; this is beta phase, if you notice something missing please open an issue.
 
 ## Feature Highlights ##
 - adjust fan speed
