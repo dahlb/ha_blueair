@@ -26,6 +26,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 class BlueairChildLockSensor(BlueairEntity, BinarySensorEntity):
+    _attr_icon = "mdi:account-child-outline"
+
     def __init__(self, device):
         """Initialize the temperature sensor."""
         super().__init__("Child Lock", device)
@@ -45,7 +47,7 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
             device_class = DEVICE_CLASS_PROBLEM,
         )
         """Initialize the temperature sensor."""
-        super().__init__("Filter Expired", device)
+        super().__init__("Filter Expiration", device)
 
     @property
     def is_on(self) -> bool | None:

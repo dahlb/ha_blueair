@@ -24,6 +24,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class BlueairBrightness(BlueairEntity, SensorEntity):
     _attr_device_class = DEVICE_CLASS_ILLUMINANCE
+    _attr_icon = "mdi:lightbulb"
 
     def __init__(self, device):
         super().__init__("Brightness", device)
