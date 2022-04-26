@@ -2,6 +2,7 @@
 
 A custom integration for Blueair Filters.
 
+Warning; this has only been tested with classic_205
 Warning ahead; this is beta phase, if you notice something missing please open an issue.
 
 ## Feature Highlights ##
@@ -18,7 +19,7 @@ If you receive an error while trying to login, please go through these steps;
 logger:
   default: warning
   logs:
-    custom_components.ha_hatch: debug
-    hatch_rest_api: debug
+    custom_components.ha_blueair: debug
+    blueair_api: debug
 ```
 
