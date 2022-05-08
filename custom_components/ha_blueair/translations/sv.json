@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "BlueAir Autensiering",
+        "description": "Konfigurera dina användaruppgifter.",
+        "data": {
+          "username": "Användarnamn",
+          "password": "Lösenord"
+        }
+      },
+      "reauth_confirm": {
+        "title": "[%key:common::config_flow::title::reauth%]",
+        "description": "BlueAir integrationen behöver återautentisera ditt konto."
+      }
+    },
+    "error": {
+      "auth": "Inloggingen misslyckades. Använd den officiella appen för att logga ut och in samt försök igen."
+    }
+  }
+}
