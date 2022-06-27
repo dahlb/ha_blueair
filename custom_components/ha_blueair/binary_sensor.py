@@ -6,8 +6,8 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.helpers.entity import EntityDescription
 
-from .const import DOMAIN, DATA_DEVICES
-from .updater import BlueairDataUpdateCoordinator
+from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
+from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
@@ -16,6 +16,17 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
     entities = []
     for device in devices:
+        entities.extend(
+            [
+                BlueairChildLockSensor(device),
+                BlueairFilterExpiredSensor(device),
+            ]
+        )
+    async_add_entities(entities)
+
+    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    entities = []
+    for device in aws_devices:
         entities.extend(
             [
                 BlueairChildLockSensor(device),
@@ -35,7 +46,7 @@ class BlueairChildLockSensor(BlueairEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return self._device.blueair_api_device.child_lock
+        return self._device.child_lock
 
 
 class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
@@ -52,4 +63,4 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return self._device.blueair_api_device.filter_expired
+        return self._device.filter_expired

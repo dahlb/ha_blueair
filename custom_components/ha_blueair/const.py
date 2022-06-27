@@ -9,3 +9,4 @@ PLATFORMS = ["binary_sensor", "fan", "sensor"]
 
 # Home Assistant Data Storage Constants
 DATA_DEVICES: str = "api_devices"
+DATA_AWS_DEVICES: str = "api_aws_devices"

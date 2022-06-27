@@ -2,7 +2,7 @@
 from homeassistant.helpers.entity import DeviceInfo, Entity
 
 from .const import DOMAIN
-from .updater import BlueairDataUpdateCoordinator
+from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 
 
 class BlueairEntity(Entity):
@@ -29,7 +29,7 @@ class BlueairEntity(Entity):
         return {
             "identifiers": {(DOMAIN, self._device.id)},
             "manufacturer": self._device.manufacturer,
-            "model": self._device.blueair_api_device.compatibility,
+            "model": self._device.model,
             "name": self._device.blueair_api_device.name,
         }
 

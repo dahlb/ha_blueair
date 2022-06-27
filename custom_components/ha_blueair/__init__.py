@@ -11,14 +11,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from blueair_api import get_devices
+from blueair_api import get_devices, get_aws_devices
 import asyncio
 
-from .updater import BlueairDataUpdateCoordinator
+from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
+from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .const import (
     DOMAIN,
     PLATFORMS,
     DATA_DEVICES,
+    DATA_AWS_DEVICES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,25 +52,35 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     data = {}
 
     client_session = async_get_clientsession(hass)
-    cloud_api, devices = await get_devices(username=username, password=password, client_session=client_session)
+    _, devices = await get_devices(username=username, password=password, client_session=client_session)
+    _, aws_devices = await get_aws_devices(username=username, password=password, client_session=client_session)
 
     def create_updaters(device):
         return BlueairDataUpdateCoordinator(
             hass=hass,
             blueair_api_device=device,
         )
-
     data[DATA_DEVICES] = list(map(create_updaters, devices))
 
     for updater in data[DATA_DEVICES]:
         await updater.async_config_entry_first_refresh()
 
+    def create_aws_updaters(device):
+        return BlueairAwsDataUpdateCoordinator(
+            hass=hass,
+            blueair_api_device=device,
+        )
+    data[DATA_AWS_DEVICES] = list(map(create_aws_updaters, aws_devices))
+
+    for updater in data[DATA_AWS_DEVICES]:
+        await updater.async_config_entry_first_refresh()
+
+    hass.data[DOMAIN] = data
+
     for platform in PLATFORMS:
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(config_entry, platform)
         )
-
-    hass.data[DOMAIN] = data
 
     return True
 

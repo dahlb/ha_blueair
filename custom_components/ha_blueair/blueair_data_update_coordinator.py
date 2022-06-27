@@ -77,6 +77,14 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.mode
 
     @property
+    def brightness(self) -> int:
+        return self.blueair_api_device.brightness
+
+    @property
+    def child_lock(self) -> bool:
+        return self.blueair_api_device.child_lock
+
+    @property
     def filter_expired(self) -> bool:
         """Return the current filter status."""
         return self.blueair_api_device.filter_expired

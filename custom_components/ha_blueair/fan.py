@@ -4,8 +4,9 @@ from homeassistant.components.fan import (
     SUPPORT_SET_SPEED,
 )
 
-from .const import DOMAIN, DATA_DEVICES
-from .updater import BlueairDataUpdateCoordinator
+from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
+from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
+from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
@@ -21,11 +22,21 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         )
     async_add_entities(entities)
 
+    devices: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    entities = []
+    for device in devices:
+        entities.extend(
+            [
+                BlueairAwsFan(device),
+            ]
+        )
+    async_add_entities(entities)
+
 
 class BlueairFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 
-    def __init__(self, device):
+    def __init__(self, device: BlueairDataUpdateCoordinator):
         """Initialize the temperature sensor."""
         super().__init__("Fan", device)
 
@@ -65,3 +76,37 @@ class BlueairFan(BlueairEntity, FanEntity):
     def speed_count(self) -> int:
         """Return the number of speeds the fan supports."""
         return 3
+
+class BlueairAwsFan(BlueairEntity, FanEntity):
+    """Controls Fan."""
+
+    def __init__(self, device: BlueairAwsDataUpdateCoordinator):
+        """Initialize the temperature sensor."""
+        super().__init__("Fan", device)
+
+    @property
+    def supported_features(self) -> int:
+        return SUPPORT_SET_SPEED
+
+    @property
+    def is_on(self) -> int:
+        return self._device.is_on
+
+    @property
+    def percentage(self) -> int:
+        """Return the current speed percentage."""
+        return self._device.fan_speed
+
+    async def async_set_percentage(self, percentage: int) -> None:
+        await self._device.set_fan_speed(percentage)
+
+    async def async_turn_off(self, **kwargs: any) -> None:
+        await self._device.set_running(False)
+
+    async def async_turn_on(self, **kwargs: any) -> None:
+        await self._device.set_running(True)
+
+    @property
+    def speed_count(self) -> int:
+        """Return the number of speeds the fan supports."""
+        return 100
