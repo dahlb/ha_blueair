@@ -5,7 +5,7 @@ DOMAIN: str = "ha_blueair"
 
 # Integration Setting Constants
 CONFIG_FLOW_VERSION: int = 1
-PLATFORMS = ["binary_sensor", "fan", "sensor"]
+PLATFORMS = ["binary_sensor", "fan", "sensor", "light", "switch"]
 
 # Home Assistant Data Storage Constants
 DATA_DEVICES: str = "api_devices"

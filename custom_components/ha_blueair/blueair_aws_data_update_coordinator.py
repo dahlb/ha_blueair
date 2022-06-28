@@ -27,7 +27,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}-{self.blueair_api_device.name}",
+            name=f"{DOMAIN}-{self.blueair_api_device.uuid}",
             update_interval=timedelta(minutes=10),
         )
 
@@ -35,6 +35,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         """Update data via library."""
         try:
             await self.blueair_api_device.refresh()
+            self.name = f"{DOMAIN}-{self.blueair_api_device.name}"
             return {}
         except Exception as error:
             raise UpdateFailed(error) from error
@@ -82,6 +83,10 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.child_lock
 
     @property
+    def night_mode(self) -> bool:
+        return self.blueair_api_device.night_mode
+
+    @property
     def temperature(self) -> int:
         return self.blueair_api_device.temperature
 
@@ -106,16 +111,39 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.pm2_5
 
     @property
+    def online(self) -> bool:
+        return self.blueair_api_device.wifi_working
+
+    @property
+    def fan_auto_mode(self) -> bool:
+        return self.blueair_api_device.fan_auto_mode
+
+    @property
     def filter_expired(self) -> bool:
         """Return the current filter status."""
         return self.blueair_api_device.filter_usage >= 95
 
     async def set_fan_speed(self, new_speed) -> None:
-        await self.blueair_api_device.set_fan_speed(new_speed)
         self.blueair_api_device.fan_speed = new_speed
+        await self.blueair_api_device.set_fan_speed(new_speed)
         await self.async_refresh()
 
     async def set_running(self, running) -> None:
-        await self.blueair_api_device.set_running(running)
         self.blueair_api_device.running = running
+        await self.blueair_api_device.set_running(running)
+        await self.async_refresh()
+
+    async def set_brightness(self, brightness) -> None:
+        self.blueair_api_device.brightness = brightness
+        await self.blueair_api_device.set_brightness(brightness)
+        await self.async_refresh()
+
+    async def set_child_lock(self, locked) -> None:
+        self.blueair_api_device.child_lock = locked
+        await self.blueair_api_device.set_child_lock(locked)
+        await self.async_refresh()
+
+    async def set_fan_auto_mode(self, value) -> None:
+        self.blueair_api_device.fan_auto_mode = value
+        await self.blueair_api_device.set_fan_auto_mode(value)
         await self.async_refresh()

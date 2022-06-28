@@ -37,7 +37,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for device in aws_devices:
         entities.extend(
             [
-                BlueairBrightness(device),
                 BlueairTemperatureSensor(device),
                 BlueairHumiditySensor(device),
                 BlueairVOCSensor(device),

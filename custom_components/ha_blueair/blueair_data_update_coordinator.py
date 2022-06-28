@@ -85,11 +85,15 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.child_lock
 
     @property
+    def online(self) -> bool:
+        return self.blueair_api_device.wifi_working
+
+    @property
     def filter_expired(self) -> bool:
         """Return the current filter status."""
         return self.blueair_api_device.filter_expired
 
     async def set_fan_speed(self, new_speed) -> None:
-        await self.blueair_api_device.set_fan_speed(new_speed)
         self.blueair_api_device.fan_speed = new_speed
+        await self.blueair_api_device.set_fan_speed(new_speed)
         await self.async_refresh()
