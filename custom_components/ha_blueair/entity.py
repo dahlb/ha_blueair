@@ -1,11 +1,15 @@
 """Base entity class for Blueair entities."""
-from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.core import callback
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+)
 
 from .const import DOMAIN
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 
 
-class BlueairEntity(Entity):
+class BlueairEntity(CoordinatorEntity):
     """A base class for Blueair entities."""
 
     _attr_force_update = False
@@ -17,7 +21,7 @@ class BlueairEntity(Entity):
         device: BlueairDataUpdateCoordinator,
         **kwargs,
     ) -> None:
-        """Init Blueair entity."""
+        super().__init__(device)
         self._attr_name = f"{device.blueair_api_device.name} {entity_type}"
         self._attr_unique_id = f"{device.blueair_api_device.uuid}_{entity_type}"
 

@@ -2,11 +2,22 @@
 
 A custom integration for Blueair Filters.
 
-Warning; this has only been tested with classic_205
+Warning; this has only been tested with classic_205 and protect 7470i
 
 ## Feature Highlights ##
-- adjust fan speed
-- sensor for filter replacement
+- adjust fan speed, turn off/on
+- adjust light brightness, turn off/on
+- sensors
+  - filter replacement
+  - humidity
+  - connectivity
+  - temperature
+  - PM 1
+  - PM 2.5
+  - PM 10
+  - VOC
+- switches
+  - child lock
 
 ## Installation ##
 You can install this either manually copying files or using HACS. Configuration can be done on UI, you need to enter your username and password, (I know, translations are missing).
