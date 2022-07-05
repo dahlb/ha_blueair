@@ -1,4 +1,6 @@
 """Support for Blueair fans."""
+from __future__ import annotations
+
 from homeassistant.components.fan import (
     FanEntity,
     SUPPORT_SET_SPEED,
@@ -106,9 +108,11 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         await self._device.set_running(False)
         self.async_write_ha_state()
 
-    async def async_turn_on(self, **kwargs: any) -> None:
+    async def async_turn_on(self, percentage: int | None = None, **kwargs: any) -> None:
         await self._device.set_running(True)
         self.async_write_ha_state()
+        if percentage is not None:
+            await self.async_set_percentage(percentage=percentage)
 
     @property
     def speed_count(self) -> int:
