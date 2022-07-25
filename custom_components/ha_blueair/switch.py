@@ -18,6 +18,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         entities.extend(
             [
                 BlueairChildLockSwitchEntity(device),
+                BlueairAutoFanModeSwitchEntity(device),
             ]
         )
     async_add_entities(entities)
