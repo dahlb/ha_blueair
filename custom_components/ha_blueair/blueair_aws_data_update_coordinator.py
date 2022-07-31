@@ -4,7 +4,7 @@ from datetime import timedelta
 
 
 from blueair_api import DeviceAws as BlueAirApiDeviceAws
-
+from asyncio import sleep
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -126,24 +126,29 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
     async def set_fan_speed(self, new_speed) -> None:
         self.blueair_api_device.fan_speed = new_speed
         await self.blueair_api_device.set_fan_speed(new_speed)
+        await sleep(5)
         await self.async_refresh()
 
     async def set_running(self, running) -> None:
         self.blueair_api_device.running = running
         await self.blueair_api_device.set_running(running)
+        await sleep(5)
         await self.async_refresh()
 
     async def set_brightness(self, brightness) -> None:
         self.blueair_api_device.brightness = brightness
         await self.blueair_api_device.set_brightness(brightness)
+        await sleep(5)
         await self.async_refresh()
 
     async def set_child_lock(self, locked) -> None:
         self.blueair_api_device.child_lock = locked
         await self.blueair_api_device.set_child_lock(locked)
+        await sleep(5)
         await self.async_refresh()
 
     async def set_fan_auto_mode(self, value) -> None:
         self.blueair_api_device.fan_auto_mode = value
         await self.blueair_api_device.set_fan_auto_mode(value)
+        await sleep(5)
         await self.async_refresh()
