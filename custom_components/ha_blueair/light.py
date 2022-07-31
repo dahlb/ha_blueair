@@ -6,10 +6,13 @@ from homeassistant.components.light import (
     LightEntity,
 )
 from math import ceil
+import logging
 
 from .const import DOMAIN, DATA_AWS_DEVICES
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .entity import BlueairEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
@@ -35,13 +38,18 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        return round(self._device.brightness * 255.0, 0)
+        return round(self._device.brightness / 100 * 255.0, 0)
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if the entity is on."""
+        return self._device.brightness != 0
 
     async def async_turn_on(self, **kwargs):
         if ATTR_BRIGHTNESS in kwargs:
             # Convert Home Assistant brightness (0-255) to Abode brightness (0-99)
             # If 100 is sent to Abode, response is 99 causing an error
-            await self._device.set_brightness(ceil(kwargs[ATTR_BRIGHTNESS] * 99 / 255.0))
+            await self._device.set_brightness(round(kwargs[ATTR_BRIGHTNESS] * 100 / 255.0))
         else:
             await self._device.set_brightness(100)
 
