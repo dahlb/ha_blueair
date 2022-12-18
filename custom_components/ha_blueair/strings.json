@@ -6,7 +6,7 @@
         "description": "Configure your Credentials.",
         "data": {
           "username": "Username",
-          "password": "[%key:common::config_flow::data::password%]"
+          "password": "Password"
         }
       },
       "reauth_confirm": {
