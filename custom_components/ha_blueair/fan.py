@@ -80,6 +80,7 @@ class BlueairFan(BlueairEntity, FanEntity):
         """Return the number of speeds the fan supports."""
         return 3
 
+
 class BlueairAwsFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 

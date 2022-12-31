@@ -26,7 +26,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         )
     async_add_entities(entities)
 
-    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
+        DATA_AWS_DEVICES
+    ]
     entities = []
     for device in aws_devices:
         entities.extend(
@@ -56,7 +58,7 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
     def __init__(self, device):
         self.entity_description = EntityDescription(
             key=f"#{device.blueair_api_device.uuid}-filter-expired",
-            device_class = DEVICE_CLASS_PROBLEM,
+            device_class=DEVICE_CLASS_PROBLEM,
         )
         """Initialize the temperature sensor."""
         super().__init__("Filter Expiration", device)
@@ -66,13 +68,14 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
         """Return true if the binary sensor is on."""
         return self._device.filter_expired
 
+
 class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:wifi-check"
 
     def __init__(self, device):
         self.entity_description = EntityDescription(
             key=f"#{device.blueair_api_device.uuid}-online",
-            device_class = DEVICE_CLASS_CONNECTIVITY,
+            device_class=DEVICE_CLASS_CONNECTIVITY,
         )
         """Initialize the temperature sensor."""
         super().__init__("Online", device)

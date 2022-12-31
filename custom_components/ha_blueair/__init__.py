@@ -52,14 +52,19 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     data = {}
 
     client_session = async_get_clientsession(hass)
-    _, devices = await get_devices(username=username, password=password, client_session=client_session)
-    _, aws_devices = await get_aws_devices(username=username, password=password, client_session=client_session)
+    _, devices = await get_devices(
+        username=username, password=password, client_session=client_session
+    )
+    _, aws_devices = await get_aws_devices(
+        username=username, password=password, client_session=client_session
+    )
 
     def create_updaters(device):
         return BlueairDataUpdateCoordinator(
             hass=hass,
             blueair_api_device=device,
         )
+
     data[DATA_DEVICES] = list(map(create_updaters, devices))
 
     for updater in data[DATA_DEVICES]:
@@ -70,6 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             hass=hass,
             blueair_api_device=device,
         )
+
     data[DATA_AWS_DEVICES] = list(map(create_aws_updaters, aws_devices))
 
     for updater in data[DATA_AWS_DEVICES]:

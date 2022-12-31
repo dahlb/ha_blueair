@@ -32,7 +32,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         )
     async_add_entities(entities)
 
-    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
+        DATA_AWS_DEVICES
+    ]
     entities = []
     for device in aws_devices:
         entities.extend(

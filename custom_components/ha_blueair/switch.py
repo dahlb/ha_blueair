@@ -12,7 +12,9 @@ from .entity import BlueairEntity
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
+        DATA_AWS_DEVICES
+    ]
     entities = []
     for device in aws_devices:
         entities.extend(
