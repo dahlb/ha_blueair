@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import (
-    DEVICE_CLASS_PROBLEM,
-    DEVICE_CLASS_CONNECTIVITY,
+    BinarySensorDeviceClass,
     BinarySensorEntity,
 )
 from homeassistant.helpers.entity import EntityDescription
@@ -58,7 +57,7 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
     def __init__(self, device):
         self.entity_description = EntityDescription(
             key=f"#{device.blueair_api_device.uuid}-filter-expired",
-            device_class=DEVICE_CLASS_PROBLEM,
+            device_class=BinarySensorDeviceClass.PROBLEM,
         )
         """Initialize the temperature sensor."""
         super().__init__("Filter Expiration", device)
@@ -75,7 +74,7 @@ class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
     def __init__(self, device):
         self.entity_description = EntityDescription(
             key=f"#{device.blueair_api_device.uuid}-online",
-            device_class=DEVICE_CLASS_CONNECTIVITY,
+            device_class=BinarySensorDeviceClass.CONNECTIVITY,
         )
         """Initialize the temperature sensor."""
         super().__init__("Online", device)

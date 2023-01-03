@@ -1,15 +1,8 @@
 # brightness
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.const import (
-    DEVICE_CLASS_ILLUMINANCE,
-    DEVICE_CLASS_TEMPERATURE,
-    DEVICE_CLASS_HUMIDITY,
-    DEVICE_CLASS_PM1,
-    DEVICE_CLASS_PM10,
-    DEVICE_CLASS_PM25,
-    DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS,
     TEMP_CELSIUS,
     PERCENTAGE,
 )
@@ -51,7 +44,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 class BlueairBrightness(BlueairEntity, SensorEntity):
-    _attr_device_class = DEVICE_CLASS_ILLUMINANCE
+    _attr_device_class = SensorDeviceClass.ILLUMINANCE
     _attr_icon = "mdi:lightbulb"
 
     def __init__(self, device):
@@ -65,7 +58,7 @@ class BlueairBrightness(BlueairEntity, SensorEntity):
 class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
     """Monitors the temperature."""
 
-    _attr_device_class = DEVICE_CLASS_TEMPERATURE
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = TEMP_CELSIUS
 
     def __init__(self, device):
@@ -84,7 +77,7 @@ class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
 class BlueairHumiditySensor(BlueairEntity, SensorEntity):
     """Monitors the humidity."""
 
-    _attr_device_class = DEVICE_CLASS_HUMIDITY
+    _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_native_unit_of_measurement = PERCENTAGE
 
     def __init__(self, device):
@@ -103,7 +96,7 @@ class BlueairHumiditySensor(BlueairEntity, SensorEntity):
 class BlueairVOCSensor(BlueairEntity, SensorEntity):
     """Monitors the VOC."""
 
-    _attr_device_class = DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS
+    _attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS
     _attr_native_unit_of_measurement = "ppb"
 
     def __init__(self, device):
@@ -122,7 +115,7 @@ class BlueairVOCSensor(BlueairEntity, SensorEntity):
 class BlueairPM1Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm1"""
 
-    _attr_device_class = DEVICE_CLASS_PM1
+    _attr_device_class = SensorDeviceClass.PM1
     _attr_native_unit_of_measurement = "µg/m³"
 
     def __init__(self, device):
@@ -141,7 +134,7 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
 class BlueairPM10Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm10"""
 
-    _attr_device_class = DEVICE_CLASS_PM10
+    _attr_device_class = SensorDeviceClass.PM10
     _attr_native_unit_of_measurement = "µg/m³"
 
     def __init__(self, device):
@@ -160,7 +153,7 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
 class BlueairPM25Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm25"""
 
-    _attr_device_class = DEVICE_CLASS_PM25
+    _attr_device_class = SensorDeviceClass.PM25
     _attr_native_unit_of_measurement = "µg/m³"
 
     def __init__(self, device):
