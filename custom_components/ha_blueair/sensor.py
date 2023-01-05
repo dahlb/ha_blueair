@@ -5,26 +5,17 @@ from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.const import (
     TEMP_CELSIUS,
     PERCENTAGE,
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
 )
 
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
+from .const import DOMAIN, DATA_AWS_DEVICES
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
-    entities = []
-    for device in devices:
-        entities.extend(
-            [
-                BlueairBrightness(device),
-            ]
-        )
-    async_add_entities(entities)
-
     aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
         DATA_AWS_DEVICES
     ]
@@ -41,18 +32,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             ]
         )
     async_add_entities(entities)
-
-
-class BlueairBrightness(BlueairEntity, SensorEntity):
-    _attr_device_class = SensorDeviceClass.ILLUMINANCE
-    _attr_icon = "mdi:lightbulb"
-
-    def __init__(self, device):
-        super().__init__("Brightness", device)
-
-    @property
-    def native_value(self) -> float:
-        return self._device.brightness
 
 
 class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
@@ -97,7 +76,7 @@ class BlueairVOCSensor(BlueairEntity, SensorEntity):
     """Monitors the VOC."""
 
     _attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS
-    _attr_native_unit_of_measurement = "ppb"
+    _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
     def __init__(self, device):
         """Initialize the VOC sensor."""

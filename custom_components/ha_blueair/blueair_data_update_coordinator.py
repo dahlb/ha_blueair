@@ -80,6 +80,9 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
     def brightness(self) -> int:
         return self.blueair_api_device.brightness
 
+    async def set_brightness(self, brightness) -> None:
+        raise NotImplementedError()
+
     @property
     def child_lock(self) -> bool:
         return self.blueair_api_device.child_lock

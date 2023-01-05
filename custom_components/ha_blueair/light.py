@@ -8,7 +8,7 @@ from homeassistant.components.light import (
 from math import ceil
 import logging
 
-from .const import DOMAIN, DATA_AWS_DEVICES
+from .const import DOMAIN, DATA_AWS_DEVICES, DATA_DEVICES
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .entity import BlueairEntity
 
@@ -17,6 +17,16 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
+    devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
+    entities = []
+    for device in devices:
+        entities.extend(
+            [
+                BlueairLightEntity(device),
+            ]
+        )
+    async_add_entities(entities)
+
     aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
         DATA_AWS_DEVICES
     ]
