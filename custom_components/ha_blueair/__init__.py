@@ -6,12 +6,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    CONF_REGION,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from blueair_api import get_devices, get_aws_devices
+from blueair_api import get_devices, get_aws_devices, HttpBlueair
 import asyncio
 
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
@@ -21,6 +22,7 @@ from .const import (
     PLATFORMS,
     DATA_DEVICES,
     DATA_AWS_DEVICES,
+    REGION_USA,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,11 +33,26 @@ CONFIG_SCHEMA = vol.Schema(
             {
                 vol.Required(CONF_USERNAME): cv.string,
                 vol.Required(CONF_PASSWORD): cv.string,
+                vol.Required(CONF_REGION): cv.string,
             }
         )
     },
     extra=vol.ALLOW_EXTRA,
 )
+
+
+async def async_migrate_entry(hass, config_entry: ConfigEntry):
+    _LOGGER.debug("Migrating from version %s", config_entry.version)
+
+    if config_entry.version == 1:
+        new_data = {**config_entry.data, CONF_REGION: REGION_USA}
+
+        config_entry.version = 2
+        hass.config_entries.async_update_entry(config_entry, data=new_data)
+
+    _LOGGER.info("Migration to version %s successful", config_entry.version)
+
+    return True
 
 
 async def async_setup(hass: HomeAssistant, config_entry: ConfigType) -> bool:
@@ -48,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     _LOGGER.debug(f"async setup entry: {config_entry}")
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
+    region = config_entry.data[CONF_REGION]
 
     data = {}
 
@@ -56,7 +74,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         username=username, password=password, client_session=client_session
     )
     _, aws_devices = await get_aws_devices(
-        username=username, password=password, client_session=client_session
+        username=username,
+        password=password,
+        client_session=client_session,
+        region=region,
     )
 
     def create_updaters(device):

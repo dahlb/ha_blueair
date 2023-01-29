@@ -7,11 +7,14 @@ from homeassistant import config_entries
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    CONF_REGION,
 )
 
 from .const import (
     DOMAIN,
     CONFIG_FLOW_VERSION,
+    REGIONS,
+    REGION_USA,
 )
 
 from blueair_api import HttpBlueair
@@ -32,12 +35,17 @@ class KiaUvoConfigFlowHandler(config_entries.ConfigFlow):
 
     async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None):
         data_schema = {
+            vol.Required(
+                CONF_REGION,
+                default=REGION_USA,
+            ): vol.In(REGIONS),
             vol.Required(CONF_USERNAME): str,
             vol.Required(CONF_PASSWORD): str,
         }
         errors: Dict[str, str] = {}
 
         if user_input is not None:
+            region = user_input[CONF_REGION]
             username = user_input[CONF_USERNAME]
             password = user_input[CONF_PASSWORD]
 

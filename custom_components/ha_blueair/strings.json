@@ -5,6 +5,7 @@
         "title": "BlueAir Auth",
         "description": "Configure your Credentials.",
         "data": {
+          "region": "Region",
           "username": "Username",
           "password": "Password"
         }
