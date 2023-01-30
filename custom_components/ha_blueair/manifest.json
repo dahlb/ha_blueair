@@ -5,7 +5,7 @@
   "issue_tracker": "https://github.com/dahlb/ha_blueair/issues",
   "codeowners": ["@dahlb"],
   "requirements": ["blueair-api==1.8.2"],
-  "version": "1.6.2",
+  "version": "1.7.0",
   "config_flow": true,
   "iot_class": "cloud_polling"
 }
