@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Autenticación a BlueAir",
+        "description": "Configure sus credenciales",
+        "data": {
+          "region": "Región",
+          "username": "Usuario",
+          "password": "Contraseña"
+        }
+      },
+      "reauth_confirm": {
+        "title": "[%key:common::config_flow::title::reauth%]",
+        "description": "La integración pára BlueAir require reautenticar su cuenta."
+      }
+    },
+    "error": {
+      "auth": "Error en inicio de sesión. Por favor cierre e inicie sesión en la aplicación oficial e intente de nuevo."
+    }
+  }
+}
