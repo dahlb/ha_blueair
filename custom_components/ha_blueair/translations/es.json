@@ -12,7 +12,7 @@
       },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
-        "description": "La integración pára BlueAir require reautenticar su cuenta."
+        "description": "La integración pára BlueAir requiere reautenticar su cuenta."
       }
     },
     "error": {
