@@ -52,6 +52,11 @@ class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
             return None
         return round(self._device.temperature, 1)
 
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.native_value is not None
+
 
 class BlueairHumiditySensor(BlueairEntity, SensorEntity):
     """Monitors the humidity."""
@@ -70,6 +75,11 @@ class BlueairHumiditySensor(BlueairEntity, SensorEntity):
         if self._device.humidity is None:
             return None
         return round(self._device.humidity, 0)
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.native_value is not None
 
 
 class BlueairVOCSensor(BlueairEntity, SensorEntity):
@@ -90,6 +100,11 @@ class BlueairVOCSensor(BlueairEntity, SensorEntity):
             return None
         return round(self._device.voc, 0)
 
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.native_value is not None
+
 
 class BlueairPM1Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm1"""
@@ -108,6 +123,11 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
         if self._device.pm1 is None:
             return None
         return round(self._device.pm1, 0)
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.native_value is not None
 
 
 class BlueairPM10Sensor(BlueairEntity, SensorEntity):
@@ -128,6 +148,11 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
             return None
         return round(self._device.pm10, 0)
 
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.native_value is not None
+
 
 class BlueairPM25Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm25"""
@@ -146,3 +171,9 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
         if self._device.pm25 is None:
             return None
         return round(self._device.pm25, 0)
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.native_value is not None
+
