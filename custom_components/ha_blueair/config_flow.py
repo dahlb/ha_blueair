@@ -2,7 +2,6 @@ import logging
 from typing import Dict, Optional, Any
 
 import voluptuous as vol
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_USERNAME,
@@ -17,7 +16,7 @@ from .const import (
     REGION_USA,
 )
 
-from blueair_api import HttpBlueair
+from blueair_api import HttpBlueair, AuthError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,13 +51,13 @@ class KiaUvoConfigFlowHandler(config_entries.ConfigFlow):
             api_cloud = None
             try:
                 api_cloud = HttpBlueair(username=username, password=password)
-                api_cloud.get_auth_token()
+                await api_cloud.get_auth_token()
                 self.data.update(user_input)
                 return self.async_create_entry(
                     title=username,
                     data=self.data,
                 )
-            except ConfigEntryAuthFailed:
+            except AuthError:
                 errors["base"] = "auth"
             finally:
                 if api_cloud is not None:
