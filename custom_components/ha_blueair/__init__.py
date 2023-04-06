@@ -12,8 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from blueair_api import get_devices, get_aws_devices, HttpBlueair
-import asyncio
+from blueair_api import get_devices, get_aws_devices
 
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
@@ -57,7 +56,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
 
 async def async_setup(hass: HomeAssistant, config_entry: ConfigType) -> bool:
     hass.data.setdefault(DOMAIN, {})
-    _LOGGER.debug(f"async setup")
+    _LOGGER.debug("async setup")
     return True
 
 
@@ -110,7 +109,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
-    _LOGGER.debug(f"unload entry")
+    _LOGGER.debug("unload entry")
     unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
     )

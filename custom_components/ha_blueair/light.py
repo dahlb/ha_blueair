@@ -5,7 +5,6 @@ from homeassistant.components.light import (
     ColorMode,
     LightEntity,
 )
-from math import ceil
 import logging
 
 from .const import DOMAIN, DATA_AWS_DEVICES, DATA_DEVICES
