@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Any
+from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -27,12 +27,12 @@ class KiaUvoConfigFlowHandler(config_entries.ConfigFlow):
     VERSION = CONFIG_FLOW_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_PUSH
 
-    data: Optional[dict[str, Any]] = {}
+    data: dict[str, Any] | None = {}
 
     def __init__(self):
         pass
 
-    async def async_step_user(self, user_input: Optional[dict[str, Any]] = None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
         data_schema = {
             vol.Required(
                 CONF_REGION,
