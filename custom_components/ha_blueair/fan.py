@@ -109,7 +109,12 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         await self._device.set_running(False)
         self.async_write_ha_state()
 
-    async def async_turn_on(self, percentage: int | None = None, **kwargs: any) -> None:
+    async def async_turn_on(
+        self,
+        percentage: int | None = None,
+        preset_mode: str | None = None,
+        **kwargs: any,
+    ) -> None:
         await self._device.set_running(True)
         self.async_write_ha_state()
         if percentage is not None:
