@@ -109,7 +109,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         return True
     except LoginError as error:
-        _LOGGER.debug(f"login failure, ha should retry")
+        _LOGGER.debug("login failure, ha should retry")
         raise ConfigEntryNotReady("Login failure") from error
 
 
