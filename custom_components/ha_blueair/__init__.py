@@ -3,6 +3,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
@@ -12,7 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from blueair_api import get_devices, get_aws_devices
+from blueair_api import get_devices, get_aws_devices, LoginError
 
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
@@ -69,43 +70,46 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     data = {}
 
     client_session = async_get_clientsession(hass)
-    _, devices = await get_devices(
-        username=username, password=password, client_session=client_session
-    )
-    _, aws_devices = await get_aws_devices(
-        username=username,
-        password=password,
-        client_session=client_session,
-        region=region,
-    )
-
-    def create_updaters(device):
-        return BlueairDataUpdateCoordinator(
-            hass=hass,
-            blueair_api_device=device,
+    try:
+        _, devices = await get_devices(
+            username=username, password=password, client_session=client_session
+        )
+        _, aws_devices = await get_aws_devices(
+            username=username,
+            password=password,
+            client_session=client_session,
+            region=region,
         )
 
-    data[DATA_DEVICES] = list(map(create_updaters, devices))
+        def create_updaters(device):
+            return BlueairDataUpdateCoordinator(
+                hass=hass,
+                blueair_api_device=device,
+            )
 
-    for updater in data[DATA_DEVICES]:
-        await updater.async_config_entry_first_refresh()
+        data[DATA_DEVICES] = list(map(create_updaters, devices))
 
-    def create_aws_updaters(device):
-        return BlueairAwsDataUpdateCoordinator(
-            hass=hass,
-            blueair_api_device=device,
-        )
+        for updater in data[DATA_DEVICES]:
+            await updater.async_config_entry_first_refresh()
 
-    data[DATA_AWS_DEVICES] = list(map(create_aws_updaters, aws_devices))
+        def create_aws_updaters(device):
+            return BlueairAwsDataUpdateCoordinator(
+                hass=hass,
+                blueair_api_device=device,
+            )
 
-    for updater in data[DATA_AWS_DEVICES]:
-        await updater.async_config_entry_first_refresh()
+        data[DATA_AWS_DEVICES] = list(map(create_aws_updaters, aws_devices))
 
-    hass.data[DOMAIN] = data
+        for updater in data[DATA_AWS_DEVICES]:
+            await updater.async_config_entry_first_refresh()
 
-    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+        hass.data[DOMAIN] = data
 
-    return True
+        await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+
+        return True
+    except LoginError as error:
+        raise ConfigEntryNotReady("Login failure") from error
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
