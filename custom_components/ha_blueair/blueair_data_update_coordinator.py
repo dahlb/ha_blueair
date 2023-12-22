@@ -37,6 +37,7 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
             await self.blueair_api_device.refresh()
             return {}
         except Exception as error:
+            _LOGGER.error(error)
             raise UpdateFailed(error) from error
 
     @property
