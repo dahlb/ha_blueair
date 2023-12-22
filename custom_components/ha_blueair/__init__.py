@@ -106,6 +106,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         hass.data[DOMAIN] = data
 
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+        _LOGGER.debug("integration setup completed")
 
         return True
     except LoginError as error:
