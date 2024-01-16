@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.const import (
-    TEMP_CELSIUS,
+    UnitOfTemperature,
     PERCENTAGE,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
 )
@@ -38,7 +38,7 @@ class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
     """Monitors the temperature."""
 
     _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_native_unit_of_measurement = TEMP_CELSIUS
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
     def __init__(self, device):
         """Initialize the temperature sensor."""
