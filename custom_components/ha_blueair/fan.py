@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.fan import (
     FanEntity,
-    SUPPORT_SET_SPEED,
+    FanEntityFeature,
 )
 
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
@@ -44,7 +44,7 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     @property
     def supported_features(self) -> int:
-        return SUPPORT_SET_SPEED
+        return FanEntityFeature.SET_SPEED
 
     @property
     def is_on(self) -> int:
@@ -90,7 +90,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     @property
     def supported_features(self) -> int:
-        return SUPPORT_SET_SPEED
+        return FanEntityFeature.SET_SPEED
 
     @property
     def is_on(self) -> int:
