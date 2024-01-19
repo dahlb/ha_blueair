@@ -72,8 +72,16 @@ class BlueairFan(BlueairEntity, FanEntity):
     async def async_turn_off(self, **kwargs: any) -> None:
         await self._device.set_fan_speed("0")
 
-    async def async_turn_on(self, **kwargs: any) -> None:
-        await self._device.set_fan_speed("2")
+    async def async_turn_on(
+        self,
+        percentage: int | None = None,
+        preset_mode: str | None = None,
+        **kwargs: any,
+    ) -> None:
+        await self._device.set_fan_speed("1")
+        self.async_write_ha_state()
+        if percentage is not None:
+            await self.async_set_percentage(percentage=percentage)
 
     @property
     def speed_count(self) -> int:
