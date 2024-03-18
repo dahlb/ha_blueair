@@ -74,6 +74,11 @@ class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
     def is_on(self) -> bool | None:
         return self._device.night_mode
 
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._device.night_mode is not None
+
     async def async_turn_on(self, **kwargs):
         await self._device.set_night_mode(True)
         self.async_write_ha_state()
