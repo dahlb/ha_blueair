@@ -146,7 +146,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         await self.blueair_api_device.set_child_lock(locked)
         await sleep(5)
         await self.async_refresh()
-        
+
     async def set_night_mode(self, mode) -> None:
         self.blueair_api_device.night_mode = mode
         await self.blueair_api_device.set_night_mode(mode)

@@ -63,7 +63,7 @@ class BlueairAutoFanModeSwitchEntity(BlueairEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs):
         await self._device.set_fan_auto_mode(False)
         self.async_write_ha_state()
-        
+
 class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
 
@@ -71,7 +71,7 @@ class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
         super().__init__("Night Mode", device)
 
     @property
-    def is_on(self) -> int | None:
+    def is_on(self) -> bool | None:
         return self._device.night_mode
 
     async def async_turn_on(self, **kwargs):
