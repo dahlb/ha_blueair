@@ -21,6 +21,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             [
                 BlueairChildLockSwitchEntity(device),
                 BlueairAutoFanModeSwitchEntity(device),
+                BlueairNightModeSwitchEntity(device),
             ]
         )
     async_add_entities(entities)
@@ -62,3 +63,22 @@ class BlueairAutoFanModeSwitchEntity(BlueairEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs):
         await self._device.set_fan_auto_mode(False)
         self.async_write_ha_state()
+
+class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
+    _attr_device_class = SwitchDeviceClass.SWITCH
+
+    def __init__(self, device):
+        super().__init__("Night Mode", device)
+
+    @property
+    def is_on(self) -> bool | None:
+        return self._device.night_mode
+
+    async def async_turn_on(self, **kwargs):
+        await self._device.set_night_mode(True)
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs):
+        await self._device.set_night_mode(False)
+        self.async_write_ha_state()
+

@@ -147,6 +147,12 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         await sleep(5)
         await self.async_refresh()
 
+    async def set_night_mode(self, mode) -> None:
+        self.blueair_api_device.night_mode = mode
+        await self.blueair_api_device.set_night_mode(mode)
+        await sleep(5)
+        await self.async_refresh()
+
     async def set_fan_auto_mode(self, value) -> None:
         self.blueair_api_device.fan_auto_mode = value
         await self.blueair_api_device.set_fan_auto_mode(value)

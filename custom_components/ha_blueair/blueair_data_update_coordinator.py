@@ -89,6 +89,10 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.child_lock
 
     @property
+    def night_mode(self) -> bool:
+        return self.blueair_api_device.night_mode
+
+    @property
     def online(self) -> bool:
         return self.blueair_api_device.wifi_working
 
