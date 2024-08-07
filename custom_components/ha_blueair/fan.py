@@ -44,7 +44,7 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     @property
     def supported_features(self) -> int:
-        return FanEntityFeature.SET_SPEED
+        return FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
 
     @property
     def is_on(self) -> int:
@@ -98,7 +98,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     @property
     def supported_features(self) -> int:
-        return FanEntityFeature.SET_SPEED
+        return FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
 
     @property
     def is_on(self) -> int:
