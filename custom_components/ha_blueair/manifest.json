@@ -7,5 +7,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/dahlb/ha_blueair/issues",
   "requirements": ["blueair-api==1.9.4"],
-  "version": "1.9.4"
+  "version": "1.9.5"
 }
