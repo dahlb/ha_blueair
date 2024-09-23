@@ -6,7 +6,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import DOMAIN
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
+from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 
 
 class BlueairEntity(CoordinatorEntity):
@@ -18,14 +18,14 @@ class BlueairEntity(CoordinatorEntity):
     def __init__(
         self,
         entity_type: str,
-        device: BlueairDataUpdateCoordinator,
+        device: BlueairAwsDataUpdateCoordinator,
         **kwargs,
     ) -> None:
         super().__init__(device)
         self._attr_name = f"{device.blueair_api_device.name} {entity_type}"
         self._attr_unique_id = f"{device.blueair_api_device.uuid}_{entity_type}"
 
-        self._device: BlueairDataUpdateCoordinator = device
+        self._device: BlueairAwsDataUpdateCoordinator = device
 
     @property
     def device_info(self) -> DeviceInfo:

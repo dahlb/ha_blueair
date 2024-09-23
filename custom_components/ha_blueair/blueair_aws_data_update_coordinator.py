@@ -70,9 +70,9 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.running
 
     @property
-    def fan_mode(self) -> str:
+    def fan_mode_auto(self) -> bool:
         """Return the current fan mode."""
-        return self.blueair_api_device.fan_mode
+        return self.blueair_api_device.fan_auto_mode
 
     @property
     def brightness(self) -> int:

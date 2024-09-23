@@ -6,13 +6,13 @@ from homeassistant.components.switch import (
 )
 
 from .const import DOMAIN, DATA_AWS_DEVICES
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
+from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(hass, _config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
+    aws_devices: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
         DATA_AWS_DEVICES
     ]
     entities = []
@@ -64,6 +64,7 @@ class BlueairAutoFanModeSwitchEntity(BlueairEntity, SwitchEntity):
         await self._device.set_fan_auto_mode(False)
         self.async_write_ha_state()
 
+
 class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
 
@@ -86,4 +87,3 @@ class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs):
         await self._device.set_night_mode(False)
         self.async_write_ha_state()
-
