@@ -121,7 +121,8 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
     @property
     def filter_expired(self) -> bool:
         """Return the current filter status."""
-        return self.blueair_api_device.filter_usage >= 95
+        return (self.blueair_api_device.filter_usage is not None
+            and self.blueair_api_device.filter_usage >= 95)
 
     async def set_fan_speed(self, new_speed) -> None:
         self.blueair_api_device.fan_speed = new_speed
