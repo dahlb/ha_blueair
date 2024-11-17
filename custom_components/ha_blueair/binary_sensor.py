@@ -8,6 +8,7 @@ from homeassistant.helpers.entity import EntityDescription
 
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
+from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
@@ -25,7 +26,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         )
     async_add_entities(entities)
 
-    aws_devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
+    aws_devices: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
         DATA_AWS_DEVICES
     ]
     entities = []
@@ -34,6 +35,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             [
                 BlueairFilterExpiredSensor(device),
                 BlueairOnlineSensor(device),
+                BlueairWaterShortageSensor(device),
             ]
         )
     async_add_entities(entities)
@@ -55,11 +57,11 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:air-filter"
 
     def __init__(self, device):
+        """Initialize the temperature sensor."""
         self.entity_description = EntityDescription(
             key=f"#{device.blueair_api_device.uuid}-filter-expired",
             device_class=BinarySensorDeviceClass.PROBLEM,
         )
-        """Initialize the temperature sensor."""
         super().__init__("Filter Expiration", device)
 
     @property
@@ -72,11 +74,11 @@ class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:wifi-check"
 
     def __init__(self, device):
+        """Initialize the temperature sensor."""
         self.entity_description = EntityDescription(
             key=f"#{device.blueair_api_device.uuid}-online",
             device_class=BinarySensorDeviceClass.CONNECTIVITY,
         )
-        """Initialize the temperature sensor."""
         super().__init__("Online", device)
 
     @property
@@ -90,3 +92,18 @@ class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
             return self._attr_icon
         else:
             return "mdi:wifi-strength-outline"
+
+class BlueairWaterShortageSensor(BlueairEntity, BinarySensorEntity):
+    _attr_icon = "mdi:water-alert-outline"
+
+    def __init__(self, device):
+        self.entity_description = EntityDescription(
+            key=f"#{device.blueair_api_device.uuid}-water-shortage",
+            device_class=BinarySensorDeviceClass.PROBLEM,
+        )
+        super().__init__("Water Shortage", device)
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return true if the binary sensor is on."""
+        return self._device.water_shortage

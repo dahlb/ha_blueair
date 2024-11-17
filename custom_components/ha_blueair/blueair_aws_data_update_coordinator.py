@@ -1,7 +1,7 @@
 """Blueair device object."""
 import logging
 from datetime import timedelta
-
+import enum
 
 from blueair_api import DeviceAws as BlueAirApiDeviceAws
 from asyncio import sleep
@@ -13,6 +13,11 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
+class ModelEnum(enum.StrEnum):
+    UNKNOWN = "Unknown"
+    HUMIDIFIER_I35 = "Blueair Humidifier i35"
+    PROTECT_7470I = "Blueair Protect 7470i"
+
 class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
     """Blueair device object."""
 
@@ -23,7 +28,6 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         self.hass: HomeAssistant = hass
         self.blueair_api_device: BlueAirApiDeviceAws = blueair_api_device
         self._manufacturer: str = "BlueAir"
-
         super().__init__(
             hass,
             _LOGGER,
@@ -56,13 +60,26 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self._manufacturer
 
     @property
-    def model(self) -> str:
-        return self.blueair_api_device.type_name
+    def model(self) -> ModelEnum:
+        if (self.blueair_api_device.type_name == "Humidifier" and 
+            self.blueair_api_device.sku == "111633"):
+            return ModelEnum.HUMIDIFIER_I35
+        if self.blueair_api_device.sku == "105826":
+            return ModelEnum.PROTECT_7470I
+        return ModelEnum.UNKNOWN
 
     @property
     def fan_speed(self) -> int:
         """Return the current fan speed."""
         return self.blueair_api_device.fan_speed
+
+    @property
+    def speed_count(self) -> int:
+        """Return the max fan speed."""
+        if self.model == ModelEnum.HUMIDIFIER_I35:
+            return 64
+        else:
+            return 100
 
     @property
     def is_on(self) -> False:
@@ -119,10 +136,20 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.fan_auto_mode
 
     @property
+    def wick_dry_mode(self) -> bool:
+        return self.blueair_api_device.wick_dry_mode
+
+    @property
+    def water_shortage(self) -> bool:
+        return self.blueair_api_device.water_shortage
+
+    @property
     def filter_expired(self) -> bool:
         """Return the current filter status."""
-        return (self.blueair_api_device.filter_usage is not None
-            and self.blueair_api_device.filter_usage >= 95)
+        if self.blueair_api_device.filter_usage is not None:
+            return self.blueair_api_device.filter_usage >= 95
+        if self.blueair_api_device.wick_usage is not None:
+            return self.blueair_api_device.wick_usage >= 95
 
     async def set_fan_speed(self, new_speed) -> None:
         self.blueair_api_device.fan_speed = new_speed
@@ -157,5 +184,11 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
     async def set_fan_auto_mode(self, value) -> None:
         self.blueair_api_device.fan_auto_mode = value
         await self.blueair_api_device.set_fan_auto_mode(value)
+        await sleep(5)
+        await self.async_refresh()
+
+    async def set_wick_dry_mode(self, value) -> None:
+        self.blueair_api_device.wick_dry_mode = value
+        await self.blueair_api_device.set_wick_dry_mode(value)
         await sleep(5)
         await self.async_refresh()

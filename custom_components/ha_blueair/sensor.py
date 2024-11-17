@@ -10,7 +10,7 @@ from homeassistant.const import (
 
 
 from .const import DOMAIN, DATA_AWS_DEVICES
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
+from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator, ModelEnum
 from .entity import BlueairEntity
 
 
@@ -20,17 +20,23 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         DATA_AWS_DEVICES
     ]
     entities = []
+
     for device in aws_devices:
-        entities.extend(
-            [
+        if device.model in (ModelEnum.UNKNOWN, ModelEnum.PROTECT_7470I):
+            entities.extend([
                 BlueairTemperatureSensor(device),
                 BlueairHumiditySensor(device),
                 BlueairVOCSensor(device),
                 BlueairPM1Sensor(device),
                 BlueairPM10Sensor(device),
                 BlueairPM25Sensor(device),
-            ]
-        )
+            ])
+        elif device.model == ModelEnum.HUMIDIFIER_I35:
+            entities.extend([
+                BlueairTemperatureSensor(device),
+                BlueairHumiditySensor(device),
+            ])
+
     async_add_entities(entities)
 
 
