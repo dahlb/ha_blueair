@@ -57,7 +57,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def model(self) -> str:
-        return "protect?"
+        return self.blueair_api_device.type_name
 
     @property
     def fan_speed(self) -> int:
