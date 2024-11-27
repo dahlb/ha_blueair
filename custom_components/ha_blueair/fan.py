@@ -12,6 +12,8 @@ from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
+_DEFAULT_FAN_SPEED_PERCENTAGE = 50
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair fans from config entry."""
     devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
@@ -126,8 +128,14 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         await self._device.set_running(True)
         self.async_write_ha_state()
         if percentage is None:
-           percentage = 50
-        await self.async_set_percentage(percentage=percentage)
+            # FIXME: i35 (and probably others) do not remember the
+            # last fan speed and always set the speed to 0. I don't know
+            # where to store the last fan speed such that it persists across
+            # HA reboots. Thus we set the default turn_on fan speed to 50%
+            # to make sure the fan actually spins at all.
+            percentage = _DEFAULT_FAN_SPEED_PERCENTAGE
+        if percentage is not None:
+            await self.async_set_percentage(percentage=percentage)
 
     @property
     def speed_count(self) -> int:
