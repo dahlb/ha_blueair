@@ -12,11 +12,15 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+_ASYNC_REFRESH_WAIT_SECONDS = 5
+_FILTER_EXPIRED_THRESHOLD = 95
+
 
 class ModelEnum(enum.StrEnum):
     UNKNOWN = "Unknown"
     HUMIDIFIER_I35 = "Blueair Humidifier i35"
     PROTECT_7470I = "Blueair Protect 7470i"
+
 
 class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
     """Blueair device object."""
@@ -61,8 +65,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def model(self) -> ModelEnum:
-        if (self.blueair_api_device.type_name == "Humidifier" and 
-            self.blueair_api_device.sku == "111633"):
+        if self.blueair_api_device.sku == "111633":
             return ModelEnum.HUMIDIFIER_I35
         if self.blueair_api_device.sku == "105826":
             return ModelEnum.PROTECT_7470I
@@ -147,48 +150,43 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
     def filter_expired(self) -> bool:
         """Return the current filter status."""
         if self.blueair_api_device.filter_usage is not None:
-            return self.blueair_api_device.filter_usage >= 95
+            return (self.blueair_api_device.filter_usage >=
+                    _FILTER_EXPIRED_THRESHOLD)
         if self.blueair_api_device.wick_usage is not None:
-            return self.blueair_api_device.wick_usage >= 95
+            return (self.blueair_api_device.wick_usage >=
+                    _FILTER_EXPIRED_THRESHOLD)
 
     async def set_fan_speed(self, new_speed) -> None:
-        self.blueair_api_device.fan_speed = new_speed
         await self.blueair_api_device.set_fan_speed(new_speed)
-        await sleep(5)
+        await sleep(_ASYNC_REFRESH_WAIT_SECONDS)
         await self.async_refresh()
 
     async def set_running(self, running) -> None:
-        self.blueair_api_device.running = running
         await self.blueair_api_device.set_running(running)
-        await sleep(5)
+        await sleep(_ASYNC_REFRESH_WAIT_SECONDS)
         await self.async_refresh()
 
     async def set_brightness(self, brightness) -> None:
-        self.blueair_api_device.brightness = brightness
         await self.blueair_api_device.set_brightness(brightness)
-        await sleep(5)
+        await sleep(_ASYNC_REFRESH_WAIT_SECONDS)
         await self.async_refresh()
 
     async def set_child_lock(self, locked) -> None:
-        self.blueair_api_device.child_lock = locked
         await self.blueair_api_device.set_child_lock(locked)
-        await sleep(5)
+        await sleep(_ASYNC_REFRESH_WAIT_SECONDS)
         await self.async_refresh()
 
     async def set_night_mode(self, mode) -> None:
-        self.blueair_api_device.night_mode = mode
         await self.blueair_api_device.set_night_mode(mode)
-        await sleep(5)
+        await sleep(_ASYNC_REFRESH_WAIT_SECONDS)
         await self.async_refresh()
 
     async def set_fan_auto_mode(self, value) -> None:
-        self.blueair_api_device.fan_auto_mode = value
         await self.blueair_api_device.set_fan_auto_mode(value)
-        await sleep(5)
+        await sleep(_ASYNC_REFRESH_WAIT_SECONDS)
         await self.async_refresh()
 
     async def set_wick_dry_mode(self, value) -> None:
-        self.blueair_api_device.wick_dry_mode = value
         await self.blueair_api_device.set_wick_dry_mode(value)
-        await sleep(5)
+        await sleep(_ASYNC_REFRESH_WAIT_SECONDS)
         await self.async_refresh()
