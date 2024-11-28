@@ -8,11 +8,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.debounce import Debouncer
 
-from .const import DOMAIN
+from .const import DOMAIN, FILTER_EXPIRED_THRESHOLD
 
 _LOGGER = logging.getLogger(__name__)
-
-_FILTER_EXPIRED_THRESHOLD = 95
 
 
 class ModelEnum(enum.StrEnum):
@@ -153,10 +151,10 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         """Return the current filter status."""
         if self.blueair_api_device.filter_usage is not None:
             return (self.blueair_api_device.filter_usage >=
-                    _FILTER_EXPIRED_THRESHOLD)
+                    FILTER_EXPIRED_THRESHOLD)
         if self.blueair_api_device.wick_usage is not None:
             return (self.blueair_api_device.wick_usage >=
-                    _FILTER_EXPIRED_THRESHOLD)
+                    FILTER_EXPIRED_THRESHOLD)
 
     async def set_fan_speed(self, new_speed) -> None:
         await self.blueair_api_device.set_fan_speed(new_speed)
