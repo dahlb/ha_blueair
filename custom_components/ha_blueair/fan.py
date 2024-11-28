@@ -6,7 +6,7 @@ from homeassistant.components.fan import (
     FanEntityFeature,
 )
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
+from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES, DEFAULT_FAN_SPEED_PERCENTAGE
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity
@@ -107,10 +107,10 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     @property
     def percentage(self) -> int:
         """Return the current speed percentage."""
-        return self._device.fan_speed
+        return int(self._device.fan_speed / self._device.speed_count * 100)
 
     async def async_set_percentage(self, percentage: int) -> None:
-        await self._device.set_fan_speed(percentage)
+        await self._device.set_fan_speed(int(percentage / 100 * self._device.speed_count))
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
@@ -125,10 +125,17 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     ) -> None:
         await self._device.set_running(True)
         self.async_write_ha_state()
+        if percentage is None:
+            # FIXME: i35 (and probably others) do not remember the
+            # last fan speed and always set the speed to 0. I don't know
+            # where to store the last fan speed such that it persists across
+            # HA reboots. Thus we set the default turn_on fan speed to 50%
+            # to make sure the fan actually spins at all.
+            percentage = DEFAULT_FAN_SPEED_PERCENTAGE
         if percentage is not None:
             await self.async_set_percentage(percentage=percentage)
 
     @property
     def speed_count(self) -> int:
         """Return the number of speeds the fan supports."""
-        return 100
+        return self._device.speed_count

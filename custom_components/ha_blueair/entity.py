@@ -6,6 +6,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import DOMAIN
+from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 
 
@@ -18,7 +19,7 @@ class BlueairEntity(CoordinatorEntity):
     def __init__(
         self,
         entity_type: str,
-        device: BlueairAwsDataUpdateCoordinator,
+        device: BlueairAwsDataUpdateCoordinator | BlueairDataUpdateCoordinator,
         **kwargs,
     ) -> None:
         super().__init__(device)
@@ -40,6 +41,9 @@ class BlueairEntity(CoordinatorEntity):
 
     async def async_update(self):
         """Update Blueair entity."""
+        if not self.enabled:
+            return
+
         await self._device.async_request_refresh()
         self._attr_available = self._device.blueair_api_device.wifi_working
 
