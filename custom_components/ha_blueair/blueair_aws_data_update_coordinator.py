@@ -71,6 +71,8 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         """Return the max fan speed."""
         if self.model == ModelEnum.HUMIDIFIER_I35:
             return 64
+        elif self.model == ModelEnum.PROTECT_7470I:
+            return 91
         else:
             return 100
 
