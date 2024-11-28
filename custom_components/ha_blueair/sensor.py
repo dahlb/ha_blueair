@@ -7,10 +7,10 @@ from homeassistant.const import (
     PERCENTAGE,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
 )
-
+from blueair_api import ModelEnum
 
 from .const import DOMAIN, DATA_AWS_DEVICES
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator, ModelEnum
+from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
@@ -182,4 +182,3 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.native_value is not None
-

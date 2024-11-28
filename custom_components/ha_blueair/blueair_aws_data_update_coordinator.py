@@ -1,9 +1,8 @@
 """Blueair device object."""
 import logging
 from datetime import timedelta
-import enum
 
-from blueair_api import DeviceAws as BlueAirApiDeviceAws
+from blueair_api import DeviceAws as BlueAirApiDeviceAws, ModelEnum
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.debounce import Debouncer
@@ -11,12 +10,6 @@ from homeassistant.helpers.debounce import Debouncer
 from .const import DOMAIN, FILTER_EXPIRED_THRESHOLD
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class ModelEnum(enum.StrEnum):
-    UNKNOWN = "Unknown"
-    HUMIDIFIER_I35 = "Blueair Humidifier i35"
-    PROTECT_7470I = "Blueair Protect 7470i"
 
 
 class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
@@ -65,11 +58,8 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def model(self) -> ModelEnum:
-        if self.blueair_api_device.sku == "111633":
-            return ModelEnum.HUMIDIFIER_I35
-        if self.blueair_api_device.sku == "105826":
-            return ModelEnum.PROTECT_7470I
-        return ModelEnum.UNKNOWN
+        """Return api package enum of device model."""
+        return self.blueair_api_device.model
 
     @property
     def fan_speed(self) -> int:

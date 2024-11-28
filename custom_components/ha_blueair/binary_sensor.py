@@ -5,6 +5,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.helpers.entity import EntityDescription
+from blueair_api import ModelEnum
 
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
@@ -31,13 +32,20 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     ]
     entities = []
     for device in aws_devices:
-        entities.extend(
-            [
-                BlueairFilterExpiredSensor(device),
-                BlueairOnlineSensor(device),
-                BlueairWaterShortageSensor(device),
-            ]
-        )
+        if device.model == ModelEnum.HUMIDIFIER_I35:
+            entities.extend(
+                [
+                    BlueairOnlineSensor(device),
+                    BlueairWaterShortageSensor(device),
+                ]
+            )
+        else:
+            entities.extend(
+                [
+                    BlueairOnlineSensor(device),
+                    BlueairFilterExpiredSensor(device),
+                ]
+            )
     async_add_entities(entities)
 
 

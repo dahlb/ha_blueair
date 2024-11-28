@@ -4,6 +4,7 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchDeviceClass,
 )
+from blueair_api import ModelEnum
 
 from .const import DOMAIN, DATA_AWS_DEVICES
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
@@ -17,14 +18,23 @@ async def async_setup_entry(hass, _config_entry, async_add_entities):
     ]
     entities = []
     for device in aws_devices:
-        entities.extend(
-            [
-                BlueairChildLockSwitchEntity(device),
-                BlueairAutoFanModeSwitchEntity(device),
-                BlueairNightModeSwitchEntity(device),
-                BlueairWickDryModeSwitchEntity(device),
-            ]
-        )
+        if device.model == ModelEnum.HUMIDIFIER_I35:
+            entities.extend(
+                [
+                    BlueairChildLockSwitchEntity(device),
+                    BlueairAutoFanModeSwitchEntity(device),
+                    BlueairNightModeSwitchEntity(device),
+                    BlueairWickDryModeSwitchEntity(device),
+                ]
+            )
+        else:
+            entities.extend(
+                [
+                    BlueairChildLockSwitchEntity(device),
+                    BlueairAutoFanModeSwitchEntity(device),
+                    BlueairNightModeSwitchEntity(device),
+                ]
+            )
     async_add_entities(entities)
 
 
@@ -88,6 +98,7 @@ class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs):
         await self._device.set_night_mode(False)
         self.async_write_ha_state()
+
 
 class BlueairWickDryModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH

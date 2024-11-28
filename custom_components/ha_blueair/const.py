@@ -1,4 +1,3 @@
-
 # Configuration Constants
 DOMAIN: str = "ha_blueair"
 
@@ -16,5 +15,3 @@ REGIONS = [REGION_USA, REGION_EU]
 
 DEFAULT_FAN_SPEED_PERCENTAGE = 50
 FILTER_EXPIRED_THRESHOLD = 95
-
-
