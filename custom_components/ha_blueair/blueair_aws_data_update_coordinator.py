@@ -7,6 +7,7 @@ from blueair_api import DeviceAws as BlueAirApiDeviceAws
 from asyncio import sleep
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.debounce import Debouncer
 
 from .const import DOMAIN
 
@@ -36,6 +37,9 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER,
             name=f"{DOMAIN}-{self.blueair_api_device.uuid}",
             update_interval=timedelta(minutes=10),
+            request_refresh_debouncer=Debouncer(
+                hass, _LOGGER, cooldown=5.0, immediate=False,
+            ),
         )
 
     async def _async_update_data(self):
