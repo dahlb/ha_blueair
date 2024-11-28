@@ -4,7 +4,6 @@ from datetime import timedelta
 import enum
 
 from blueair_api import DeviceAws as BlueAirApiDeviceAws
-from asyncio import sleep
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.debounce import Debouncer
