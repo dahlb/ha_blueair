@@ -6,13 +6,11 @@ from homeassistant.components.fan import (
     FanEntityFeature,
 )
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
+from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES, DEFAULT_FAN_SPEED_PERCENTAGE
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity
 
-
-_DEFAULT_FAN_SPEED_PERCENTAGE = 50
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair fans from config entry."""
@@ -133,7 +131,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             # where to store the last fan speed such that it persists across
             # HA reboots. Thus we set the default turn_on fan speed to 50%
             # to make sure the fan actually spins at all.
-            percentage = _DEFAULT_FAN_SPEED_PERCENTAGE
+            percentage = DEFAULT_FAN_SPEED_PERCENTAGE
         if percentage is not None:
             await self.async_set_percentage(percentage=percentage)
 
