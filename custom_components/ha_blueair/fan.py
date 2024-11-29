@@ -107,10 +107,13 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     @property
     def percentage(self) -> int:
         """Return the current speed percentage."""
-        return int(self._device.fan_speed / self._device.speed_count * 100)
+        current_speed = int(round(self._device.fan_speed / self._device.speed_count * 100))
+        if current_speed == 51:
+            current_speed = 50
+        return current_speed
 
     async def async_set_percentage(self, percentage: int) -> None:
-        await self._device.set_fan_speed(int(percentage / 100 * self._device.speed_count))
+        await self._device.set_fan_speed(int(round(percentage / 100 * self._device.speed_count)))
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
