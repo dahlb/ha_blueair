@@ -1,4 +1,4 @@
 homeassistant==2024.8.0
 ruff==0.8.1
-blueair-api==1.13.0
+blueair-api==1.15.0
 

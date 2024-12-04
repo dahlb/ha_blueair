@@ -22,7 +22,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     entities = []
 
     for device in aws_devices:
-        if device.model == ModelEnum.HUMIDIFIER_I35:
+        if device.model == ModelEnum.HUMIDIFIER_H35I:
             entities.extend([
                 BlueairTemperatureSensor(device),
                 BlueairHumiditySensor(device),
