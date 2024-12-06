@@ -57,9 +57,9 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self._manufacturer
 
     @property
-    def model(self) -> ModelEnum:
+    def model(self) -> str:
         """Return api package enum of device model."""
-        return self.blueair_api_device.model
+        return self.blueair_api_device.model.model_name
 
     @property
     def fan_speed(self) -> int:

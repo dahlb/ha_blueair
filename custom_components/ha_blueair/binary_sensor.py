@@ -5,7 +5,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.helpers.entity import EntityDescription
-from blueair_api import ModelEnum
+from blueair_api import FeatureEnum
 
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
@@ -15,6 +15,11 @@ from .entity import BlueairEntity
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
+    feature_class_mapping = [
+        [FeatureEnum.FILTER_EXPIRED, BlueairFilterExpiredSensor],
+        [FeatureEnum.CHILD_LOCK, BlueairChildLockSensor],
+        [FeatureEnum.WATER_SHORTAGE, BlueairWaterShortageSensor],
+    ]
     devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
     entities = []
     for device in devices:
@@ -32,20 +37,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     ]
     entities = []
     for device in aws_devices:
-        if device.model == ModelEnum.HUMIDIFIER_H35I:
-            entities.extend(
-                [
-                    BlueairOnlineSensor(device),
-                    BlueairWaterShortageSensor(device),
-                ]
-            )
-        else:
-            entities.extend(
-                [
-                    BlueairOnlineSensor(device),
-                    BlueairFilterExpiredSensor(device),
-                ]
-            )
+        entities.append(BlueairOnlineSensor(device))
+        for feature_class in feature_class_mapping:
+            if device.blueair_api_device.model.supports_feature(feature_class[0]):
+                entities.append(feature_class[1](device))
     async_add_entities(entities)
 
 
@@ -100,6 +95,7 @@ class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
             return self._attr_icon
         else:
             return "mdi:wifi-strength-outline"
+
 
 class BlueairWaterShortageSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:water-alert-outline"
