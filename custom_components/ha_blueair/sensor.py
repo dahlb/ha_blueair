@@ -123,7 +123,7 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
         """Return the current pm1."""
         if self._device.pm1 is None:
             return None
-        return round(self._device.pm1, 0)
+        return int((self._device.pm1 * 100) // 132)
 
     @property
     def available(self) -> bool:
@@ -147,7 +147,7 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
         """Return the current pm10."""
         if self._device.pm10 is None:
             return None
-        return round(self._device.pm10, 0)
+        return int((self._device.pm1 * 100) // 132)
 
     @property
     def available(self) -> bool:
@@ -171,7 +171,7 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
         """Return the current pm25."""
         if self._device.pm25 is None:
             return None
-        return round(self._device.pm25, 0)
+        return int((self._device.pm1 * 100) // 132)
 
     @property
     def available(self) -> bool:
