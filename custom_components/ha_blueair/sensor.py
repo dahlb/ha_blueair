@@ -6,7 +6,7 @@ from homeassistant.const import (
     PERCENTAGE,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
 )
-from blueair_api import FeatureEnum
+from blueair_api import FeatureEnum, DeviceAws
 
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
@@ -140,7 +140,10 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
         """Return the current pm1."""
         if self._device.pm1 is None:
             return None
-        return int((self._device.pm1 * 100) // 132)
+        if type(self._device) is DeviceAws:
+            return int((self._device.pm1 * 100) // 132)
+        else:
+            return int(self._device.pm1)
 
     @property
     def available(self) -> bool:
@@ -164,7 +167,10 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
         """Return the current pm10."""
         if self._device.pm10 is None:
             return None
-        return int((self._device.pm10 * 100) // 132)
+        if type(self._device) is DeviceAws:
+            return int((self._device.pm10 * 100) // 132)
+        else:
+            return int(self._device.pm10)
 
     @property
     def available(self) -> bool:
@@ -188,7 +194,10 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
         """Return the current pm25."""
         if self._device.pm25 is None:
             return None
-        return int((self._device.pm25 * 100) // 132)
+        if type(self._device) is DeviceAws:
+            return int((self._device.pm25 * 100) // 132)
+        else:
+            return int(self._device.pm25)
 
     @property
     def available(self) -> bool:
