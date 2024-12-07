@@ -4,6 +4,8 @@ from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.const import (
     UnitOfTemperature,
     PERCENTAGE,
+    CONCENTRATION_PARTS_PER_MILLION,
+    CONCENTRATION_PARTS_PER_BILLION,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
 )
 from blueair_api import FeatureEnum, DeviceAws
@@ -19,7 +21,17 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
     entities = []
     for device in devices:
-        if device.model in ["classic_680i"]:
+        if device.model in ["classic_280i"]:
+            entities.extend(
+                [
+                    BlueairTemperatureSensor(device),
+                    BlueairHumiditySensor(device),
+                    BlueairVOCSensor(device),
+                    BlueairPM25Sensor(device),
+                    BlueairCO2Sensor(device),
+                ]
+            )
+        if device.model in ["classic_290i", "classic_480i", "classic_680i"]:
             entities.extend(
                 [
                     BlueairTemperatureSensor(device),
@@ -28,6 +40,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     BlueairPM1Sensor(device),
                     BlueairPM10Sensor(device),
                     BlueairPM25Sensor(device),
+                    BlueairCO2Sensor(device),
                 ]
             )
     async_add_entities(entities)
@@ -104,7 +117,7 @@ class BlueairVOCSensor(BlueairEntity, SensorEntity):
     """Monitors the VOC."""
 
     _attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS
-    _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+    _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_BILLION
 
     def __init__(self, device):
         """Initialize the VOC sensor."""
@@ -128,7 +141,7 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm1"""
 
     _attr_device_class = SensorDeviceClass.PM1
-    _attr_native_unit_of_measurement = "µg/m³"
+    _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
     def __init__(self, device):
         """Initialize the pm1 sensor."""
@@ -155,7 +168,7 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm10"""
 
     _attr_device_class = SensorDeviceClass.PM10
-    _attr_native_unit_of_measurement = "µg/m³"
+    _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
     def __init__(self, device):
         """Initialize the pm10 sensor."""
@@ -182,7 +195,7 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
     """Monitors the pm25"""
 
     _attr_device_class = SensorDeviceClass.PM25
-    _attr_native_unit_of_measurement = "µg/m³"
+    _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
     def __init__(self, device):
         """Initialize the pm25 sensor."""
@@ -198,6 +211,33 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
             return int((self._device.pm25 * 100) // 132)
         else:
             return int(self._device.pm25)
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.native_value is not None
+
+
+class BlueairCO2Sensor(BlueairEntity, SensorEntity):
+    """Monitors the Co2"""
+
+    _attr_device_class = SensorDeviceClass.CO2
+    _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+
+    def __init__(self, device):
+        """Initialize the co2 sensor."""
+        super().__init__("co2", device)
+        self._state: float | None = None
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current co2."""
+        if self._device.co2 is None:
+            return None
+        if type(self._device) is DeviceAws:
+            return int((self._device.co2 * 100) // 132)
+        else:
+            return int(self._device.co2)
 
     @property
     def available(self) -> bool:

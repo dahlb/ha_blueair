@@ -96,6 +96,10 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         return int(self.blueair_api_device.pm25)
 
     @property
+    def co2(self) -> int:
+        return self.blueair_api_device.co2
+
+    @property
     def is_on(self) -> False:
         """Return the current fan state."""
         if self.fan_speed == 0:
