@@ -8,13 +8,30 @@ from homeassistant.const import (
 )
 from blueair_api import FeatureEnum
 
-from .const import DOMAIN, DATA_AWS_DEVICES
+from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
+from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .entity import BlueairEntity
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
+    devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
+    entities = []
+    for device in devices:
+        if device.model in ["classic_680i"]:
+            entities.extend(
+                [
+                    BlueairTemperatureSensor(device),
+                    BlueairHumiditySensor(device),
+                    BlueairVOCSensor(device),
+                    BlueairPM1Sensor(device),
+                    BlueairPM10Sensor(device),
+                    BlueairPM25Sensor(device),
+                ]
+            )
+    async_add_entities(entities)
+
     feature_class_mapping = [
         [FeatureEnum.TEMPERATURE, BlueairTemperatureSensor],
         [FeatureEnum.HUMIDITY, BlueairHumiditySensor],
