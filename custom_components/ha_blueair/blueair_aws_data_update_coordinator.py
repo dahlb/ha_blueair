@@ -26,7 +26,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=f"{DOMAIN}-{self.blueair_api_device.uuid}",
-            update_interval=timedelta(minutes=10),
+            update_interval=timedelta(minutes=5),
             request_refresh_debouncer=Debouncer(
                 hass, _LOGGER, cooldown=5.0, immediate=False,
             ),

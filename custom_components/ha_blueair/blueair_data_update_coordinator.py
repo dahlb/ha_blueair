@@ -28,7 +28,7 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=f"{DOMAIN}-{self.blueair_api_device.name}",
-            update_interval=timedelta(minutes=10),
+            update_interval=timedelta(minutes=5),
         )
 
     async def _async_update_data(self):
