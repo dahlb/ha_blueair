@@ -26,22 +26,22 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, config_entry: ConfigEntry
 ) -> dict[str, dict[str, Any]]:
     """Return diagnostics for a config entry."""
-    device_updaters: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
-    device_aws_updaters: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
-    updaters = device_updaters + device_aws_updaters
+    device_coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
+    device_aws_coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    coordinators = device_coordinators + device_aws_coordinators
     data = {
         "entry": async_redact_data(config_entry.as_dict(), TO_REDACT),
     }
-    for updater in updaters:
-        data[updater.blueair_api_device.mac] = updater.blueair_api_device.__repr__()
+    for coordinator in coordinators:
+        data[coordinator.blueair_api_device.mac] = coordinator.blueair_api_device.__repr__()
 
         device_registry = dr.async_get(hass)
         entity_registry = er.async_get(hass)
         hass_device = device_registry.async_get_device(
-            identifiers={(DOMAIN, updater.id)}
+            identifiers={(DOMAIN, coordinator.id)}
         )
         if hass_device is not None:
-            data[updater.blueair_api_device.mac]["device"] = {
+            data[coordinator.blueair_api_device.mac]["device"] = {
                 **async_redact_data(attr.asdict(hass_device), TO_REDACT_DEVICE),
                 "entities": {},
             }
@@ -62,7 +62,7 @@ async def async_get_config_entry_diagnostics(
                     # The context doesn't provide useful information in this case.
                     state_dict.pop("context", None)
 
-                data[updater.blueair_api_device.mac]["device"]["entities"][entity_entry.entity_id] = {
+                data[coordinator.blueair_api_device.mac]["device"]["entities"][entity_entry.entity_id] = {
                     **async_redact_data(
                         attr.asdict(
                             entity_entry,

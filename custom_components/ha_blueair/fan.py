@@ -14,22 +14,22 @@ from .entity import BlueairEntity
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair fans from config entry."""
-    devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
+    coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
     entities = []
-    for device in devices:
+    for coordinator in coordinators:
         entities.extend(
             [
-                BlueairFan(device),
+                BlueairFan(coordinator),
             ]
         )
     async_add_entities(entities)
 
-    devices: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
     entities = []
-    for device in devices:
+    for coordinator in coordinators:
         entities.extend(
             [
-                BlueairAwsFan(device),
+                BlueairAwsFan(coordinator),
             ]
         )
     async_add_entities(entities)
@@ -38,9 +38,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class BlueairFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 
-    def __init__(self, device: BlueairDataUpdateCoordinator):
+    def __init__(self, coordinator: BlueairDataUpdateCoordinator):
         """Initialize the temperature sensor."""
-        super().__init__("Fan", device)
+        super().__init__("Fan", coordinator)
 
     @property
     def supported_features(self) -> int:
@@ -48,12 +48,12 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     @property
     def is_on(self) -> int:
-        return self._device.is_on
+        return self.coordinator.is_on
 
     @property
     def percentage(self) -> int:
         """Return the current speed percentage."""
-        return int(round(self._device.fan_speed * 33.33, 0))
+        return int(round(self.coordinator.fan_speed * 33.33, 0))
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Sets fan speed percentage."""
@@ -66,11 +66,11 @@ class BlueairFan(BlueairEntity, FanEntity):
         else:
             new_speed = "0"
 
-        await self._device.set_fan_speed(new_speed)
+        await self.coordinator.set_fan_speed(new_speed)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
-        await self._device.set_fan_speed("0")
+        await self.coordinator.set_fan_speed("0")
 
     async def async_turn_on(
         self,
@@ -78,7 +78,7 @@ class BlueairFan(BlueairEntity, FanEntity):
         preset_mode: str | None = None,
         **kwargs: any,
     ) -> None:
-        await self._device.set_fan_speed("1")
+        await self.coordinator.set_fan_speed("1")
         self.async_write_ha_state()
         if percentage is not None:
             await self.async_set_percentage(percentage=percentage)
@@ -92,9 +92,9 @@ class BlueairFan(BlueairEntity, FanEntity):
 class BlueairAwsFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 
-    def __init__(self, device: BlueairAwsDataUpdateCoordinator):
+    def __init__(self, coordinator: BlueairAwsDataUpdateCoordinator):
         """Initialize the temperature sensor."""
-        super().__init__("Fan", device)
+        super().__init__("Fan", coordinator)
 
     @property
     def supported_features(self) -> int:
@@ -102,19 +102,19 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     @property
     def is_on(self) -> int:
-        return self._device.is_on
+        return self.coordinator.is_on
 
     @property
     def percentage(self) -> int:
         """Return the current speed percentage."""
-        return int((self._device.fan_speed * 100) // self._device.speed_count)
+        return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
 
     async def async_set_percentage(self, percentage: int) -> None:
-        await self._device.set_fan_speed(int(round(percentage / 100 * self._device.speed_count)))
+        await self.coordinator.set_fan_speed(int(round(percentage / 100 * self.coordinator.speed_count)))
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
-        await self._device.set_running(False)
+        await self.coordinator.set_running(False)
         self.async_write_ha_state()
 
     async def async_turn_on(
@@ -123,7 +123,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         preset_mode: str | None = None,
         **kwargs: any,
     ) -> None:
-        await self._device.set_running(True)
+        await self.coordinator.set_running(True)
         self.async_write_ha_state()
         if percentage is None:
             # FIXME: i35 (and probably others) do not remember the
@@ -138,4 +138,4 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     @property
     def speed_count(self) -> int:
         """Return the number of speeds the fan supports."""
-        return self._device.speed_count
+        return self.coordinator.speed_count

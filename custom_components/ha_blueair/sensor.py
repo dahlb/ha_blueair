@@ -18,29 +18,29 @@ from .entity import BlueairEntity
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
+    coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
     entities = []
-    for device in devices:
-        if device.model in ["classic_280i"]:
+    for coordinator in coordinators:
+        if coordinator.model in ["classic_280i"]:
             entities.extend(
                 [
-                    BlueairTemperatureSensor(device),
-                    BlueairHumiditySensor(device),
-                    BlueairVOCSensor(device),
-                    BlueairPM25Sensor(device),
-                    BlueairCO2Sensor(device),
+                    BlueairTemperatureSensor(coordinator),
+                    BlueairHumiditySensor(coordinator),
+                    BlueairVOCSensor(coordinator),
+                    BlueairPM25Sensor(coordinator),
+                    BlueairCO2Sensor(coordinator),
                 ]
             )
-        if device.model in ["classic_290i", "classic_480i", "classic_680i"]:
+        if coordinator.model in ["classic_290i", "classic_480i", "classic_680i"]:
             entities.extend(
                 [
-                    BlueairTemperatureSensor(device),
-                    BlueairHumiditySensor(device),
-                    BlueairVOCSensor(device),
-                    BlueairPM1Sensor(device),
-                    BlueairPM10Sensor(device),
-                    BlueairPM25Sensor(device),
-                    BlueairCO2Sensor(device),
+                    BlueairTemperatureSensor(coordinator),
+                    BlueairHumiditySensor(coordinator),
+                    BlueairVOCSensor(coordinator),
+                    BlueairPM1Sensor(coordinator),
+                    BlueairPM10Sensor(coordinator),
+                    BlueairPM25Sensor(coordinator),
+                    BlueairCO2Sensor(coordinator),
                 ]
             )
     async_add_entities(entities)
@@ -53,15 +53,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         [FeatureEnum.PM10, BlueairPM10Sensor],
         [FeatureEnum.PM25, BlueairPM25Sensor],
     ]
-    aws_devices: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
+    aws_coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
         DATA_AWS_DEVICES
     ]
     entities = []
 
-    for device in aws_devices:
+    for coordinator in aws_coordinators:
         for feature_class in feature_class_mapping:
-            if device.blueair_api_device.model.supports_feature(feature_class[0]):
-                entities.append(feature_class[1](device))
+            if coordinator.blueair_api_device.model.supports_feature(feature_class[0]):
+                entities.append(feature_class[1](coordinator))
     async_add_entities(entities)
 
 
@@ -71,17 +71,17 @@ class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the temperature sensor."""
-        super().__init__("Temperature", device)
+        super().__init__("Temperature", coordinator)
         self._state: float | None = None
 
     @property
     def native_value(self) -> float | None:
         """Return the current temperature."""
-        if self._device.temperature is None:
+        if self.coordinator.temperature is None:
             return None
-        return round(self._device.temperature, 1)
+        return round(self.coordinator.temperature, 1)
 
     @property
     def available(self) -> bool:
@@ -95,17 +95,17 @@ class BlueairHumiditySensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_native_unit_of_measurement = PERCENTAGE
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the humidity sensor."""
-        super().__init__("Humidity", device)
+        super().__init__("Humidity", coordinator)
         self._state: float | None = None
 
     @property
     def native_value(self) -> float | None:
         """Return the current humidity."""
-        if self._device.humidity is None:
+        if self.coordinator.humidity is None:
             return None
-        return round(self._device.humidity, 0)
+        return round(self.coordinator.humidity, 0)
 
     @property
     def available(self) -> bool:
@@ -119,17 +119,17 @@ class BlueairVOCSensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS
     _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_BILLION
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the VOC sensor."""
-        super().__init__("voc", device)
+        super().__init__("voc", coordinator)
         self._state: float | None = None
 
     @property
     def native_value(self) -> float | None:
         """Return the current voc."""
-        if self._device.voc is None:
+        if self.coordinator.voc is None:
             return None
-        return round(self._device.voc, 0)
+        return round(self.coordinator.voc, 0)
 
     @property
     def available(self) -> bool:
@@ -143,20 +143,20 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.PM1
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the pm1 sensor."""
-        super().__init__("pm1", device)
+        super().__init__("pm1", coordinator)
         self._state: float | None = None
 
     @property
     def native_value(self) -> float | None:
         """Return the current pm1."""
-        if self._device.pm1 is None:
+        if self.coordinator.pm1 is None:
             return None
-        if type(self._device) is DeviceAws:
-            return int((self._device.pm1 * 100) // 132)
+        if type(self.coordinator) is DeviceAws:
+            return int((self.coordinator.pm1 * 100) // 132)
         else:
-            return int(self._device.pm1)
+            return int(self.coordinator.pm1)
 
     @property
     def available(self) -> bool:
@@ -170,20 +170,20 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.PM10
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the pm10 sensor."""
-        super().__init__("pm10", device)
+        super().__init__("pm10", coordinator)
         self._state: float | None = None
 
     @property
     def native_value(self) -> float | None:
         """Return the current pm10."""
-        if self._device.pm10 is None:
+        if self.coordinator.pm10 is None:
             return None
-        if type(self._device) is DeviceAws:
-            return int((self._device.pm10 * 100) // 132)
+        if type(self.coordinator) is DeviceAws:
+            return int((self.coordinator.pm10 * 100) // 132)
         else:
-            return int(self._device.pm10)
+            return int(self.coordinator.pm10)
 
     @property
     def available(self) -> bool:
@@ -197,20 +197,20 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.PM25
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the pm25 sensor."""
-        super().__init__("pm25", device)
+        super().__init__("pm25", coordinator)
         self._state: float | None = None
 
     @property
     def native_value(self) -> float | None:
         """Return the current pm25."""
-        if self._device.pm25 is None:
+        if self.coordinator.pm25 is None:
             return None
-        if type(self._device) is DeviceAws:
-            return int((self._device.pm25 * 100) // 132)
+        if type(self.coordinator) is DeviceAws:
+            return int((self.coordinator.pm25 * 100) // 132)
         else:
-            return int(self._device.pm25)
+            return int(self.coordinator.pm25)
 
     @property
     def available(self) -> bool:
@@ -224,20 +224,20 @@ class BlueairCO2Sensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.CO2
     _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the co2 sensor."""
-        super().__init__("co2", device)
+        super().__init__("co2", coordinator)
         self._state: float | None = None
 
     @property
     def native_value(self) -> float | None:
         """Return the current co2."""
-        if self._device.co2 is None:
+        if self.coordinator.co2 is None:
             return None
-        if type(self._device) is DeviceAws:
-            return int((self._device.co2 * 100) // 132)
+        if type(self.coordinator) is DeviceAws:
+            return int((self.coordinator.co2 * 100) // 132)
         else:
-            return int(self._device.co2)
+            return int(self.coordinator.co2)
 
     @property
     def available(self) -> bool:
