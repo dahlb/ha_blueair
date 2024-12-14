@@ -81,27 +81,27 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             region=region,
         )
 
-        def create_updaters(device):
+        def create_coordinators(device):
             return BlueairDataUpdateCoordinator(
                 hass=hass,
                 blueair_api_device=device,
             )
 
-        data[DATA_DEVICES] = list(map(create_updaters, devices))
+        data[DATA_DEVICES] = list(map(create_coordinators, devices))
 
-        for updater in data[DATA_DEVICES]:
-            await updater.async_config_entry_first_refresh()
+        for coordinator in data[DATA_DEVICES]:
+            await coordinator.async_config_entry_first_refresh()
 
-        def create_aws_updaters(device):
+        def create_aws_coordinators(device):
             return BlueairAwsDataUpdateCoordinator(
                 hass=hass,
                 blueair_api_device=device,
             )
 
-        data[DATA_AWS_DEVICES] = list(map(create_aws_updaters, aws_devices))
+        data[DATA_AWS_DEVICES] = list(map(create_aws_coordinators, aws_devices))
 
-        for updater in data[DATA_AWS_DEVICES]:
-            await updater.async_config_entry_first_refresh()
+        for coordinator in data[DATA_AWS_DEVICES]:
+            await coordinator.async_config_entry_first_refresh()
 
         hass.data[DOMAIN] = data
 

@@ -20,74 +20,74 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         [FeatureEnum.CHILD_LOCK, BlueairChildLockSensor],
         [FeatureEnum.WATER_SHORTAGE, BlueairWaterShortageSensor],
     ]
-    devices: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
+    coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
     entities = []
-    for device in devices:
+    for coordinator in coordinators:
         entities.extend(
             [
-                BlueairChildLockSensor(device),
-                BlueairFilterExpiredSensor(device),
-                BlueairOnlineSensor(device),
+                BlueairChildLockSensor(coordinator),
+                BlueairFilterExpiredSensor(coordinator),
+                BlueairOnlineSensor(coordinator),
             ]
         )
     async_add_entities(entities)
 
-    aws_devices: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
+    aws_coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
         DATA_AWS_DEVICES
     ]
     entities = []
-    for device in aws_devices:
-        entities.append(BlueairOnlineSensor(device))
+    for coordinator in aws_coordinators:
+        entities.append(BlueairOnlineSensor(coordinator))
         for feature_class in feature_class_mapping:
-            if device.blueair_api_device.model.supports_feature(feature_class[0]):
-                entities.append(feature_class[1](device))
+            if coordinator.blueair_api_device.model.supports_feature(feature_class[0]):
+                entities.append(feature_class[1](coordinator))
     async_add_entities(entities)
 
 
 class BlueairChildLockSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:account-child-outline"
 
-    def __init__(self, device):
-        super().__init__("Child Lock", device)
+    def __init__(self, coordinator):
+        super().__init__("Child Lock", coordinator)
 
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return self._device.child_lock
+        return self.coordinator.child_lock
 
 
 class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:air-filter"
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the temperature sensor."""
         self.entity_description = EntityDescription(
-            key=f"#{device.blueair_api_device.uuid}-filter-expired",
+            key=f"#{coordinator.blueair_api_device.uuid}-filter-expired",
             device_class=BinarySensorDeviceClass.PROBLEM,
         )
-        super().__init__("Filter Expiration", device)
+        super().__init__("Filter Expiration", coordinator)
 
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return self._device.filter_expired
+        return self.coordinator.filter_expired
 
 
 class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:wifi-check"
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         """Initialize the temperature sensor."""
         self.entity_description = EntityDescription(
-            key=f"#{device.blueair_api_device.uuid}-online",
+            key=f"#{coordinator.blueair_api_device.uuid}-online",
             device_class=BinarySensorDeviceClass.CONNECTIVITY,
         )
-        super().__init__("Online", device)
+        super().__init__("Online", coordinator)
 
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return self._device.online
+        return self.coordinator.online
 
     @property
     def icon(self) -> str | None:
@@ -100,14 +100,14 @@ class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
 class BlueairWaterShortageSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:water-alert-outline"
 
-    def __init__(self, device):
+    def __init__(self, coordinator):
         self.entity_description = EntityDescription(
-            key=f"#{device.blueair_api_device.uuid}-water-shortage",
+            key=f"#{coordinator.blueair_api_device.uuid}-water-shortage",
             device_class=BinarySensorDeviceClass.PROBLEM,
         )
-        super().__init__("Water Shortage", device)
+        super().__init__("Water Shortage", coordinator)
 
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return self._device.water_shortage
+        return self.coordinator.water_shortage
