@@ -18,7 +18,7 @@ from .entity import BlueairEntity, async_setup_entry_helper
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(hass, config_entry, async_add_entities,
-        entity_classes[
+        entity_classes=[
             BlueairTemperatureSensor,
             BlueairHumiditySensor,
             BlueairVOCSensor,
@@ -178,7 +178,7 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
 
 
 class BlueairPM25Sensor(BlueairEntity, SensorEntity):
-    """Monitors the pm25"""
+    """Monitors the pm2.5"""
 
     _attr_device_class = SensorDeviceClass.PM25
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER

@@ -126,7 +126,7 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         return int(self.blueair_api_device.pm10)
 
     @property
-    def pm2_5(self) -> int:
+    def pm25(self) -> int:
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
         return int(self.blueair_api_device.pm25)

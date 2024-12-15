@@ -37,6 +37,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             await self.blueair_api_device.refresh()
             self.name = f"{DOMAIN}-{self.blueair_api_device.name}"
+            _LOGGER.info("update called, pm1=%s", self.pm1)
             return {}
         except Exception as error:
             raise UpdateFailed(error) from error
@@ -121,7 +122,8 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.pm10
 
     @property
-    def pm2_5(self) -> int:
+    def pm25(self) -> int:
+        # pm25 is the more common name for pm2.5.
         return self.blueair_api_device.pm2_5
 
     @property
@@ -147,11 +149,11 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
     @property
     def filter_expired(self) -> bool:
         """Returns the current filter status."""
-        if self.blueair_api_device.filter_usage not in (NotImplemented, None):
-                return (self.blueair_api_device.filter_usage >=
+        if self.blueair_api_device.filter_usage_percentage not in (NotImplemented, None):
+                return (self.blueair_api_device.filter_usage_percentage >=
                         FILTER_EXPIRED_THRESHOLD)
-        if self.blueair_api_device.wick_usage not in (NotImplemented, None):
-                return (self.blueair_api_device.wick_usage >=
+        if self.blueair_api_device.wick_usage_percentage not in (NotImplemented, None):
+                return (self.blueair_api_device.wick_usage_percentage >=
                         FILTER_EXPIRED_THRESHOLD)
 
     async def set_fan_speed(self, new_speed) -> None:

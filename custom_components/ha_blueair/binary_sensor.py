@@ -13,7 +13,7 @@ from .entity import BlueairEntity, async_setup_entry_helper
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(hass, config_entry, async_add_entities,
-        entity_classes[
+        entity_classes=[
             BlueairOnlineSensor,
             BlueairFilterExpiredSensor,
             BlueairChildLockSensor,

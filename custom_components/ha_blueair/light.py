@@ -15,8 +15,8 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(hass, config_entry, async_add_entities,
-        entity_classes[
-            BlueairLightEntry,
+        entity_classes=[
+            BlueairLightEntity,
     ])
 
 

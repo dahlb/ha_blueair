@@ -8,13 +8,13 @@ from blueair_api import ModelEnum
 
 from .const import DOMAIN, DATA_AWS_DEVICES
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
-from .entity import BlueairEntity
+from .entity import BlueairEntity, async_setup_entry_helper
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(hass, config_entry, async_add_entities,
-        entity_classes[
+        entity_classes=[
             BlueairChildLockSwitchEntity,
             BlueairAutoFanModeSwitchEntity,
             BlueairNightModeSwitchEntity,
