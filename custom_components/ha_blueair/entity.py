@@ -19,7 +19,7 @@ def async_setup_entry_helper(hass, config_entry, async_add_entities, entity_clas
     entities = []
     for coordinator in coordinators:
         for kls in entity_classes:
-            if kls.is_supported(coordinator):
+            if kls.is_implemented(coordinator):
                 entities.append(kls(coordinator))
 
     async_add_entities(entities)
@@ -32,7 +32,7 @@ class BlueairEntity(CoordinatorEntity):
     _attr_should_poll = False
 
     @classmethod
-    def is_supported(kls, coordinator) -> bool:
+    def is_implemented(kls, coordinator) -> bool:
        """Returns true if the coordinator supports this entity."""
        raise NotImplementedError
 

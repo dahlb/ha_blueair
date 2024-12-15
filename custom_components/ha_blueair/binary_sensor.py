@@ -25,7 +25,7 @@ class BlueairChildLockSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:account-child-outline"
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.child_lock is not NotImplemented
 
     def __init__(self, coordinator):
@@ -41,7 +41,7 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:air-filter"
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.filter_expired is not NotImplemented
 
     def __init__(self, coordinator):
@@ -62,7 +62,7 @@ class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:wifi-check"
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.online is not NotImplemented
 
     def __init__(self, coordinator):
@@ -90,7 +90,7 @@ class BlueairWaterShortageSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:water-alert-outline"
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.water_shortage is not NotImplemented
 
     def __init__(self, coordinator):

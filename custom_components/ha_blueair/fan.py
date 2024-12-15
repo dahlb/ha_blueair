@@ -25,7 +25,7 @@ class BlueairFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return isinstance(coordinator, BlueairDataUpdateCoordinator)
 
     def __init__(self, coordinator: BlueairDataUpdateCoordinator):
@@ -83,7 +83,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return isinstance(coordinator, BlueairAwsDataUpdateCoordinator)
 
     def __init__(self, coordinator: BlueairAwsDataUpdateCoordinator):

@@ -25,7 +25,7 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.brightness is not NotImplemented
 
     def __init__(self, coordinator):

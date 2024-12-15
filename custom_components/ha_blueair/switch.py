@@ -23,7 +23,7 @@ class BlueairChildLockSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.child_lock is not NotImplemented
 
     def __init__(self, coordinator):
@@ -46,7 +46,7 @@ class BlueairAutoFanModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.fan_auto_mode is not NotImplemented
 
     def __init__(self, coordinator):
@@ -69,7 +69,7 @@ class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.night_mode is not NotImplemented
 
     def __init__(self, coordinator):
@@ -97,7 +97,7 @@ class BlueairWickDryModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.wick_dry_mode is not NotImplemented
 
     def __init__(self, coordinator):

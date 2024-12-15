@@ -35,7 +35,7 @@ class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.temperature is not NotImplemented
 
     def __init__(self, coordinator):
@@ -63,7 +63,7 @@ class BlueairHumiditySensor(BlueairEntity, SensorEntity):
     _attr_native_unit_of_measurement = PERCENTAGE
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.humidity is not NotImplemented
 
 
@@ -92,7 +92,7 @@ class BlueairVOCSensor(BlueairEntity, SensorEntity):
     _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_BILLION
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.voc is not NotImplemented
 
     def __init__(self, coordinator):
@@ -120,7 +120,7 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.pm1 is not NotImplemented
 
     def __init__(self, coordinator):
@@ -151,7 +151,7 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.pm10 is not NotImplemented
 
     def __init__(self, coordinator):
@@ -182,7 +182,7 @@ class BlueairPM25Sensor(BlueairEntity, SensorEntity):
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.pm25 is not NotImplemented
 
     def __init__(self, coordinator):
@@ -213,7 +213,7 @@ class BlueairCO2Sensor(BlueairEntity, SensorEntity):
     _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
 
     @classmethod
-    def is_supported(kls, coordinator):
+    def is_implemented(kls, coordinator):
         return coordinator.co2 is not NotImplemented
 
     def __init__(self, coordinator):
