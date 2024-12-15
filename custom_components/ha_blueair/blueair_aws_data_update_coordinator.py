@@ -1,5 +1,6 @@
 """Blueair device object."""
 import logging
+import traceback
 from datetime import timedelta
 
 from blueair_api import DeviceAws as BlueAirApiDeviceAws, ModelEnum
@@ -40,6 +41,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.info("update called, pm1=%s", self.pm1)
             return {}
         except Exception as error:
+            _LOGGER.exception(error)
             raise UpdateFailed(error) from error
 
     @property
