@@ -4,42 +4,27 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchDeviceClass,
 )
-from blueair_api import ModelEnum
 
-from .const import DOMAIN, DATA_AWS_DEVICES
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
-from .entity import BlueairEntity
+from .entity import BlueairEntity, async_setup_entry_helper
 
 
-async def async_setup_entry(hass, _config_entry, async_add_entities):
+async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    aws_coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
-        DATA_AWS_DEVICES
-    ]
-    entities = []
-    for coordinator in aws_coordinators:
-        if coordinator.model == ModelEnum.HUMIDIFIER_H35I:
-            entities.extend(
-                [
-                    BlueairChildLockSwitchEntity(coordinator),
-                    BlueairAutoFanModeSwitchEntity(coordinator),
-                    BlueairNightModeSwitchEntity(coordinator),
-                    BlueairWickDryModeSwitchEntity(coordinator),
-                ]
-            )
-        else:
-            entities.extend(
-                [
-                    BlueairChildLockSwitchEntity(coordinator),
-                    BlueairAutoFanModeSwitchEntity(coordinator),
-                    BlueairNightModeSwitchEntity(coordinator),
-                ]
-            )
-    async_add_entities(entities)
+    async_setup_entry_helper(hass, config_entry, async_add_entities,
+        entity_classes=[
+            BlueairChildLockSwitchEntity,
+            BlueairAutoFanModeSwitchEntity,
+            BlueairNightModeSwitchEntity,
+            BlueairWickDryModeSwitchEntity,
+    ])
 
 
 class BlueairChildLockSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.child_lock is not NotImplemented
 
     def __init__(self, coordinator):
         super().__init__("Child Lock", coordinator)
@@ -60,6 +45,10 @@ class BlueairChildLockSwitchEntity(BlueairEntity, SwitchEntity):
 class BlueairAutoFanModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
 
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.fan_auto_mode is not NotImplemented
+
     def __init__(self, coordinator):
         super().__init__("Auto Fan Mode", coordinator)
 
@@ -78,6 +67,10 @@ class BlueairAutoFanModeSwitchEntity(BlueairEntity, SwitchEntity):
 
 class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.night_mode is not NotImplemented
 
     def __init__(self, coordinator):
         super().__init__("Night Mode", coordinator)
@@ -102,6 +95,10 @@ class BlueairNightModeSwitchEntity(BlueairEntity, SwitchEntity):
 
 class BlueairWickDryModeSwitchEntity(BlueairEntity, SwitchEntity):
     _attr_device_class = SwitchDeviceClass.SWITCH
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.wick_dry_mode is not NotImplemented
 
     def __init__(self, coordinator):
         super().__init__("Wick Dry Mode", coordinator)

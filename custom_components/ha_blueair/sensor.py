@@ -8,61 +8,24 @@ from homeassistant.const import (
     CONCENTRATION_PARTS_PER_BILLION,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
 )
-from blueair_api import FeatureEnum, DeviceAws
+from blueair_api import DeviceAws
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
-from .entity import BlueairEntity
+from .entity import BlueairEntity, async_setup_entry_helper
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
-    entities = []
-    for coordinator in coordinators:
-        if coordinator.model in ["classic_280i"]:
-            entities.extend(
-                [
-                    BlueairTemperatureSensor(coordinator),
-                    BlueairHumiditySensor(coordinator),
-                    BlueairVOCSensor(coordinator),
-                    BlueairPM25Sensor(coordinator),
-                    BlueairCO2Sensor(coordinator),
-                ]
-            )
-        if coordinator.model in ["classic_290i", "classic_480i", "classic_680i"]:
-            entities.extend(
-                [
-                    BlueairTemperatureSensor(coordinator),
-                    BlueairHumiditySensor(coordinator),
-                    BlueairVOCSensor(coordinator),
-                    BlueairPM1Sensor(coordinator),
-                    BlueairPM10Sensor(coordinator),
-                    BlueairPM25Sensor(coordinator),
-                    BlueairCO2Sensor(coordinator),
-                ]
-            )
-    async_add_entities(entities)
+    async_setup_entry_helper(hass, config_entry, async_add_entities,
+        entity_classes=[
+            BlueairTemperatureSensor,
+            BlueairHumiditySensor,
+            BlueairVOCSensor,
+            BlueairCO2Sensor,
+            BlueairPM1Sensor,
+            BlueairPM10Sensor,
+            BlueairPM25Sensor,
+    ])
 
-    feature_class_mapping = [
-        [FeatureEnum.TEMPERATURE, BlueairTemperatureSensor],
-        [FeatureEnum.HUMIDITY, BlueairHumiditySensor],
-        [FeatureEnum.VOC, BlueairVOCSensor],
-        [FeatureEnum.PM1, BlueairPM1Sensor],
-        [FeatureEnum.PM10, BlueairPM10Sensor],
-        [FeatureEnum.PM25, BlueairPM25Sensor],
-    ]
-    aws_coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
-        DATA_AWS_DEVICES
-    ]
-    entities = []
-
-    for coordinator in aws_coordinators:
-        for feature_class in feature_class_mapping:
-            if coordinator.blueair_api_device.model.supports_feature(feature_class[0]):
-                entities.append(feature_class[1](coordinator))
-    async_add_entities(entities)
 
 
 class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
@@ -70,6 +33,10 @@ class BlueairTemperatureSensor(BlueairEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.temperature is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the temperature sensor."""
@@ -95,6 +62,11 @@ class BlueairHumiditySensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_native_unit_of_measurement = PERCENTAGE
 
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.humidity is not NotImplemented
+
+
     def __init__(self, coordinator):
         """Initialize the humidity sensor."""
         super().__init__("Humidity", coordinator)
@@ -119,6 +91,10 @@ class BlueairVOCSensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS
     _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_BILLION
 
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.voc is not NotImplemented
+
     def __init__(self, coordinator):
         """Initialize the VOC sensor."""
         super().__init__("voc", coordinator)
@@ -142,6 +118,10 @@ class BlueairPM1Sensor(BlueairEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.PM1
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.pm1 is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the pm1 sensor."""
@@ -170,6 +150,10 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.PM10
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
 
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.pm10 is not NotImplemented
+
     def __init__(self, coordinator):
         """Initialize the pm10 sensor."""
         super().__init__("pm10", coordinator)
@@ -192,10 +176,14 @@ class BlueairPM10Sensor(BlueairEntity, SensorEntity):
 
 
 class BlueairPM25Sensor(BlueairEntity, SensorEntity):
-    """Monitors the pm25"""
+    """Monitors the pm2.5"""
 
     _attr_device_class = SensorDeviceClass.PM25
     _attr_native_unit_of_measurement = CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.pm25 is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the pm25 sensor."""
@@ -223,6 +211,10 @@ class BlueairCO2Sensor(BlueairEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.CO2
     _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.co2 is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the co2 sensor."""

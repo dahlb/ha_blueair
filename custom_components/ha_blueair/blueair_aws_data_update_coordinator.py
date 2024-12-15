@@ -37,6 +37,7 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             await self.blueair_api_device.refresh()
             self.name = f"{DOMAIN}-{self.blueair_api_device.name}"
+            _LOGGER.info("update called, pm1=%s", self.pm1)
             return {}
         except Exception as error:
             raise UpdateFailed(error) from error
@@ -84,14 +85,9 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
             return 100
 
     @property
-    def is_on(self) -> False:
+    def is_on(self) -> bool:
         """Return the current fan state."""
         return self.blueair_api_device.running
-
-    @property
-    def fan_mode_auto(self) -> bool:
-        """Return the current fan mode."""
-        return self.blueair_api_device.fan_auto_mode
 
     @property
     def brightness(self) -> int:
@@ -127,7 +123,12 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def pm25(self) -> int:
+        # pm25 is the more common name for pm2.5.
         return self.blueair_api_device.pm2_5
+
+    @property
+    def co2(self) -> int:
+        return NotImplemented
 
     @property
     def online(self) -> bool:
@@ -147,13 +148,13 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def filter_expired(self) -> bool:
-        """Return the current filter status."""
-        if self.blueair_api_device.filter_usage is not None:
-            return (self.blueair_api_device.filter_usage >=
-                    FILTER_EXPIRED_THRESHOLD)
-        if self.blueair_api_device.wick_usage is not None:
-            return (self.blueair_api_device.wick_usage >=
-                    FILTER_EXPIRED_THRESHOLD)
+        """Returns the current filter status."""
+        if self.blueair_api_device.filter_usage_percentage not in (NotImplemented, None):
+                return (self.blueair_api_device.filter_usage_percentage >=
+                        FILTER_EXPIRED_THRESHOLD)
+        if self.blueair_api_device.wick_usage_percentage not in (NotImplemented, None):
+                return (self.blueair_api_device.wick_usage_percentage >=
+                        FILTER_EXPIRED_THRESHOLD)
 
     async def set_fan_speed(self, new_speed) -> None:
         await self.blueair_api_device.set_fan_speed(new_speed)
