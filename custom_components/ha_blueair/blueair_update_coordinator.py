@@ -8,7 +8,7 @@ from asyncio import sleep
 from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevice
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 
