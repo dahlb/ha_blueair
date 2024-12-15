@@ -1,6 +1,5 @@
 """Blueair device object."""
 import logging
-import traceback
 from datetime import timedelta
 
 from blueair_api import DeviceAws as BlueAirApiDeviceAws, ModelEnum
