@@ -11,8 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
+from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
+from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 
 TO_REDACT = {CONF_EMAIL, CONF_PASSWORD, CONF_UNIQUE_ID}
 TO_REDACT_MAPPED = {}
@@ -26,8 +26,8 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, config_entry: ConfigEntry
 ) -> dict[str, dict[str, Any]]:
     """Return diagnostics for a config entry."""
-    device_coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
-    device_aws_coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    device_coordinators: list[BlueairUpdateCoordinatorDevice] = hass.data[DOMAIN][DATA_DEVICES]
+    device_aws_coordinators: list[BlueairUpdateCoordinatorDeviceAws] = hass.data[DOMAIN][DATA_AWS_DEVICES]
     coordinators = device_coordinators + device_aws_coordinators
     data = {
         "entry": async_redact_data(config_entry.as_dict(), TO_REDACT),

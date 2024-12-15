@@ -7,8 +7,8 @@ from homeassistant.components.fan import (
 )
 
 from .const import DEFAULT_FAN_SPEED_PERCENTAGE
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
+from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
+from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
 
 
@@ -26,9 +26,9 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     @classmethod
     def is_implemented(kls, coordinator):
-        return isinstance(coordinator, BlueairDataUpdateCoordinator)
+        return isinstance(coordinator, BlueairUpdateCoordinatorDevice)
 
-    def __init__(self, coordinator: BlueairDataUpdateCoordinator):
+    def __init__(self, coordinator: BlueairUpdateCoordinatorDevice):
         """Initialize the temperature sensor."""
         super().__init__("Fan", coordinator)
 
@@ -84,9 +84,9 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     @classmethod
     def is_implemented(kls, coordinator):
-        return isinstance(coordinator, BlueairAwsDataUpdateCoordinator)
+        return isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws)
 
-    def __init__(self, coordinator: BlueairAwsDataUpdateCoordinator):
+    def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws):
         """Initialize the temperature sensor."""
         super().__init__("Fan", coordinator)
 

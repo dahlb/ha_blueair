@@ -15,8 +15,8 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from blueair_api import get_devices, get_aws_devices, LoginError
 
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
+from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
+from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .const import (
     DOMAIN,
     PLATFORMS,
@@ -82,25 +82,21 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         )
 
         def create_coordinators(device):
-            return BlueairDataUpdateCoordinator(
+            return BlueairUpdateCoordinatorDevice(
                 hass=hass,
                 blueair_api_device=device,
             )
-
         data[DATA_DEVICES] = list(map(create_coordinators, devices))
-
-        for coordinator in data[DATA_DEVICES]:
-            await coordinator.async_config_entry_first_refresh()
-
         def create_aws_coordinators(device):
-            return BlueairAwsDataUpdateCoordinator(
+            return BlueairUpdateCoordinatorDeviceAws(
                 hass=hass,
                 blueair_api_device=device,
             )
-
         data[DATA_AWS_DEVICES] = list(map(create_aws_coordinators, aws_devices))
 
-        for coordinator in data[DATA_AWS_DEVICES]:
+        coordinators = data[DATA_DEVICES] + data[DATA_AWS_DEVICES]
+
+        for coordinator in coordinators:
             await coordinator.async_config_entry_first_refresh()
 
         hass.data[DOMAIN] = data
