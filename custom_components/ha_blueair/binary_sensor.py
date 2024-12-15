@@ -6,7 +6,6 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.helpers.entity import EntityDescription
 
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 

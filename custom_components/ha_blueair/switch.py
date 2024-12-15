@@ -4,10 +4,7 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchDeviceClass,
 )
-from blueair_api import ModelEnum
 
-from .const import DOMAIN, DATA_AWS_DEVICES
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 

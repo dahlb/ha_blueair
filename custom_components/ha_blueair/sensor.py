@@ -8,10 +8,8 @@ from homeassistant.const import (
     CONCENTRATION_PARTS_PER_BILLION,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
 )
-from blueair_api import FeatureEnum, DeviceAws
+from blueair_api import DeviceAws
 
-from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 

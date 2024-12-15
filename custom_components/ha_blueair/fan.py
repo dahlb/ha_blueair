@@ -6,7 +6,7 @@ from homeassistant.components.fan import (
     FanEntityFeature,
 )
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES, DEFAULT_FAN_SPEED_PERCENTAGE
+from .const import DEFAULT_FAN_SPEED_PERCENTAGE
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
