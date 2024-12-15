@@ -66,38 +66,9 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         return int(self.blueair_api_device.fan_speed)
 
     @property
-    def temperature(self) -> int:
-        """Return the current fan speed."""
-        return int(self.blueair_api_device.temperature)
-
-    @property
-    def humidity(self) -> int:
-        """Return the current fan speed."""
-        return int(self.blueair_api_device.humidity)
-
-    @property
-    def voc(self) -> int:
-        """Return the current fan speed."""
-        return int(self.blueair_api_device.voc)
-
-    @property
-    def pm1(self) -> int:
-        """Return the current fan speed."""
-        return int(self.blueair_api_device.pm1)
-
-    @property
-    def pm10(self) -> int:
-        """Return the current fan speed."""
-        return int(self.blueair_api_device.pm10)
-
-    @property
-    def pm25(self) -> int:
-        """Return the current fan speed."""
-        return int(self.blueair_api_device.pm25)
-
-    @property
-    def co2(self) -> int:
-        return self.blueair_api_device.co2
+    def speed_count(self) -> int:
+        """Return the max fan speed."""
+        return 3
 
     @property
     def is_on(self) -> False:
@@ -109,14 +80,12 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
     @property
     def fan_mode(self) -> str:
         """Return the current fan mode."""
+        # fan_mode appears to be unused.
         return self.blueair_api_device.mode
 
     @property
     def brightness(self) -> int:
         return self.blueair_api_device.brightness
-
-    async def set_brightness(self, brightness) -> None:
-        raise NotImplementedError()
 
     @property
     def child_lock(self) -> bool:
@@ -127,8 +96,62 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.night_mode
 
     @property
+    def temperature(self) -> int:
+        if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
+            return NotImplemented
+        return int(self.blueair_api_device.temperature)
+
+    @property
+    def humidity(self) -> int:
+        if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
+            return NotImplemented
+        return int(self.blueair_api_device.humidity)
+
+    @property
+    def voc(self) -> int:
+        if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
+            return NotImplemented
+        return int(self.blueair_api_device.voc)
+
+    @property
+    def pm1(self) -> int:
+        if self.model not in ["classic_290i", "classic_480i", "classic_680i"]:
+            return NotImplemented
+        return int(self.blueair_api_device.pm1)
+
+    @property
+    def pm10(self) -> int:
+        if self.model not in ["classic_290i", "classic_480i", "classic_680i"]:
+            return NotImplemented
+        return int(self.blueair_api_device.pm10)
+
+    @property
+    def pm2_5(self) -> int:
+        if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
+            return NotImplemented
+        return int(self.blueair_api_device.pm25)
+
+    @property
+    def co2(self) -> int:
+        if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
+            return NotImplemented
+        return self.blueair_api_device.co2
+
+    @property
     def online(self) -> bool:
         return self.blueair_api_device.wifi_working
+
+    @property
+    def fan_auto_mode(self) -> bool:
+        return NotImplemented
+
+    @property
+    def wick_dry_mode(self) -> bool:
+        return NotImplemented
+
+    @property
+    def water_shortage(self) -> bool:
+        return NotImplemented
 
     @property
     def filter_expired(self) -> bool:
@@ -139,3 +162,7 @@ class BlueairDataUpdateCoordinator(DataUpdateCoordinator):
         self.blueair_api_device.fan_speed = new_speed
         await self.blueair_api_device.set_fan_speed(new_speed)
         await self.async_refresh()
+
+    async def set_brightness(self, brightness) -> None:
+        raise NotImplementedError
+

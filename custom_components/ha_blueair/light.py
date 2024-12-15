@@ -7,41 +7,26 @@ from homeassistant.components.light import (
 )
 import logging
 
-from .const import DOMAIN, DATA_AWS_DEVICES, DATA_DEVICES
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
-from .entity import BlueairEntity
+from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
-    entities = []
-    for coordinator in coordinators:
-        entities.extend(
-            [
-                BlueairLightEntity(coordinator),
-            ]
-        )
-    async_add_entities(entities)
-
-    aws_coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][
-        DATA_AWS_DEVICES
-    ]
-    entities = []
-    for coordinator in aws_coordinators:
-        entities.extend(
-            [
-                BlueairLightEntity(coordinator),
-            ]
-        )
-    async_add_entities(entities)
+    async_setup_entry_helper(hass, config_entry, async_add_entities,
+        entity_classes[
+            BlueairLightEntry,
+    ])
 
 
 class BlueairLightEntity(BlueairEntity, LightEntity):
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+
+    @classmethod
+    def is_supported(kls, coordinator):
+        return coordinator.brightness is not NotImplemented
 
     def __init__(self, coordinator):
         super().__init__("LED Light", coordinator)

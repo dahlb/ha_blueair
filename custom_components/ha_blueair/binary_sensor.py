@@ -5,47 +5,29 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.helpers.entity import EntityDescription
-from blueair_api import FeatureEnum
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
-from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
-from .entity import BlueairEntity
+from .entity import BlueairEntity, async_setup_entry_helper
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    feature_class_mapping = [
-        [FeatureEnum.FILTER_EXPIRED, BlueairFilterExpiredSensor],
-        [FeatureEnum.CHILD_LOCK, BlueairChildLockSensor],
-        [FeatureEnum.WATER_SHORTAGE, BlueairWaterShortageSensor],
-    ]
-    coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
-    entities = []
-    for coordinator in coordinators:
-        entities.extend(
-            [
-                BlueairChildLockSensor(coordinator),
-                BlueairFilterExpiredSensor(coordinator),
-                BlueairOnlineSensor(coordinator),
-            ]
-        )
-    async_add_entities(entities)
+    async_setup_entry_helper(hass, config_entry, async_add_entities,
+        entity_classes[
+            BlueairOnlineSensor,
+            BlueairFilterExpiredSensor,
+            BlueairChildLockSensor,
+            BlueairWaterShortageSensor,
+    ])
 
-    aws_coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][
-        DATA_AWS_DEVICES
-    ]
-    entities = []
-    for coordinator in aws_coordinators:
-        entities.append(BlueairOnlineSensor(coordinator))
-        for feature_class in feature_class_mapping:
-            if coordinator.blueair_api_device.model.supports_feature(feature_class[0]):
-                entities.append(feature_class[1](coordinator))
-    async_add_entities(entities)
 
 
 class BlueairChildLockSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:account-child-outline"
+
+    @classmethod
+    def is_supported(kls, coordinator):
+        return coordinator.child_lock is not NotImplemented
 
     def __init__(self, coordinator):
         super().__init__("Child Lock", coordinator)
@@ -58,6 +40,10 @@ class BlueairChildLockSensor(BlueairEntity, BinarySensorEntity):
 
 class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:air-filter"
+
+    @classmethod
+    def is_supported(kls, coordinator):
+        return coordinator.filter_expired is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the temperature sensor."""
@@ -75,6 +61,10 @@ class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
 
 class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:wifi-check"
+
+    @classmethod
+    def is_supported(kls, coordinator):
+        return coordinator.online is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the temperature sensor."""
@@ -99,6 +89,10 @@ class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
 
 class BlueairWaterShortageSensor(BlueairEntity, BinarySensorEntity):
     _attr_icon = "mdi:water-alert-outline"
+
+    @classmethod
+    def is_supported(kls, coordinator):
+        return coordinator.water_shortage is not NotImplemented
 
     def __init__(self, coordinator):
         self.entity_description = EntityDescription(

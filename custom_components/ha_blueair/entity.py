@@ -5,9 +5,24 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .const import DOMAIN
+from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
+
+
+def async_setup_entry_helper(hass, config_entry, async_add_entities, entity_classes):
+
+    coordinators: list[BlueairDataUpdateCoordinator | BlueairAwsDataUpdateCoordinator] = []
+    coordinators.extend(hass.data[DOMAIN][DATA_DEVICES])
+    coordinators.extend(hass.data[DOMAIN][DATA_AWS_DEVICES])
+
+    entities = []
+    for coordinator in coordinators:
+        for kls in entity_classes:
+            if kls.is_supported(coordinator):
+                entities.append(kls(coordinator))
+
+    async_add_entities(entities)
 
 
 class BlueairEntity(CoordinatorEntity):
@@ -15,6 +30,11 @@ class BlueairEntity(CoordinatorEntity):
 
     _attr_force_update = False
     _attr_should_poll = False
+
+    @classmethod
+    def is_supported(kls, coordinator) -> bool:
+       """Returns true if the coordinator supports this entity."""
+       raise NotImplementedError
 
     def __init__(
         self,

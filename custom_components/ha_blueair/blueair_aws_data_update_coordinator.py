@@ -84,14 +84,9 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
             return 100
 
     @property
-    def is_on(self) -> False:
+    def is_on(self) -> bool:
         """Return the current fan state."""
         return self.blueair_api_device.running
-
-    @property
-    def fan_mode_auto(self) -> bool:
-        """Return the current fan mode."""
-        return self.blueair_api_device.fan_auto_mode
 
     @property
     def brightness(self) -> int:
@@ -126,8 +121,12 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
         return self.blueair_api_device.pm10
 
     @property
-    def pm25(self) -> int:
+    def pm2_5(self) -> int:
         return self.blueair_api_device.pm2_5
+
+    @property
+    def co2(self) -> int:
+        return NotImplemented
 
     @property
     def online(self) -> bool:
@@ -147,13 +146,13 @@ class BlueairAwsDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def filter_expired(self) -> bool:
-        """Return the current filter status."""
-        if self.blueair_api_device.filter_usage is not None:
-            return (self.blueair_api_device.filter_usage >=
-                    FILTER_EXPIRED_THRESHOLD)
-        if self.blueair_api_device.wick_usage is not None:
-            return (self.blueair_api_device.wick_usage >=
-                    FILTER_EXPIRED_THRESHOLD)
+        """Returns the current filter status."""
+        if self.blueair_api_device.filter_usage not in (NotImplemented, None):
+                return (self.blueair_api_device.filter_usage >=
+                        FILTER_EXPIRED_THRESHOLD)
+        if self.blueair_api_device.wick_usage not in (NotImplemented, None):
+                return (self.blueair_api_device.wick_usage >=
+                        FILTER_EXPIRED_THRESHOLD)
 
     async def set_fan_speed(self, new_speed) -> None:
         await self.blueair_api_device.set_fan_speed(new_speed)

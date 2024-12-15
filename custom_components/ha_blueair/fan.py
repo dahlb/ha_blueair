@@ -9,34 +9,24 @@ from homeassistant.components.fan import (
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES, DEFAULT_FAN_SPEED_PERCENTAGE
 from .blueair_data_update_coordinator import BlueairDataUpdateCoordinator
 from .blueair_aws_data_update_coordinator import BlueairAwsDataUpdateCoordinator
-from .entity import BlueairEntity
+from .entity import BlueairEntity, async_setup_entry_helper
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up the Blueair fans from config entry."""
-    coordinators: list[BlueairDataUpdateCoordinator] = hass.data[DOMAIN][DATA_DEVICES]
-    entities = []
-    for coordinator in coordinators:
-        entities.extend(
-            [
-                BlueairFan(coordinator),
-            ]
-        )
-    async_add_entities(entities)
-
-    coordinators: list[BlueairAwsDataUpdateCoordinator] = hass.data[DOMAIN][DATA_AWS_DEVICES]
-    entities = []
-    for coordinator in coordinators:
-        entities.extend(
-            [
-                BlueairAwsFan(coordinator),
-            ]
-        )
-    async_add_entities(entities)
+    """Set up the Blueair sensors from config entry."""
+    async_setup_entry_helper(hass, config_entry, async_add_entities,
+        entity_classes[
+            BlueairFan,
+            BlueairAwsFan,
+    ])
 
 
 class BlueairFan(BlueairEntity, FanEntity):
     """Controls Fan."""
+
+    @classmethod
+    def is_supported(kls, coordinator):
+        return isinstance(coordinator, BlueairDataUpdateCoordinator)
 
     def __init__(self, coordinator: BlueairDataUpdateCoordinator):
         """Initialize the temperature sensor."""
@@ -86,11 +76,15 @@ class BlueairFan(BlueairEntity, FanEntity):
     @property
     def speed_count(self) -> int:
         """Return the number of speeds the fan supports."""
-        return 3
+        return self.coordinator.speed_count
 
 
 class BlueairAwsFan(BlueairEntity, FanEntity):
     """Controls Fan."""
+
+    @classmethod
+    def is_supported(kls, coordinator):
+        return isinstance(coordinator, BlueairAwsDataUpdateCoordinator)
 
     def __init__(self, coordinator: BlueairAwsDataUpdateCoordinator):
         """Initialize the temperature sensor."""
@@ -98,7 +92,10 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     @property
     def supported_features(self) -> int:
-        return FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
+        features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
+        if self.coordinator.fan_speed is not NotImplemented:
+            features |= FanEntityFeature.SET_SPEED
+        return features
 
     @property
     def is_on(self) -> int:
