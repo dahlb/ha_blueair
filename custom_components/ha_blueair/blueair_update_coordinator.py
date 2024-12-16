@@ -30,13 +30,18 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
             immediate=False,
         )
 
+        async def refresh() -> BlueAirApiDevice | BlueAirAwsDevice:
+            await self.blueair_api_device.refresh()
+            return self.blueair_api_device
+
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}-{self.blueair_api_device.name}",
             update_interval=timedelta(minutes=5),
-            update_method=self.blueair_api_device.refresh,
-            request_refresh_debouncer=request_refresh_debouncer
+            update_method=refresh,
+            request_refresh_debouncer=request_refresh_debouncer,
+            always_update=False
         )
 
     @property
