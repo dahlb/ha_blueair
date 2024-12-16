@@ -45,6 +45,8 @@ class BlueairEntity(CoordinatorEntity):
         self._attr_unique_id = f"{coordinator.id}_{entity_type}"
 
         self.coordinator: BlueairUpdateCoordinator = coordinator
+        self.coordinator.blueair_api_device.register_callback(
+            self.schedule_update_ha_state)
 
     @property
     def device_info(self) -> DeviceInfo:
