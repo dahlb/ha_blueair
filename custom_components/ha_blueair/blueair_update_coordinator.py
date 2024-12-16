@@ -3,12 +3,11 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from abc import ABC, abstractmethod
-from asyncio import sleep
 
 from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevice
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, REQUEST_REFRESH_DEFAULT_COOLDOWN, Debouncer
 
 from .const import DOMAIN
 
@@ -24,13 +23,20 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         """Initialize the device."""
         self.hass: HomeAssistant = hass
         self.blueair_api_device = blueair_api_device
+        request_refresh_debouncer = Debouncer(
+            hass,
+            _LOGGER,
+            cooldown=REQUEST_REFRESH_DEFAULT_COOLDOWN,
+            immediate=False,
+        )
 
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}-{self.blueair_api_device.name}",
             update_interval=timedelta(minutes=5),
-            update_method=self.blueair_api_device.refresh
+            update_method=self.blueair_api_device.refresh,
+            request_refresh_debouncer=request_refresh_debouncer
         )
 
     @property
@@ -139,7 +145,6 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     async def set_fan_speed(self, new_speed) -> None:
         await self.blueair_api_device.set_fan_speed(new_speed)
-        await sleep(5)
         await self.async_request_refresh()
 
     @abstractmethod

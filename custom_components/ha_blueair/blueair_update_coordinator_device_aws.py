@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 from blueair_api import ModelEnum
-from asyncio import sleep
 
 from .const import FILTER_EXPIRED_THRESHOLD
 from .blueair_update_coordinator import BlueairUpdateCoordinator
@@ -113,30 +112,24 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     async def set_running(self, running) -> None:
         await self.blueair_api_device.set_running(running)
-        await sleep(5)
         await self.async_request_refresh()
 
     async def set_brightness(self, brightness) -> None:
         await self.blueair_api_device.set_brightness(brightness)
-        await sleep(5)
         await self.async_request_refresh()
 
     async def set_child_lock(self, locked) -> None:
         await self.blueair_api_device.set_child_lock(locked)
-        await sleep(5)
         await self.async_request_refresh()
 
     async def set_night_mode(self, mode) -> None:
         await self.blueair_api_device.set_night_mode(mode)
-        await sleep(5)
         await self.async_request_refresh()
 
     async def set_fan_auto_mode(self, value) -> None:
         await self.blueair_api_device.set_fan_auto_mode(value)
-        await sleep(5)
         await self.async_request_refresh()
 
     async def set_wick_dry_mode(self, value) -> None:
         await self.blueair_api_device.set_wick_dry_mode(value)
-        await sleep(5)
         await self.async_request_refresh()
