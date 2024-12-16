@@ -15,3 +15,6 @@ REGIONS = [REGION_USA, REGION_EU]
 
 DEFAULT_FAN_SPEED_PERCENTAGE = 50
 FILTER_EXPIRED_THRESHOLD = 95
+
+# Wait time to account for latency in Blueair server side state update.
+DEVICE_REFRESH_WAIT_SECONDS = 5

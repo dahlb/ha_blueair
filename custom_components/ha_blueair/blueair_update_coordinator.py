@@ -1,15 +1,20 @@
 """Blueair device object."""
 from __future__ import annotations
-import logging
-from datetime import timedelta
+
 from abc import ABC, abstractmethod
+import asyncio
+from datetime import timedelta
+import logging
 
 from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevice
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, REQUEST_REFRESH_DEFAULT_COOLDOWN, Debouncer
+from homeassistant.helpers.update_coordinator import (
+    REQUEST_REFRESH_DEFAULT_COOLDOWN,
+    DataUpdateCoordinator,
+    Debouncer)
 
-from .const import DOMAIN
+from .const import DOMAIN, DEVICE_REFRESH_WAIT_SECONDS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,9 +40,15 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
             _LOGGER,
             name=f"{DOMAIN}-{self.blueair_api_device.name}",
             update_interval=timedelta(minutes=5),
-            update_method=self.blueair_api_device.refresh,
+            update_method=self.wait_and_update,
             request_refresh_debouncer=request_refresh_debouncer
         )
+
+    async def wait_and_update(self):
+        """Wait and update to account for Blueair API latency."""
+        _LOGGER.error("wait_and_update called")
+        # await asyncio.sleep(DEVICE_REFRESH_WAIT_SECONDS)
+        await self.blueair_api_device.refresh()
 
     @property
     def id(self) -> str:
