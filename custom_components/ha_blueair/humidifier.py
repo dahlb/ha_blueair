@@ -1,4 +1,4 @@
-"""Support for Blueair fans."""
+"""Support for Blueair humidifiers."""
 
 from __future__ import annotations
 
@@ -148,9 +148,9 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
             raise ValueError(f"Invalid mode: {mode}")
 
     async def async_set_humidity(self, humidity):
-        """ Set the humidity level. Not currently implemented by API. Will need to set Humidifier to 'On' and 'Auto' mode to comply with Home Assistant and device requirements. """
-        _LOGGER.error(f"Setting humidity to {humidity} - not supported")
+        """Set the humidity level. Sets Humidifier to 'On' to comply with hass requirements, and sets mode to Auto since this is the only mode in which the target humidity is used."""
 
-
-        return NotImplemented
-
+        await self.coordinator.set_auto_regulated_humidity(humidity)
+        await self.coordinator.set_fan_auto_mode(True)
+        await self.async_turn_on()
+        self.async_write_ha_state()
