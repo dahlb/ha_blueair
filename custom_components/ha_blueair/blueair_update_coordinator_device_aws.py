@@ -68,6 +68,12 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.humidity
 
     @property
+    def target_humidity(self) -> int | None | NotImplemented:
+        return (
+            self.data.auto_regulated_humidity
+        )  # TODO: Expose in API properly / make consistent with other properties
+
+    @property
     def voc(self) -> int | None | NotImplemented:
         return self.blueair_api_device.tVOC
 
