@@ -39,7 +39,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
 
     @classmethod
     def is_implemented(kls, coordinator):
-        return coordinator.target_humidity is not NotImplemented
+        return coordinator.auto_regulated_humidity is not NotImplemented
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
         """Initialize the humidifer."""
@@ -86,8 +86,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
 
     @property
     def target_humidity(self):
-        _LOGGER.debug(f"Target Humidity: {self.coordinator.target_humidity}")
-        return self.coordinator.target_humidity
+        return self.coordinator.auto_regulated_humidity
 
     @property
     def current_humidity(self):

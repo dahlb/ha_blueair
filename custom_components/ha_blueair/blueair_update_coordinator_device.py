@@ -90,7 +90,7 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return NotImplemented
 
     @property
-    def target_humidity(self) -> bool | None | NotImplemented:
+    def auto_regulated_humidity(self) -> bool | None | NotImplemented:
         return NotImplemented
 
     async def set_brightness(self, brightness) -> None:
