@@ -50,6 +50,8 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
             )
         else:
             await self.coordinator.set_brightness(100)
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
         await self.coordinator.set_brightness(0)
+        self.async_write_ha_state()
