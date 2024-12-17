@@ -64,6 +64,10 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         return [MODE_AUTO, MODE_SLEEP, MODE_NORMAL, MODE_WICK_DRY]
 
     @property
+    def translation_key(self):
+        return "ha_blueair"
+
+    @property
     def mode(self):
         if self.coordinator.night_mode:
             return MODE_SLEEP

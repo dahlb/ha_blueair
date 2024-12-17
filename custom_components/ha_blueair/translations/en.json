@@ -24,7 +24,9 @@
       "ha_blueair": {
         "state_attributes": {
           "mode": {
-            "wick_dry": "Wick Dry"
+            "state": {
+              "wick_dry": "Wick Dry"
+            }
           }
         }
       }
