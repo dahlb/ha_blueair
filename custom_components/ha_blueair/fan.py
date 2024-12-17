@@ -121,7 +121,6 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         **kwargs: any,
     ) -> None:
         await self.coordinator.set_running(True)
-        self.async_write_ha_state()
         if percentage is None:
             # FIXME: i35 (and probably others) do not remember the
             # last fan speed and always set the speed to 0. I don't know
@@ -131,6 +130,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             percentage = DEFAULT_FAN_SPEED_PERCENTAGE
         if percentage is not None:
             await self.async_set_percentage(percentage=percentage)
+        self.async_write_ha_state()
 
     @property
     def speed_count(self) -> int:
