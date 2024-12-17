@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.humidifier import (
     MODE_AUTO,
     MODE_NORMAL,
@@ -11,22 +13,19 @@ from homeassistant.components.humidifier import (
     HumidifierEntityFeature,
 )
 
-
+from . import DOMAIN
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
-
+from .const import DATA_AWS_DEVICES, MODE_WICK_DRY
 from .entity import BlueairEntity
-from . import DOMAIN  # This is typically defined in __init__.py
-import logging
 
 _LOGGER = logging.getLogger(__name__)
-MODE_WICK_DRY = "wick_dry"
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair humidifier from config entry, but only if the device type name is Humidifier. I'm not sure if we should look for the specific model, as blueair might add new types of humidifiers in the future"""
 
     data = hass.data[DOMAIN]
-    aws_devices = data["api_aws_devices"]
+    aws_devices = data[DATA_AWS_DEVICES]
 
     humidifier_devices = []
 
@@ -153,4 +152,3 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         await self.coordinator.set_auto_regulated_humidity(humidity)
         await self.coordinator.set_fan_auto_mode(True)
         await self.async_turn_on()
-        self.async_write_ha_state()
