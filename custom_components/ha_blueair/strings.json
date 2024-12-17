@@ -18,5 +18,16 @@
     "error": {
       "auth": "Login failed. Please use official app to logout and log back in and try again."
     }
+  },
+  "entity": {
+    "humidifier": {
+      "ha_blueair": {
+        "state_attributes": {
+          "mode": {
+            "wick_dry": "Wick Dry"
+          }
+        }
+      }
+    }
   }
 }
