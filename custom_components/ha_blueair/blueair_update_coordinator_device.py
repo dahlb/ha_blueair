@@ -5,6 +5,10 @@ from .blueair_update_coordinator import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+def _cast[T](type_: type(T), value: T | None | NotImplemented) -> T:
+    if value in (None, NotImplemented):
+        return value
+    return type_(value)
 
 class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     """Blueair device object."""
@@ -21,7 +25,7 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     @property
     def fan_speed(self) -> int:
         """Return the current fan speed."""
-        return int(self.blueair_api_device.fan_speed)
+        return _cast(int, self.blueair_api_device.fan_speed)
 
     @property
     def speed_count(self) -> int:
@@ -39,37 +43,37 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     def temperature(self) -> int | None | NotImplemented:
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return int(self.blueair_api_device.temperature)
+        return _cast(int, self.blueair_api_device.temperature)
 
     @property
     def humidity(self) -> int | None | NotImplemented:
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return int(self.blueair_api_device.humidity)
+        return _cast(int, self.blueair_api_device.humidity)
 
     @property
     def voc(self) -> int | None | NotImplemented:
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return int(self.blueair_api_device.voc)
+        return _cast(int, self.blueair_api_device.voc)
 
     @property
     def pm1(self) -> int | None | NotImplemented:
         if self.model not in ["classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return int(self.blueair_api_device.pm1)
+        return _cast(int, self.blueair_api_device.pm1)
 
     @property
     def pm10(self) -> int | None | NotImplemented:
         if self.model not in ["classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return int(self.blueair_api_device.pm10)
+        return _cast(int, self.blueair_api_device.pm10)
 
     @property
     def pm25(self) -> int | None | NotImplemented:
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return int(self.blueair_api_device.pm25)
+        return _cast(int, self.blueair_api_device.pm25)
 
     @property
     def co2(self) -> int | None | NotImplemented:
