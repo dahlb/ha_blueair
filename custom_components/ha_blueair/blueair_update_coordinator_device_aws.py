@@ -68,6 +68,10 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.humidity
 
     @property
+    def auto_regulated_humidity(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.auto_regulated_humidity
+
+    @property
     def voc(self) -> int | None | NotImplemented:
         return self.blueair_api_device.tVOC
 
@@ -132,4 +136,8 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     async def set_wick_dry_mode(self, value) -> None:
         await self.blueair_api_device.set_wick_dry_mode(value)
+        await self.async_request_refresh()
+
+    async def set_auto_regulated_humidity(self, value) -> None:
+        await self.blueair_api_device.set_auto_regulated_humidity(value)
         await self.async_request_refresh()
