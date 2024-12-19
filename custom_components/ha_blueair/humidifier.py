@@ -13,9 +13,8 @@ from homeassistant.components.humidifier import (
     HumidifierEntityFeature,
 )
 
-from . import DOMAIN
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinator
-from .const import DATA_AWS_DEVICES, MODE_WICK_DRY
+from .const import MODE_WICK_DRY
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,29 +42,16 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
         """Initialize the humidifer."""
+        self._attr_device_class = HumidifierDeviceClass.HUMIDIFIER
+        self._attr_supported_features = HumidifierEntityFeature.MODES
+        self._attr_translation_key = "ha_blueair"
+        self._attr_available_modes = [MODE_AUTO, MODE_SLEEP, MODE_NORMAL, MODE_WICK_DRY]
         super().__init__("Humidifier", coordinator)
-        return None
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
         return self.coordinator.last_update_success and self.coordinator.online
-
-    @property
-    def device_class(self):
-        return HumidifierDeviceClass.HUMIDIFIER
-
-    @property
-    def supported_features(self) -> int:
-        return HumidifierEntityFeature.MODES
-
-    @property
-    def available_modes(self):
-        return [MODE_AUTO, MODE_SLEEP, MODE_NORMAL, MODE_WICK_DRY]
-
-    @property
-    def translation_key(self):
-        return "ha_blueair"
 
     @property
     def mode(self):
