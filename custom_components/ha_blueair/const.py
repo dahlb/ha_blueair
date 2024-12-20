@@ -16,5 +16,6 @@ REGIONS = [REGION_USA, REGION_EU]
 DEFAULT_FAN_SPEED_PERCENTAGE = 50
 FILTER_EXPIRED_THRESHOLD = 95
 
-# Humidifier Constants
+# Custom Mode Constants
+MODE_FAN_SPEED = "fan_speed"
 MODE_WICK_DRY = "wick_dry"

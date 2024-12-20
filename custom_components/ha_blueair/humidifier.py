@@ -6,7 +6,6 @@ import logging
 
 from homeassistant.components.humidifier import (
     MODE_AUTO,
-    MODE_NORMAL,
     MODE_SLEEP,
     HumidifierDeviceClass,
     HumidifierEntity,
@@ -14,7 +13,7 @@ from homeassistant.components.humidifier import (
 )
 
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinator
-from .const import MODE_WICK_DRY
+from .const import MODE_WICK_DRY, MODE_FAN_SPEED
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,7 +44,12 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         self._attr_device_class = HumidifierDeviceClass.HUMIDIFIER
         self._attr_supported_features = HumidifierEntityFeature.MODES
         self._attr_translation_key = "ha_blueair"
-        self._attr_available_modes = [MODE_AUTO, MODE_SLEEP, MODE_NORMAL, MODE_WICK_DRY]
+        self._attr_available_modes = [
+            MODE_AUTO,
+            MODE_SLEEP,
+            MODE_FAN_SPEED,
+            MODE_WICK_DRY,
+        ]
         super().__init__("Humidifier", coordinator)
 
     @property
@@ -62,7 +66,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         elif self.coordinator.wick_dry_mode:
             return MODE_WICK_DRY
         elif self.is_on:
-            return MODE_NORMAL
+            return MODE_FAN_SPEED
         else:
             return
 
@@ -108,7 +112,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
             await self.coordinator.set_fan_auto_mode(False)
             await self.coordinator.set_running(False)
             self.async_write_ha_state()
-        elif mode == MODE_NORMAL:
+        elif mode == MODE_FAN_SPEED:
             # This mode doesn't apply when off
             await self.coordinator.set_fan_auto_mode(False)
             await self.coordinator.set_night_mode(False)

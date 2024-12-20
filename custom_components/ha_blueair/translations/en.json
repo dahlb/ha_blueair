@@ -25,7 +25,8 @@
         "state_attributes": {
           "mode": {
             "state": {
-              "wick_dry": "Wick Dry"
+              "wick_dry": "Wick Dry",
+              "fan_speed": "Fan Speed"
             }
           }
         }
