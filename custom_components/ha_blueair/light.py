@@ -34,7 +34,7 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        return round(self.coordinator.brightness / 100 * 255.0, 0)
+        return self.coordinator.brightness
 
     @property
     def is_on(self) -> bool:
@@ -43,13 +43,9 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs):
         if ATTR_BRIGHTNESS in kwargs:
-            # Convert Home Assistant brightness (0-255) to Abode brightness (0-99)
-            # If 100 is sent to Abode, response is 99 causing an error
-            await self.coordinator.set_brightness(
-                round(kwargs[ATTR_BRIGHTNESS] * 100 / 255.0)
-            )
+            await self.coordinator.set_brightness(kwargs[ATTR_BRIGHTNESS])
         else:
-            await self.coordinator.set_brightness(100)
+            await self.coordinator.set_brightness(255)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):

@@ -41,7 +41,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
             update_interval=timedelta(minutes=5),
             update_method=refresh,
             request_refresh_debouncer=request_refresh_debouncer,
-            always_update=False
+            always_update=True
         )
 
     @property
@@ -81,8 +81,9 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         return self.blueair_api_device.wifi_working
 
     @property
+    @abstractmethod
     def brightness(self) -> int:
-        return self.blueair_api_device.brightness
+        pass
 
     @property
     def child_lock(self) -> bool:

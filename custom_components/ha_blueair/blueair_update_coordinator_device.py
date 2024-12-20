@@ -40,6 +40,14 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return True
 
     @property
+    def brightness(self) -> int | None | NotImplemented:
+        if self.blueair_api_device.brightness is None or self.blueair_api_device.brightness is NotImplemented:
+            return self.blueair_api_device.brightness
+        else:
+            return round(self.blueair_api_device.brightness / 4 * 255.0, 0)
+
+
+    @property
     def temperature(self) -> int | None | NotImplemented:
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented

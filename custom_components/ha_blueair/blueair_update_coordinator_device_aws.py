@@ -49,7 +49,11 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def brightness(self) -> int | None | NotImplemented:
-        return self.blueair_api_device.brightness
+        """Return the brightness of this light between 0..255."""
+        if self.blueair_api_device.brightness is None or self.blueair_api_device.brightness is NotImplemented:
+            return self.blueair_api_device.brightness
+        else:
+            return round(self.blueair_api_device.brightness / 100 * 255.0, 0)
 
     @property
     def child_lock(self) -> bool | None | NotImplemented:
@@ -115,7 +119,9 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.async_request_refresh()
 
     async def set_brightness(self, brightness) -> None:
-        await self.blueair_api_device.set_brightness(brightness)
+        # Convert Home Assistant brightness (0-255) to Abode brightness (0-99)
+        # If 100 is sent to Abode, response is 99 causing an error
+        await self.blueair_api_device.set_brightness(round(brightness * 100 / 255.0))
         await self.async_request_refresh()
 
     async def set_child_lock(self, locked) -> None:
