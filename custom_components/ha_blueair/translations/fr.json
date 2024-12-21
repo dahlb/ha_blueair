@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Authentification BlueAir",
+        "description": "Connectez-vous",
+        "data": {
+          "region": "Région",
+          "username": "Identifiant",
+          "password": "Mot de passe"
+        }
+      },
+      "reauth_confirm": {
+        "title": "[%key:common::config_flow::title::reauth%]",
+        "description": "L'intégration BlueAir nécessite la ré-authentification de votre compte."
+      }
+    },
+    "error": {
+      "auth": "Échec de connexion. Veuillez utiliser l'application officielle pour vous déconnecter, puis reconnectez-vous et réessayez."
+    }
+  },
+  "entity": {
+    "humidifier": {
+      "ha_blueair": {
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "fan_speed": "Vitesse du ventilateur"
+            }
+          }
+        }
+      }
+    }
+  }
+}
