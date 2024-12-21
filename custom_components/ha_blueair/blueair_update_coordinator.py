@@ -1,5 +1,7 @@
 """Blueair device object."""
 from __future__ import annotations
+
+import json
 import logging
 from datetime import timedelta
 from abc import ABC, abstractmethod
@@ -30,9 +32,9 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
             immediate=False,
         )
 
-        async def refresh() -> BlueAirApiDevice | BlueAirAwsDevice:
+        async def refresh() -> str:
             await self.blueair_api_device.refresh()
-            return self.blueair_api_device
+            return str(self.blueair_api_device)
 
         super().__init__(
             hass,
@@ -41,7 +43,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
             update_interval=timedelta(minutes=5),
             update_method=refresh,
             request_refresh_debouncer=request_refresh_debouncer,
-            always_update=True
+            always_update=False
         )
 
     @property
