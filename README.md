@@ -28,8 +28,11 @@ Warning; this has only been tested with classic_205 and protect 7470i
 ## Installation ##
 You can install this either manually copying files or using HACS. Configuration can be done on UI, you need to enter your username and password, (I know, translations are missing).
 
+## Limitations ##
+If you receive an error while trying to login, try resetting your password to one with no special characters except '!' and no longer then 10 characters.
+
 ## Troubleshooting ##
-If you receive an error while trying to login, please go through these steps;
+If you receive an error, please go through these steps to get details logs;
 1. You can enable logging for this integration specifically and share your logs, so I can have a deep dive investigation. To enable logging, update your `configuration.yaml` like this, we can get more information in Configuration -> Logs page
 ```
 logger:
