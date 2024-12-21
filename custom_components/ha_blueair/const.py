@@ -18,4 +18,3 @@ FILTER_EXPIRED_THRESHOLD = 95
 
 # Custom Mode Constants
 MODE_FAN_SPEED = "fan_speed"
-MODE_WICK_DRY = "wick_dry"
