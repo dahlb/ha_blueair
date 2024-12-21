@@ -102,12 +102,11 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return NotImplemented
 
     async def set_brightness(self, brightness) -> None:
-        raise NotImplementedError
+        # Convert Home Assistant brightness (0-255) to brightness (0-4)
+        await self.blueair_api_device.set_brightness(round(brightness * 4 / 255.0))
+        await self.async_request_refresh()
 
     async def set_running(self, running) -> None:
-        raise NotImplementedError
-
-    async def set_child_lock(self, locked) -> None:
         raise NotImplementedError
 
     async def set_night_mode(self, mode) -> None:

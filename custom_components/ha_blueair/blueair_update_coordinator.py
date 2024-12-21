@@ -162,9 +162,9 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     async def set_running(self, running) -> None:
         pass
 
-    @abstractmethod
-    async def set_child_lock(self, locked) -> None:
-        pass
+    async def set_child_lock(self, locked: bool) -> None:
+        await self.blueair_api_device.set_child_lock(locked)
+        await self.async_request_refresh()
 
     @abstractmethod
     async def set_night_mode(self, mode) -> None:

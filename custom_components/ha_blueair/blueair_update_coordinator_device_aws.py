@@ -124,10 +124,6 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.blueair_api_device.set_brightness(round(brightness * 100 / 255.0))
         await self.async_request_refresh()
 
-    async def set_child_lock(self, locked) -> None:
-        await self.blueair_api_device.set_child_lock(locked)
-        await self.async_request_refresh()
-
     async def set_night_mode(self, mode) -> None:
         await self.blueair_api_device.set_night_mode(mode)
         await self.async_request_refresh()
