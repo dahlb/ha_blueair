@@ -150,6 +150,11 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         """Return the current filter status."""
         pass
 
+    @property
+    @abstractmethod
+    def auto_regulated_humidity(self) -> bool | None | NotImplemented:
+        pass
+
     async def set_fan_speed(self, new_speed) -> None:
         await self.blueair_api_device.set_fan_speed(new_speed)
         await self.async_request_refresh()
@@ -176,4 +181,8 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @abstractmethod
     async def set_wick_dry_mode(self, value) -> None:
+        pass
+
+    @abstractmethod
+    async def set_auto_regulated_humidity(self, value) -> None:
         pass
