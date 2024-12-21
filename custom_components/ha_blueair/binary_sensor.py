@@ -15,26 +15,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         entity_classes=[
             BlueairOnlineSensor,
             BlueairFilterExpiredSensor,
-            BlueairChildLockSensor,
             BlueairWaterShortageSensor,
     ])
-
-
-
-class BlueairChildLockSensor(BlueairEntity, BinarySensorEntity):
-    _attr_icon = "mdi:account-child-outline"
-
-    @classmethod
-    def is_implemented(kls, coordinator):
-        return coordinator.child_lock is not NotImplemented
-
-    def __init__(self, coordinator):
-        super().__init__("Child Lock", coordinator)
-
-    @property
-    def is_on(self) -> bool | None:
-        """Return true if the binary sensor is on."""
-        return self.coordinator.child_lock
 
 
 class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
