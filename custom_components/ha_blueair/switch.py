@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 from homeassistant.components.switch import (
     SwitchEntity,
@@ -7,12 +8,15 @@ from homeassistant.components.switch import (
 
 from .entity import BlueairEntity, async_setup_entry_helper
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(hass, config_entry, async_add_entities,
         entity_classes=[
             BlueairChildLockSwitchEntity,
+            BlueairGermShieldSwitchEntity,
             BlueairAutoFanModeSwitchEntity,
             BlueairNightModeSwitchEntity,
             BlueairWickDryModeSwitchEntity,
@@ -30,7 +34,7 @@ class BlueairChildLockSwitchEntity(BlueairEntity, SwitchEntity):
         super().__init__("Child Lock", coordinator)
 
     @property
-    def is_on(self) -> int | None:
+    def is_on(self) -> bool | None:
         return self.coordinator.child_lock
 
     async def async_turn_on(self, **kwargs):
@@ -39,6 +43,29 @@ class BlueairChildLockSwitchEntity(BlueairEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs):
         await self.coordinator.set_child_lock(False)
+        self.async_write_ha_state()
+
+
+class BlueairGermShieldSwitchEntity(BlueairEntity, SwitchEntity):
+    _attr_device_class = SwitchDeviceClass.SWITCH
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.germ_shield is not NotImplemented
+
+    def __init__(self, coordinator):
+        super().__init__("Germ Shield", coordinator)
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.coordinator.germ_shield
+
+    async def async_turn_on(self, **kwargs):
+        await self.coordinator.set_germ_shield(True)
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs):
+        await self.coordinator.set_germ_shield(False)
         self.async_write_ha_state()
 
 
@@ -53,7 +80,7 @@ class BlueairAutoFanModeSwitchEntity(BlueairEntity, SwitchEntity):
         super().__init__("Auto Fan Mode", coordinator)
 
     @property
-    def is_on(self) -> int | None:
+    def is_on(self) -> bool | None:
         return self.coordinator.fan_auto_mode
 
     async def async_turn_on(self, **kwargs):
@@ -104,7 +131,7 @@ class BlueairWickDryModeSwitchEntity(BlueairEntity, SwitchEntity):
         super().__init__("Wick Dry Mode", coordinator)
 
     @property
-    def is_on(self) -> int | None:
+    def is_on(self) -> bool | None:
         return self.coordinator.wick_dry_mode
 
     @property

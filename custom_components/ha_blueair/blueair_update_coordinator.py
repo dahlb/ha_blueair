@@ -91,6 +91,11 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         return self.blueair_api_device.child_lock
 
     @property
+    @abstractmethod
+    def germ_shield(self) -> bool:
+        pass
+
+    @property
     def night_mode(self) -> bool:
         return self.blueair_api_device.night_mode
 
@@ -165,6 +170,10 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @abstractmethod
     async def set_running(self, running) -> None:
+        pass
+
+    @abstractmethod
+    async def set_germ_shield(self, enabled: bool) -> None:
         pass
 
     async def set_child_lock(self, locked: bool) -> None:

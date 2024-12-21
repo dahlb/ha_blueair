@@ -46,7 +46,6 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         else:
             return round(self.blueair_api_device.brightness / 4 * 255.0, 0)
 
-
     @property
     def temperature(self) -> int | None | NotImplemented:
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
@@ -90,6 +89,10 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return self.blueair_api_device.co2
 
     @property
+    def germ_shield(self) -> bool:
+        return NotImplemented
+
+    @property
     def fan_auto_mode(self) -> bool | None | NotImplemented:
         return NotImplemented
 
@@ -109,6 +112,9 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         # Convert Home Assistant brightness (0-255) to brightness (0-4)
         await self.blueair_api_device.set_brightness(round(brightness * 4 / 255.0))
         await self.async_request_refresh()
+
+    async def set_germ_shield(self, enabled: bool) -> None:
+        raise NotImplementedError
 
     async def set_running(self, running) -> None:
         raise NotImplementedError
