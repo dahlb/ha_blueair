@@ -1,5 +1,3 @@
-from typing import Final
-
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import (
     UnitOfTemperature,
@@ -12,8 +10,6 @@ from homeassistant.const import (
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
-SENSOR_DESCRIPTIONS: Final[tuple[SensorEntityDescription, ...]] = (
-)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(hass, config_entry, async_add_entities,
