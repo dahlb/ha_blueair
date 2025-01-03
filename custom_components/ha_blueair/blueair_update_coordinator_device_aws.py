@@ -85,16 +85,25 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def pm1(self) -> int | None | NotImplemented:
-        return self.blueair_api_device.pm1
+        pm1 = self.blueair_api_device.pm1
+        if pm1 is None or pm1 is NotImplemented:
+            return pm1
+        return int((pm1 * 100) // 132)
 
     @property
     def pm10(self) -> int | None | NotImplemented:
-        return self.blueair_api_device.pm10
+        pm10 = self.blueair_api_device.pm10
+        if pm10 is None or pm10 is NotImplemented:
+            return pm10
+        return int((pm10 * 100) // 132)
 
     @property
     def pm25(self) -> int | None | NotImplemented:
         # pm25 is the more common name for pm2.5.
-        return self.blueair_api_device.pm2_5
+        pm25 = self.blueair_api_device.pm2_5
+        if pm25 is None or pm25 is NotImplemented:
+            return pm25
+        return int((pm25 * 100) // 132)
 
     @property
     def co2(self) -> int | None | NotImplemented:

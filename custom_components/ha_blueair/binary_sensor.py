@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
+    BinarySensorEntityDescription,
 )
-from homeassistant.helpers.entity import EntityDescription
 
+from .blueair_update_coordinator import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 
@@ -18,71 +17,50 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             BlueairWaterShortageSensor,
     ])
 
-
-class BlueairFilterExpiredSensor(BlueairEntity, BinarySensorEntity):
-    _attr_icon = "mdi:air-filter"
-
+class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
     @classmethod
-    def is_implemented(kls, coordinator):
-        return coordinator.filter_expired is not NotImplemented
+    def is_implemented(kls, coordinator: BlueairUpdateCoordinator) -> bool:
+        return getattr(coordinator, kls(coordinator).entity_description.key) is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the temperature sensor."""
-        self.entity_description = EntityDescription(
-            key=f"#{coordinator.blueair_api_device.uuid}-filter-expired",
-            device_class=BinarySensorDeviceClass.PROBLEM,
-        )
-        super().__init__("Filter Expiration", coordinator)
+        super().__init__(self.entity_description.name, coordinator)
 
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return self.coordinator.filter_expired
+        return getattr(self.coordinator, self.entity_description.key)
 
 
-class BlueairOnlineSensor(BlueairEntity, BinarySensorEntity):
-    _attr_icon = "mdi:wifi-check"
+class BlueairFilterExpiredSensor(BlueairBinarySensor):
+    entity_description = BinarySensorEntityDescription(
+        key="filter_expired",
+        name="Filter Expiration",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        icon="mdi:air-filter",
+    )
 
-    @classmethod
-    def is_implemented(kls, coordinator):
-        return coordinator.online is not NotImplemented
 
-    def __init__(self, coordinator):
-        """Initialize the temperature sensor."""
-        self.entity_description = EntityDescription(
-            key=f"#{coordinator.blueair_api_device.uuid}-online",
-            device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        )
-        super().__init__("Online", coordinator)
-
-    @property
-    def is_on(self) -> bool | None:
-        """Return true if the binary sensor is on."""
-        return self.coordinator.online
+class BlueairOnlineSensor(BlueairBinarySensor):
+    entity_description = BinarySensorEntityDescription(
+        key="online",
+        name="Online",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        icon="mdi:wifi-check",
+    )
 
     @property
     def icon(self) -> str | None:
         if self.is_on:
-            return self._attr_icon
+            return self.entity_description.icon
         else:
             return "mdi:wifi-strength-outline"
 
 
-class BlueairWaterShortageSensor(BlueairEntity, BinarySensorEntity):
-    _attr_icon = "mdi:water-alert-outline"
-
-    @classmethod
-    def is_implemented(kls, coordinator):
-        return coordinator.water_shortage is not NotImplemented
-
-    def __init__(self, coordinator):
-        self.entity_description = EntityDescription(
-            key=f"#{coordinator.blueair_api_device.uuid}-water-shortage",
-            device_class=BinarySensorDeviceClass.PROBLEM,
-        )
-        super().__init__("Water Shortage", coordinator)
-
-    @property
-    def is_on(self) -> bool | None:
-        """Return true if the binary sensor is on."""
-        return self.coordinator.water_shortage
+class BlueairWaterShortageSensor(BlueairBinarySensor):
+    entity_description = BinarySensorEntityDescription(
+        key="water_shortage",
+        name="Water Shortage",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        icon="mdi:water-alert-outline",
+    )

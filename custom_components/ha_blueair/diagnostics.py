@@ -33,7 +33,9 @@ async def async_get_config_entry_diagnostics(
         "entry": async_redact_data(config_entry.as_dict(), TO_REDACT),
     }
     for coordinator in coordinators:
-        data[coordinator.blueair_api_device.mac] = coordinator.blueair_api_device.__repr__()
+        data[coordinator.blueair_api_device.mac] = {
+            "device_str": str(coordinator.blueair_api_device)
+        }
 
         device_registry = dr.async_get(hass)
         entity_registry = er.async_get(hass)

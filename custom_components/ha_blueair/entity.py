@@ -23,7 +23,7 @@ def async_setup_entry_helper(hass, config_entry, async_add_entities, entity_clas
     async_add_entities(entities)
 
 
-class BlueairEntity(CoordinatorEntity):
+class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     """A base class for Blueair entities."""
     _attr_force_update = False
 
@@ -41,8 +41,6 @@ class BlueairEntity(CoordinatorEntity):
         super().__init__(coordinator)
         self._attr_name = f"{coordinator.device_name} {entity_type}"
         self._attr_unique_id = f"{coordinator.id}_{entity_type}"
-
-        self.coordinator: BlueairUpdateCoordinator = coordinator
 
     @property
     def device_info(self) -> DeviceInfo:

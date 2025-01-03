@@ -1,6 +1,7 @@
 """Blueair device object."""
 from __future__ import annotations
 import logging
+
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
