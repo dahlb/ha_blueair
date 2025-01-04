@@ -185,7 +185,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         pass
 
     @abstractmethod
-    async def set_fan_auto_mode(self, value) -> None:
+    async def set_fan_auto_mode(self, value: bool) -> None:
         pass
 
     @abstractmethod

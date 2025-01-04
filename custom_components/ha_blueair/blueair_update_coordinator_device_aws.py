@@ -149,7 +149,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.blueair_api_device.set_night_mode(mode)
         await self.async_request_refresh()
 
-    async def set_fan_auto_mode(self, value) -> None:
+    async def set_fan_auto_mode(self, value: bool) -> None:
         await self.blueair_api_device.set_fan_auto_mode(value)
         await self.async_request_refresh()
 
