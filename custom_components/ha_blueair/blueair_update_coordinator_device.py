@@ -95,6 +95,8 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
 
     @property
     def fan_auto_mode(self) -> bool | None | NotImplemented:
+        if self.model not in ["classic_680i"]:
+            return NotImplemented
         return self.blueair_api_device.fan_auto_mode
 
     @property
