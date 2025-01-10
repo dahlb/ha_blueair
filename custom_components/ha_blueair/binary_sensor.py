@@ -56,6 +56,11 @@ class BlueairOnlineSensor(BlueairBinarySensor):
         else:
             return "mdi:wifi-strength-outline"
 
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return True
+
 
 class BlueairWaterShortageSensor(BlueairBinarySensor):
     entity_description = BinarySensorEntityDescription(
