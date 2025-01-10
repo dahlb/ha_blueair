@@ -8,7 +8,7 @@
 
 A custom integration for Blueair Filters.
 
-Warning; this has only been tested with classic_205 and protect 7470i
+Warning: this has only been tested with classic_205, protect 7470i, and Blue Pure 211i Max
 
 ## Feature Highlights ##
 - adjust fan speed, turn off/on
