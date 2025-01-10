@@ -1,4 +1,9 @@
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
 from homeassistant.const import (
     UnitOfTemperature,
     PERCENTAGE,
@@ -44,6 +49,11 @@ class BlueairSensor(BlueairEntity, SensorEntity):
     def available(self) -> bool:
         """Return True if entity is available."""
         return super().available and self.native_value is not None
+
+    @property
+    def state_class(self):
+        """Return the state class of this entity, from STATE_CLASSES, if any."""
+        return SensorStateClass.MEASUREMENT
 
 
 class BlueairTemperatureSensor(BlueairSensor):
