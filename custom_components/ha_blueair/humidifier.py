@@ -52,11 +52,6 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         super().__init__("Humidifier", coordinator)
 
     @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.online
-
-    @property
     def mode(self):
         if self.coordinator.night_mode:
             return MODE_SLEEP

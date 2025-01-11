@@ -53,6 +53,11 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
             name=self.coordinator.device_name,
         )
 
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success and self.coordinator.online
+
     async def async_update(self):
         """Update Blueair entity."""
         await super().async_update()
