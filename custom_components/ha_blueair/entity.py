@@ -25,7 +25,6 @@ def async_setup_entry_helper(hass, config_entry, async_add_entities, entity_clas
 
 class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     """A base class for Blueair entities."""
-    _attr_force_update = False
 
     @classmethod
     def is_implemented(kls, coordinator) -> bool:
@@ -57,8 +56,3 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     def available(self) -> bool:
         """Return if entity is available."""
         return self.coordinator.last_update_success and self.coordinator.online
-
-    async def async_update(self):
-        """Update Blueair entity."""
-        await super().async_update()
-        self._attr_available = self.coordinator.online
