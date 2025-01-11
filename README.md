@@ -32,15 +32,13 @@ You can install this either manually copying files or using HACS. Configuration 
 If you receive an error while trying to login, try resetting your password to one with no special characters except '!' and no longer then 10 characters.
 
 ## Troubleshooting ##
-If you receive an error, please go through these steps to get details logs;
-1. You can enable logging for this integration specifically and share your logs, so I can have a deep dive investigation. To enable logging, update your `configuration.yaml` like this, we can get more information in Configuration -> Logs page
-```
-logger:
-  default: warning
-  logs:
-    custom_components.ha_blueair: debug
-    blueair_api: debug
-```
+If you receive an error, please go through these steps;
+1. Enabled Debug Logging, at /config/integrations/integration/ha_blueair
+2. Restart you home assistant to capture initialization with debug logging, then try to do what your having trouble with
+3. Disable Debug Logging, at /config/integrations/integration/ha_blueair (which will download the logs)
+4. Click the three dots menu for your vehicle, at /config/integrations/integration/ha_blueair
+5. Click Download Diagnostics
+6. Attach both logs and diagnostics to your issue ticket.
 
 ***
 
