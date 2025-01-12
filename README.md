@@ -6,24 +6,32 @@
 ![Project Maintenance][maintenance-shield]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-A custom integration for Blueair Filters.
-
-Warning: this has only been tested with classic_205, protect 7470i, and Blue Pure 211i Max
+A custom integration for Blueair Filters.  If your model isn't reported correctly please open a ticket and include your model name and the diagnostic file from the integration.
 
 ## Feature Highlights ##
-- adjust fan speed, turn off/on
-- adjust light brightness, turn off/on
+- fan
+  - speed
+  - turn off/on
+- light
+  - brightness
+  - turn off/on
 - sensors
-  - filter replacement
-  - humidity
-  - connectivity
-  - temperature
+  - Filter Replacement
+  - Humidity
+  - Connectivity
+  - Temperature
   - PM 1
   - PM 2.5
   - PM 10
   - VOC
 - switches
   - child lock
+  - germ shield
+  - night mode
+  - auto fan mode
+  - wick dry
+- climate (T10i/T20i only)
+- humidifier (H35i only)
 
 ## Installation ##
 You can install this either manually copying files or using HACS. Configuration can be done on UI, you need to enter your username and password, (I know, translations are missing).
