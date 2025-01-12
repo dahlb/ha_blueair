@@ -1,4 +1,5 @@
 # Configuration Constants
+from enum import Enum
 from homeassistant.const import Platform
 
 DOMAIN: str = "ha_blueair"
@@ -7,12 +8,21 @@ DOMAIN: str = "ha_blueair"
 CONFIG_FLOW_VERSION: int = 2
 PLATFORMS = [
     Platform.BINARY_SENSOR,
+    Platform.CLIMATE,
     Platform.FAN,
     Platform.HUMIDIFIER,
     Platform.LIGHT,
     Platform.SENSOR,
     Platform.SWITCH,
 ]
+
+class FanMode(Enum):
+    AUTO = "auto"
+    STEP1 = "step1"
+    STEP2 = "step2"
+    STEP3 = "step3"
+    STEP4 = "step4"
+
 
 # Home Assistant Data Storage Constants
 DATA_DEVICES: str = "api_devices"

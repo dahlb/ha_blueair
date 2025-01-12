@@ -131,6 +131,42 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
                 return (self.blueair_api_device.wick_usage_percentage >=
                         FILTER_EXPIRED_THRESHOLD)
 
+    @property
+    def main_mode(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.main_mode
+
+    @property
+    def heat_temp(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.heat_temp
+
+    @property
+    def heat_sub_mode(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.heat_sub_mode
+
+    @property
+    def heat_fan_speed(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.heat_fan_speed
+
+    @property
+    def cool_sub_mode(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.cool_sub_mode
+
+    @property
+    def cool_fan_speed(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.cool_fan_speed
+
+    @property
+    def ap_sub_mode(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.ap_sub_mode
+
+    @property
+    def fan_speed_0(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.fan_speed_0
+
+    @property
+    def temperature_unit(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.temperature_unit
+
     async def set_running(self, running) -> None:
         await self.blueair_api_device.set_standby(not running)
         await self.async_request_refresh()
@@ -159,4 +195,36 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     async def set_auto_regulated_humidity(self, value) -> None:
         await self.blueair_api_device.set_auto_regulated_humidity(value)
+        await self.async_request_refresh()
+
+    async def set_main_mode(self, value: int) -> None:
+        await self.blueair_api_device.set_main_mode(value)
+        await self.async_request_refresh()
+
+    async def set_heat_temp(self, value: int) -> None:
+        await self.blueair_api_device.set_heat_temp(value)
+        await self.async_request_refresh()
+
+    async def set_heat_sub_mode(self, value: int) -> None:
+        await self.blueair_api_device.set_heat_sub_mode(value)
+        await self.async_request_refresh()
+
+    async def set_heat_fan_speed(self, value: int) -> None:
+        await self.blueair_api_device.set_heat_fan_speed(value)
+        await self.async_request_refresh()
+
+    async def set_cool_sub_mode(self, value: int) -> None:
+        await self.blueair_api_device.set_cool_sub_mode(value)
+        await self.async_request_refresh()
+
+    async def set_cool_fan_speed(self, value: int) -> None:
+        await self.blueair_api_device.set_cool_fan_speed(value)
+        await self.async_request_refresh()
+
+    async def set_ap_sub_mode(self, value: int) -> None:
+        await self.blueair_api_device.set_main_mode(value)
+        await self.async_request_refresh()
+
+    async def set_fan_speed_0(self, value: int) -> None:
+        await self.blueair_api_device.set_fan_speed_0(value)
         await self.async_request_refresh()
