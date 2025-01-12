@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 from typing import Any
+from logging import getLogger
 
 import attr
-import logging
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
@@ -19,7 +20,7 @@ TO_REDACT_MAPPED = {}
 TO_REDACT_DEVICE = {}
 TO_REDACT_ENTITIES = {}
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = getLogger(__name__)
 
 
 async def async_get_config_entry_diagnostics(
@@ -34,7 +35,8 @@ async def async_get_config_entry_diagnostics(
     }
     for coordinator in coordinators:
         data[coordinator.blueair_api_device.mac] = {
-            "device_str": str(coordinator.blueair_api_device)
+            "device_str": str(coordinator.blueair_api_device),
+            "raw_info": coordinator.blueair_api_device.raw_info,
         }
 
         device_registry = dr.async_get(hass)
