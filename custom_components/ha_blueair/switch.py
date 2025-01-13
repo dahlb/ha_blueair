@@ -17,8 +17,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         entity_classes=[
             BlueairChildLockSwitchEntity,
             BlueairGermShieldSwitchEntity,
-            BlueairAutoFanModeSwitchEntity,
-            BlueairNightModeSwitchEntity,
             BlueairWickDryModeSwitchEntity,
     ])
 
@@ -56,22 +54,6 @@ class BlueairGermShieldSwitchEntity(BlueairSwitchEntity):
     entity_description = SwitchEntityDescription(
         key="germ_shield",
         name="Germ Shield",
-        device_class=SwitchDeviceClass.SWITCH,
-    )
-
-
-class BlueairAutoFanModeSwitchEntity(BlueairSwitchEntity):
-    entity_description = SwitchEntityDescription(
-        key="fan_auto_mode",
-        name="Auto Fan Mode",
-        device_class=SwitchDeviceClass.SWITCH,
-    )
-
-
-class BlueairNightModeSwitchEntity(BlueairSwitchEntity):
-    entity_description = SwitchEntityDescription(
-        key="night_mode",
-        name="Night Mode",
         device_class=SwitchDeviceClass.SWITCH,
     )
 
