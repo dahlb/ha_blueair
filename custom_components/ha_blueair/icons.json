@@ -1,0 +1,16 @@
+{
+  "entity": {
+    "fan": {
+      "ha_blueair": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "mdi:fan-auto",
+              "night": "mdi:weather-night"
+            }
+          }
+        }
+      }
+    }
+  }
+}
