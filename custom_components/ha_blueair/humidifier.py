@@ -43,7 +43,6 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         """Initialize the humidifer."""
         self._attr_device_class = HumidifierDeviceClass.HUMIDIFIER
         self._attr_supported_features = HumidifierEntityFeature.MODES
-        self._attr_translation_key = "ha_blueair"
         self._attr_available_modes = [
             MODE_AUTO,
             MODE_SLEEP,
