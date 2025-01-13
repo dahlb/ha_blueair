@@ -31,7 +31,6 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
         """Initialize the fan entity."""
-        self._attr_translation_key = "ha_blueair"
         self._attr_preset_modes = []
         if coordinator.fan_auto_mode is not NotImplemented:
             self._attr_preset_modes.append(MODE_AUTO)
