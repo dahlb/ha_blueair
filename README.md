@@ -12,6 +12,7 @@ A custom integration for Blueair Filters.  If your model isn't reported correctl
 - fan
   - speed
   - turn off/on
+  - preset modes: night/auto (if supported)
 - light
   - brightness
   - turn off/on
@@ -27,8 +28,6 @@ A custom integration for Blueair Filters.  If your model isn't reported correctl
 - switches
   - child lock
   - germ shield
-  - night mode
-  - auto fan mode
   - wick dry
 - climate (T10i/T20i only)
 - humidifier (H35i only)
