@@ -50,7 +50,10 @@ class BlueairFan(BlueairEntity, FanEntity):
     @property
     def percentage(self) -> int:
         """Return the current speed percentage."""
-        return int(round(self.coordinator.fan_speed * 33.33, 0))
+        if self.preset_mode is None:
+          return int(round(self.coordinator.fan_speed * 33.33, 0))
+        else:
+          return None
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Sets fan speed percentage."""
@@ -140,7 +143,10 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     @property
     def percentage(self) -> int:
         """Return the current speed percentage."""
-        return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
+        if self.preset_mode is None:
+          return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
+        else:
+          return None
 
     async def async_set_percentage(self, percentage: int) -> None:
         if self.coordinator.fan_auto_mode is True:
