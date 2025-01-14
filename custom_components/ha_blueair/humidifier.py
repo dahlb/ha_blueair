@@ -40,7 +40,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         return coordinator.auto_regulated_humidity is not NotImplemented
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
-        """Initialize the humidifer."""
+        """Initialize the humidifier."""
         self._attr_device_class = HumidifierDeviceClass.HUMIDIFIER
         self._attr_supported_features = HumidifierEntityFeature.MODES
         self._attr_available_modes = [
