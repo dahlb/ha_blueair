@@ -30,6 +30,18 @@
           }
         }
       }
+    },
+    "fan": {
+      "ha_blueair": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "Auto",
+              "night": "Night"
+            }
+          }
+        }
+      }
     }
   }
 }

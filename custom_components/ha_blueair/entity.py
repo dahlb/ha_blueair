@@ -25,6 +25,7 @@ def async_setup_entry_helper(hass, config_entry, async_add_entities, entity_clas
 
 class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     """A base class for Blueair entities."""
+    _attr_translation_key = DOMAIN
 
     @classmethod
     def is_implemented(kls, coordinator) -> bool:
