@@ -24,6 +24,14 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return self.blueair_api_device.filter_expired
 
     @property
+    def filter_life(self) -> int | None | NotImplemented:
+        return NotImplemented
+
+    @property
+    def wick_life(self) -> int | None | NotImplemented:
+        return NotImplemented
+
+    @property
     def fan_speed(self) -> int:
         """Return the current fan speed."""
         return _cast(int, self.blueair_api_device.fan_speed)
