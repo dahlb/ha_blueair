@@ -8,5 +8,5 @@
   "issue_tracker": "https://github.com/dahlb/ha_blueair/issues",
   "loggers": ["ha_blueair", "blueair_api"],
   "requirements": ["blueair-api==1.33.2"],
-  "version": "1.28.1"
+  "version": "1.28.2"
 }
