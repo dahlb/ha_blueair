@@ -4,7 +4,6 @@ import logging
 
 from blueair_api import ModelEnum
 
-from .const import FILTER_EXPIRED_THRESHOLD
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
