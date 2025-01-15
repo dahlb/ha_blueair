@@ -121,7 +121,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.water_shortage
 
     @property
-    def filter_expired(self) -> bool | None:
+    def filter_expired(self) -> bool | None | NotImplemented:
         """Returns the current filter status."""
         return NotImplemented
 
