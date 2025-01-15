@@ -4,7 +4,6 @@ import logging
 
 from blueair_api import ModelEnum
 
-from .const import FILTER_EXPIRED_THRESHOLD
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -122,14 +121,21 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.water_shortage
 
     @property
-    def filter_expired(self) -> bool | None:
+    def filter_expired(self) -> bool | None | NotImplemented:
         """Returns the current filter status."""
-        if self.blueair_api_device.filter_usage_percentage not in (NotImplemented, None):
-                return (self.blueair_api_device.filter_usage_percentage >=
-                        FILTER_EXPIRED_THRESHOLD)
-        if self.blueair_api_device.wick_usage_percentage not in (NotImplemented, None):
-                return (self.blueair_api_device.wick_usage_percentage >=
-                        FILTER_EXPIRED_THRESHOLD)
+        return NotImplemented
+
+    @property
+    def filter_life(self) -> int | None | NotImplemented:
+        if self.blueair_api_device.filter_usage_percentage in (NotImplemented, None):
+            return self.blueair_api_device.filter_usage_percentage
+        return 100 - self.blueair_api_device.filter_usage_percentage
+
+    @property
+    def wick_life(self) -> int | None | NotImplemented:
+        if self.blueair_api_device.wick_usage_percentage in (NotImplemented, None):
+            return self.blueair_api_device.wick_usage_percentage
+        return 100 - self.blueair_api_device.wick_usage_percentage
 
     @property
     def main_mode(self) -> int | None | NotImplemented:

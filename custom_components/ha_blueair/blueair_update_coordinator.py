@@ -151,8 +151,18 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @property
     @abstractmethod
-    def filter_expired(self) -> bool | None:
+    def filter_expired(self) -> bool | None | NotImplemented:
         """Return the current filter status."""
+        pass
+
+    @property
+    @abstractmethod
+    def filter_life(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
+    def wick_life(self) -> int | None | NotImplemented:
         pass
 
     @property
