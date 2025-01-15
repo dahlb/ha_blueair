@@ -11,6 +11,14 @@
           }
         }
       }
+    },
+    "switch": {
+      "child_lock": {
+        "default": "mdi:lock",
+        "state": {
+          "off": "mdi:lock-open-variant"
+        }
+      }
     }
   }
 }
