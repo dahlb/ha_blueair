@@ -26,6 +26,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             BlueairPM1Sensor,
             BlueairPM10Sensor,
             BlueairPM25Sensor,
+            BlueairFilterLifeSensor,
+            BlueairWickLifeSensor,
     ])
 
 
@@ -127,4 +129,26 @@ class BlueairCO2Sensor(BlueairSensor):
         device_class=SensorDeviceClass.CO2,
         native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
         suggested_display_precision=0,
+    )
+
+
+class BlueairFilterLifeSensor(BlueairSensor):
+    """Monitors the filter remaining life"""
+    entity_description = SensorEntityDescription(
+        key="filter_life",
+        name="Filter Life",
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=0,
+        icon="mdi:air-filter",
+    )
+
+
+class BlueairWickLifeSensor(BlueairSensor):
+    """Monitors the wick remaining life"""
+    entity_description = SensorEntityDescription(
+        key="wick_life",
+        name="Wick Life",
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=0,
+        icon="mdi:air-filter",
     )
