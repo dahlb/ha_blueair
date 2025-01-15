@@ -137,6 +137,7 @@ class BlueairFilterLifeSensor(BlueairSensor):
     entity_description = SensorEntityDescription(
         key="filter_life",
         name="Filter Life",
+        device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:air-filter",
@@ -148,6 +149,7 @@ class BlueairWickLifeSensor(BlueairSensor):
     entity_description = SensorEntityDescription(
         key="wick_life",
         name="Wick Life",
+        device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:air-filter",
