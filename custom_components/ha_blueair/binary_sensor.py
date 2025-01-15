@@ -13,7 +13,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_setup_entry_helper(hass, config_entry, async_add_entities,
         entity_classes=[
             BlueairOnlineSensor,
-            BlueairFilterExpiredSensor,
             BlueairWaterShortageSensor,
     ])
 
@@ -30,15 +29,6 @@ class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
         return getattr(self.coordinator, self.entity_description.key)
-
-
-class BlueairFilterExpiredSensor(BlueairBinarySensor):
-    entity_description = BinarySensorEntityDescription(
-        key="filter_expired",
-        name="Filter Expiration",
-        device_class=BinarySensorDeviceClass.PROBLEM,
-        icon="mdi:air-filter",
-    )
 
 
 class BlueairOnlineSensor(BlueairBinarySensor):
