@@ -48,6 +48,7 @@ class BlueairChildLockSwitchEntity(BlueairSwitchEntity):
         name="Child Lock",
         device_class=SwitchDeviceClass.SWITCH,
     )
+    _attr_translation_key = "child_lock"
 
 
 class BlueairGermShieldSwitchEntity(BlueairSwitchEntity):
