@@ -29,6 +29,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         elif self.blueair_api_device.model in [
             ModelEnum.MAX_211I,
             ModelEnum.MAX_311I,
+            ModelEnum.MAX_311I_PLUS,
             ModelEnum.PROTECT_7440I,
             ModelEnum.PROTECT_7470I
         ]:
