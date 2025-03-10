@@ -44,7 +44,7 @@ class KiaUvoConfigFlowHandler(config_entries.ConfigFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            user_input[CONF_REGION]
+            _region = user_input[CONF_REGION]
             username = user_input[CONF_USERNAME]
             password = user_input[CONF_PASSWORD]
 
@@ -53,6 +53,8 @@ class KiaUvoConfigFlowHandler(config_entries.ConfigFlow):
                 api_cloud = HttpBlueair(username=username, password=password)
                 await api_cloud.get_auth_token()
                 self.data.update(user_input)
+                await self.async_set_unique_id(username)
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=username,
                     data=self.data,
