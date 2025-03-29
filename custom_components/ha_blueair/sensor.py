@@ -85,7 +85,7 @@ class BlueairVOCSensor(BlueairSensor):
     entity_description = SensorEntityDescription(
         key="voc",
         name="VOC",
-        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
+        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS,
         native_unit_of_measurement=CONCENTRATION_PARTS_PER_BILLION,
         suggested_display_precision=0,
     )
