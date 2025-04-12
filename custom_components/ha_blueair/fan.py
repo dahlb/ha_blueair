@@ -156,7 +156,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         if self.coordinator.night_mode is True:
             await self.coordinator.set_night_mode(False)
             # need to wait when turning off night mode for device to receive message from aws then it sets the speed to what night mode had set and updates aws with that speed, without this wait the following set is overridden by the device
-            await sleep(1)
+            await sleep(2)
         blueair_percentage = int(round(percentage / 100 * self.coordinator.speed_count))
         await self.coordinator.set_fan_speed(blueair_percentage)
         self.async_write_ha_state()
