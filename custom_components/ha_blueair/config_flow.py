@@ -16,7 +16,7 @@ from .const import (
     REGION_USA,
 )
 
-from blueair_api import HttpBlueair, AuthError
+from blueair_api import AuthError, get_aws_devices
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,14 +44,13 @@ class KiaUvoConfigFlowHandler(config_entries.ConfigFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            _region = user_input[CONF_REGION]
+            region = user_input[CONF_REGION]
             username = user_input[CONF_USERNAME]
             password = user_input[CONF_PASSWORD]
 
             api_cloud = None
             try:
-                api_cloud = HttpBlueair(username=username, password=password)
-                await api_cloud.get_auth_token()
+                api_cloud, _devices = await get_aws_devices(username=username, password=password, region=region)
                 self.data.update(user_input)
                 await self.async_set_unique_id(username)
                 self._abort_if_unique_id_configured()
