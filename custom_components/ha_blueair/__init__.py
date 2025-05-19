@@ -71,7 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     client_session = async_get_clientsession(hass)
     try:
-        if region is REGION_USA:
+        if region == REGION_USA:
             _, devices = await get_devices(
                 username=username, password=password, client_session=client_session
             )
