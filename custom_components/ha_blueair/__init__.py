@@ -71,11 +71,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     client_session = async_get_clientsession(hass)
     try:
-        if region in [REGION_USA, REGION_EU]:
+        try:
             _, devices = await get_devices(
                 username=username, password=password, client_session=client_session
             )
-        else:
+        except LoginError as ex:
+            _LOGGER.debug(f"Legacy Login error: {ex}")
             devices = []
         _, aws_devices = await get_aws_devices(
             username=username,
