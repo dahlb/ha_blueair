@@ -22,7 +22,7 @@ from .const import (
     PLATFORMS,
     DATA_DEVICES,
     DATA_AWS_DEVICES,
-    REGION_USA, REGION_EU,
+    REGION_USA,
 )
 
 _LOGGER = logging.getLogger(__name__)
