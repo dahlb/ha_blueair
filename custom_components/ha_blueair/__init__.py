@@ -22,7 +22,7 @@ from .const import (
     PLATFORMS,
     DATA_DEVICES,
     DATA_AWS_DEVICES,
-    REGION_USA,
+    REGION_USA, REGION_EU,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     client_session = async_get_clientsession(hass)
     try:
-        if region == REGION_USA:
+        if region in [REGION_USA, REGION_EU]:
             _, devices = await get_devices(
                 username=username, password=password, client_session=client_session
             )
