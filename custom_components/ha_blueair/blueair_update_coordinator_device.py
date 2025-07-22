@@ -19,6 +19,18 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return self.blueair_api_device.compatibility
 
     @property
+    def hw_version(self) -> str:
+        return self.blueair_api_device.mcu_firmware
+
+    @property
+    def sw_version(self) -> str:
+        return self.blueair_api_device.firmware
+
+    @property
+    def serial_number(self) -> str | None:
+        return None
+
+    @property
     def filter_expired(self) -> bool | None | NotImplemented:
         """Return the current filter status."""
         return self.blueair_api_device.filter_expired

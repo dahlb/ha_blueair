@@ -50,6 +50,9 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
             identifiers={(DOMAIN, self.coordinator.id)},
             manufacturer="BlueAir",
             model=self.coordinator.model,
+            hw_version=self.coordinator.hw_version,
+            sw_version=self.coordinator.sw_version,
+            serial_number=self.coordinator.serial_number,
             name=self.coordinator.device_name,
         )
 

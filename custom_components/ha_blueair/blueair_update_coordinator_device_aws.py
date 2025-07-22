@@ -17,6 +17,18 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.model
 
     @property
+    def hw_version(self) -> str:
+        return self.blueair_api_device.mcu_firmware
+
+    @property
+    def sw_version(self) -> str:
+        return self.blueair_api_device.firmware
+
+    @property
+    def serial_number(self) -> str:
+        return self.blueair_api_device.serial_number
+
+    @property
     def fan_speed(self) -> int | None | NotImplemented:
         """Return the current fan speed."""
         return self.blueair_api_device.fan_speed

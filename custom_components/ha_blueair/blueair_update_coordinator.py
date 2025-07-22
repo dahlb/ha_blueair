@@ -62,6 +62,21 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         pass
 
     @property
+    @abstractmethod
+    def hw_version(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def sw_version(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def serial_number(self) -> str:
+        pass
+
+    @property
     def fan_speed(self) -> int:
         """Return the current fan speed."""
         return int(self.blueair_api_device.fan_speed)
