@@ -93,10 +93,10 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def voc(self) -> int | None | NotImplemented:
-        if self.blueair_api_device.tVOC is NotImplemented:
+        if self.blueair_api_device.total_voc is NotImplemented:
             return self.blueair_api_device.voc
         else:
-            return self.blueair_api_device.tVOC
+            return self.blueair_api_device.total_voc
 
     @property
     def pm1(self) -> int | None | NotImplemented:
