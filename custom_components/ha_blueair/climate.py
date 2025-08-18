@@ -54,7 +54,7 @@ def fan_mode_from_int(fan_speed: int) -> str:
 class BlueairThermostat(BlueairEntity, ClimateEntity):
     @classmethod
     def is_implemented(kls, coordinator: BlueairUpdateCoordinator) -> bool:
-        return coordinator.main_mode is not NotImplemented
+        return coordinator.main_mode is not NotImplemented and coordinator.temperature is not NotImplemented
 
     _attr_supported_features = SUPPORT_FLAGS
     _enable_turn_on_off_backwards_compatibility = False
