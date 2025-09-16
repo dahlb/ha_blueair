@@ -43,6 +43,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             ModelEnum.MAX_311I,
             ModelEnum.MAX_311I_PLUS,
             ModelEnum.MAX_3250I,
+            ModelEnum.MAX_3650I,
             ModelEnum.PROTECT_7440I,
             ModelEnum.PROTECT_7470I
         ]:
