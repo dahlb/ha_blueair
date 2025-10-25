@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 import voluptuous as vol
 
@@ -8,6 +9,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_REGION,
+    CONF_SCAN_INTERVAL,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
@@ -23,6 +25,7 @@ from .const import (
     DATA_DEVICES,
     DATA_AWS_DEVICES,
     REGION_USA,
+    DEFAULT_SCAN_INTERVAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -66,6 +69,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
     region = config_entry.data[CONF_REGION]
+    interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    _LOGGER.debug(f"setting up scan interval: {interval}")
 
     data = {}
 
@@ -89,12 +94,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             return BlueairUpdateCoordinatorDevice(
                 hass=hass,
                 blueair_api_device=device,
+                interval=interval,
             )
         data[DATA_DEVICES] = list(map(create_coordinators, devices))
         def create_aws_coordinators(device):
             return BlueairUpdateCoordinatorDeviceAws(
                 hass=hass,
                 blueair_api_device=device,
+                interval=interval,
             )
         data[DATA_AWS_DEVICES] = list(map(create_aws_coordinators, aws_devices))
 
@@ -107,6 +114,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
         _LOGGER.debug("integration setup completed")
+
+        async def update_listener(hass: HomeAssistant, updated_config_entry: ConfigEntry):
+            """Handle options update."""
+            new_interval = updated_config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            _LOGGER.debug(f"changing scan interval: {new_interval}")
+            for coordinator_to_update in coordinators:
+                coordinator_to_update.update_interval = timedelta(minutes=new_interval)
+        config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
 
         return True
     except LoginError as error:

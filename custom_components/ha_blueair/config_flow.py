@@ -7,13 +7,16 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_REGION,
+    CONF_SCAN_INTERVAL,
 )
+from homeassistant.core import callback
 
 from .const import (
     DOMAIN,
     CONFIG_FLOW_VERSION,
     REGIONS,
     REGION_USA,
+    DEFAULT_SCAN_INTERVAL,
 )
 
 from blueair_api import AuthError, get_aws_devices
@@ -21,13 +24,44 @@ from blueair_api import AuthError, get_aws_devices
 _LOGGER = logging.getLogger(__name__)
 
 
+class OptionFlowHandler(config_entries.OptionsFlow):
+    """Display preferences UI."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Display preferences UI."""
+        self.schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_SCAN_INTERVAL,
+                    default=config_entry.options.get(
+                        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                    ),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
+            }
+        )
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+        """Display preferences UI."""
+        if user_input is not None:
+            _LOGGER.debug("user input in option flow : %s", user_input)
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(step_id="init", data_schema=self.schema)
+
+
 @config_entries.HANDLERS.register(DOMAIN)
-class KiaUvoConfigFlowHandler(config_entries.ConfigFlow):
+class ConfigFlowHandler(config_entries.ConfigFlow):
 
     VERSION = CONFIG_FLOW_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_PUSH
 
     data: dict[str, Any] | None = {}
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Return preferences handler."""
+        return OptionFlowHandler(config_entry)
 
     def __init__(self):
         pass

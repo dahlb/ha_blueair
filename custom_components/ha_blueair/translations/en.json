@@ -19,6 +19,16 @@
       "auth": "Login failed. Please use official app to logout and log back in and try again."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Blue Air: Configuration",
+        "data": {
+          "scan_interval": "Polling Interval in Minutes"
+        }
+      }
+    }
+  },
   "entity": {
     "humidifier": {
       "ha_blueair": {

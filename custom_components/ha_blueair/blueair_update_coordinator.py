@@ -19,7 +19,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     """Blueair device object."""
 
     def __init__(
-        self, hass: HomeAssistant, blueair_api_device: BlueAirApiDevice | BlueAirAwsDevice
+        self, hass: HomeAssistant, blueair_api_device: BlueAirApiDevice | BlueAirAwsDevice, interval: int
     ) -> None:
         """Initialize the device."""
         self.hass: HomeAssistant = hass
@@ -39,7 +39,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=f"{DOMAIN}-{self.blueair_api_device.name}",
-            update_interval=timedelta(minutes=5),
+            update_interval=timedelta(minutes=interval),
             update_method=refresh,
             request_refresh_debouncer=request_refresh_debouncer,
             always_update=False

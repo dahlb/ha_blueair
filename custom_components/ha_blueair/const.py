@@ -6,6 +6,7 @@ DOMAIN: str = "ha_blueair"
 
 # Integration Setting Constants
 CONFIG_FLOW_VERSION: int = 2
+DEFAULT_SCAN_INTERVAL: int = 5
 PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.CLIMATE,
