@@ -158,7 +158,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
                 mode = 0
             case _:
                 _LOGGER.warning(f"set_hvac_mode; unknown hvac_mode:{hvac_mode}")
-        if self.coordinator.is_on is False:
+        if not self.coordinator.is_on:
             self.coordinator.set_running(True)
         self.coordinator.set_main_mode(mode)
 
@@ -168,7 +168,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         fan_speed = 0
         match fan_mode:
             case FanMode.AUTO.value:
-                match self.HVACMode:
+                match self.hvac_mode:
                     case HVACMode.FAN_ONLY:
                         self.coordinator.set_ap_sub_mode(2)
                     case HVACMode.HEAT:
@@ -184,7 +184,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
                 fan_speed = 64
             case FanMode.STEP4.value:
                 fan_speed = 91
-        match self.HVACMode:
+        match self.hvac_mode:
             case HVACMode.FAN_ONLY:
                 _LOGGER.debug(f"set_fan_mode; set_fan_speed_0:{fan_speed}")
                 self.coordinator.set_fan_speed_0(fan_speed)
