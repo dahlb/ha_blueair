@@ -5,13 +5,9 @@ from __future__ import annotations
 import time
 from logging import Logger, getLogger
 
-from homeassistant.components.climate import (
-    ClimateEntity,
-    ClimateEntityFeature,
-    HVACMode,
-)
-from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 
 from . import BlueairUpdateCoordinatorDeviceAws
 from .blueair_update_coordinator import BlueairUpdateCoordinator
@@ -144,7 +140,6 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
     def _coordinator_target_temperature(self, hvac: HVACMode | None) -> float | None:
         if hvac != HVACMode.HEAT:
             return None
-
         raw = self.coordinator.heat_temp
         if raw in (None, NotImplemented):
             return None
@@ -247,6 +242,8 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             self._start_optimistic()
             self._attr_hvac_mode = HVACMode.OFF
             self._optimistic_hvac_mode = HVACMode.OFF
+            self._attr_fan_mode = None
+            self._optimistic_fan_mode = None
             self._attr_target_temperature = None
             self._optimistic_target_temperature = None
             self.async_write_ha_state()
@@ -269,6 +266,10 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         if hvac_mode != HVACMode.HEAT:
             self._attr_target_temperature = None
             self._optimistic_target_temperature = None
+        else:
+            seeded = self._coordinator_target_temperature(HVACMode.HEAT)
+            if seeded is not None:
+                self._attr_target_temperature = seeded
 
         self.async_write_ha_state()
 
@@ -309,14 +310,11 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
                 desired = FanMode.STEP1.value
 
             self._remember_last_fan_mode(HVACMode.COOL, desired)
-
             self._optimistic_fan_mode = desired
             self._attr_fan_mode = desired
             self.async_write_ha_state()
 
-            speed = FAN_SPEED_BY_STEP.get(
-                desired, FAN_SPEED_BY_STEP[FanMode.STEP1.value]
-            )
+            speed = FAN_SPEED_BY_STEP.get(desired, FAN_SPEED_BY_STEP[FanMode.STEP1.value])
             await self.coordinator.set_cool_sub_mode(1)
             await self.coordinator.set_cool_fan_speed(speed)
             return
