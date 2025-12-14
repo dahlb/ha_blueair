@@ -1,5 +1,6 @@
 """Blueair device object."""
 from __future__ import annotations
+
 import logging
 
 from blueair_api import ModelEnum
@@ -11,6 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     """Blueair device object."""
+
     @property
     def model(self) -> str:
         """Return api package enum of device model."""
@@ -68,7 +70,6 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             return self.blueair_api_device.brightness
         else:
             return round(self.blueair_api_device.brightness / 100 * 255.0, 0)
-
     @property
     def germ_shield(self) -> bool | None | NotImplemented:
         return self.blueair_api_device.germ_shield
@@ -82,8 +83,14 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.night_mode
 
     @property
-    def temperature(self) -> int | None | NotImplemented:
-        return self.blueair_api_device.temperature
+    def temperature(self) -> float | None | NotImplemented:
+        raw = self.blueair_api_device.temperature
+        if raw in (None, NotImplemented):
+            return raw
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return raw
 
     @property
     def humidity(self) -> int | None | NotImplemented:
@@ -140,7 +147,6 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def filter_expired(self) -> bool | None | NotImplemented:
-        """Returns the current filter status."""
         return NotImplemented
 
     @property
@@ -160,8 +166,14 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.main_mode
 
     @property
-    def heat_temp(self) -> int | None | NotImplemented:
-        return self.blueair_api_device.heat_temp
+    def heat_temp(self) -> float | None | NotImplemented:
+        raw = self.blueair_api_device.heat_temp
+        if raw in (None, NotImplemented):
+            return raw
+        try:
+            return float(raw) / 10.0
+        except (TypeError, ValueError):
+            return raw
 
     @property
     def heat_sub_mode(self) -> int | None | NotImplemented:
@@ -189,7 +201,13 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def temperature_unit(self) -> int | None | NotImplemented:
-        return self.blueair_api_device.temperature_unit
+        raw = self.blueair_api_device.temperature_unit
+        if raw in (None, NotImplemented):
+            return raw
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return raw
 
     async def set_running(self, running) -> None:
         await self.blueair_api_device.set_standby(not running)
@@ -225,8 +243,15 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.blueair_api_device.set_main_mode(value)
         await self.async_request_refresh()
 
-    async def set_heat_temp(self, value: int) -> None:
-        await self.blueair_api_device.set_heat_temp(value)
+    async def set_heat_temp(self, value: int | float) -> None:
+        if value in (None, NotImplemented):
+            return
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return
+        payload = int(round(v * 10))
+        await self.blueair_api_device.set_heat_temp(payload)
         await self.async_request_refresh()
 
     async def set_heat_sub_mode(self, value: int) -> None:
@@ -246,7 +271,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.async_request_refresh()
 
     async def set_ap_sub_mode(self, value: int) -> None:
-        await self.blueair_api_device.set_main_mode(value)
+        await self.blueair_api_device.set_ap_sub_mode(value)
         await self.async_request_refresh()
 
     async def set_fan_speed_0(self, value: int) -> None:
