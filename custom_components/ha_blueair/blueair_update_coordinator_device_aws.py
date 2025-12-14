@@ -271,7 +271,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.async_request_refresh()
 
     async def set_ap_sub_mode(self, value: int) -> None:
-        await self.blueair_api_device.set_main_mode(value)
+        await self.blueair_api_device.set_ap_sub_mode(value)
         await self.async_request_refresh()
 
     async def set_fan_speed_0(self, value: int) -> None:
