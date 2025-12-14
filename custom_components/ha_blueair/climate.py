@@ -87,17 +87,17 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         self._last_fan_mode_heat: str | None = None
 
         self._apply_from_coordinator(force=True)
+        self._update_supported_features()
 
-    @property
-    def supported_features(self) -> ClimateEntityFeature:
+    def _update_supported_features(self) -> None:
         feats = (
             ClimateEntityFeature.TURN_ON
             | ClimateEntityFeature.TURN_OFF
             | ClimateEntityFeature.FAN_MODE
         )
-        if self.hvac_mode == HVACMode.HEAT:
+        if self._attr_hvac_mode == HVACMode.HEAT:
             feats |= ClimateEntityFeature.TARGET_TEMPERATURE
-        return feats
+        self._attr_supported_features = feats
 
     def _now(self) -> float:
         return time.monotonic()
@@ -178,11 +178,13 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             self._optimistic_hvac_mode = None
             self._optimistic_fan_mode = None
             self._optimistic_target_temperature = None
+            self._update_supported_features()
             return
 
         if self._optimistic_hvac_mode is not None and hvac == self._optimistic_hvac_mode:
             self._attr_hvac_mode = hvac
             self._optimistic_hvac_mode = None
+            self._update_supported_features()
 
         if self._optimistic_fan_mode is not None and fan == self._optimistic_fan_mode:
             self._attr_fan_mode = fan
@@ -246,6 +248,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             self._optimistic_fan_mode = None
             self._attr_target_temperature = None
             self._optimistic_target_temperature = None
+            self._update_supported_features()
             self.async_write_ha_state()
             await self.coordinator.set_running(False)
             return
@@ -271,6 +274,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             if seeded is not None:
                 self._attr_target_temperature = seeded
 
+        self._update_supported_features()
         self.async_write_ha_state()
 
         if not self.coordinator.is_on:
