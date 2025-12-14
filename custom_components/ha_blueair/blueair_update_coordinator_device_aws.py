@@ -252,3 +252,4 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     async def set_fan_speed_0(self, value: int) -> None:
         await self.blueair_api_device.set_fan_speed_0(value)
         await self.async_request_refresh()
+        
