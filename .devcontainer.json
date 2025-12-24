@@ -1,7 +1,7 @@
 {
 	"name": "ludeeus/integration_blueprint",
 	"image": "mcr.microsoft.com/devcontainers/python:3.13-bullseye",
-	"postCreateCommand": "scripts/setup",
+	"postCreateCommand": "sh scripts/setup",
 	"forwardPorts": [
 		8123
 	],
