@@ -1,7 +1,7 @@
 {
 	"name": "ludeeus/integration_blueprint",
-	"image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.10-bullseye",
-	"postCreateCommand": "scripts/setup",
+	"image": "mcr.microsoft.com/devcontainers/python:3.13-bullseye",
+	"postCreateCommand": "sh scripts/setup",
 	"forwardPorts": [
 		8123
 	],
@@ -29,5 +29,5 @@
 			}
 		}
 	},
-	"remoteUser": "vscode"
+	"remoteUser": "vscode",
 }
