@@ -1,4 +1,20 @@
-.idea/
-**/__pycache__
-**.DS_Store
-**@eaDir
+# artifacts
+__pycache__
+.pytest*
+*.egg-info
+*/build/*
+*/dist/*
+
+
+# misc
+.coverage
+.vscode
+coverage.xml
+.ruff_cache
+.idea
+.storage
+
+
+# Home Assistant configuration
+config/*
+!config/configuration.yaml

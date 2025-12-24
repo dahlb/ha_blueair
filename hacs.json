@@ -1,7 +1,9 @@
 {
   "name": "Blueair Filters",
-  "render_readme": true,
   "content_in_root": false,
-  "country": ["US"],
-  "homeassistant": "2025.1.0b0"
+  "country": [
+    "US"
+  ],
+  "homeassistant": "2025.2.4",
+  "hacs": "2.0.5"
 }
