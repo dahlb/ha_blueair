@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.components.humidifier import (
-    MODE_AUTO,
-    MODE_SLEEP,
     HumidifierDeviceClass,
     HumidifierEntity,
+)
+from homeassistant.components.humidifier.const import (
     HumidifierEntityFeature,
+    MODE_AUTO,
+    MODE_SLEEP,
 )
 
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinator
@@ -62,7 +65,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
             return
 
     @property
-    def is_on(self) -> int:
+    def is_on(self) -> bool | None:
         return self.coordinator.is_on
 
     @property
@@ -73,7 +76,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
     def current_humidity(self):
         return self.coordinator.humidity
 
-    async def async_turn_off(self, **kwargs: any) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.set_running(False)
         self.async_write_ha_state()
 
@@ -81,7 +84,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         self,
         percentage: int | None = None,
         preset_mode: str | None = None,
-        **kwargs: any,
+        **kwargs: Any,
     ) -> None:
         await self.coordinator.set_running(True)
         self.async_write_ha_state()
@@ -110,7 +113,6 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
 
     async def async_set_humidity(self, humidity):
         """Set the humidity level. Sets Humidifier to 'On' to comply with hass requirements, and sets mode to Auto since this is the only mode in which the target humidity is used."""
-
         await self.coordinator.set_auto_regulated_humidity(humidity)
         await self.coordinator.set_fan_auto_mode(True)
         await self.async_turn_on()

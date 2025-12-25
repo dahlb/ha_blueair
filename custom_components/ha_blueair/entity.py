@@ -1,6 +1,7 @@
 """Base entity class for Blueair entities."""
+from propcache import cached_property
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
@@ -42,8 +43,10 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
         self._attr_name = f"{coordinator.device_name} {entity_type}"
         self._attr_unique_id = f"{coordinator.id}_{entity_type}"
 
-    @property
+    @cached_property[DeviceInfo | None]
     def device_info(self) -> DeviceInfo:
+        if self.coordinator.blueair_api_device.mac is None:
+            raise ValueError("MAC address is required for device info")
         connections = {(CONNECTION_NETWORK_MAC, self.coordinator.blueair_api_device.mac)}
         return DeviceInfo(
             connections=connections,
