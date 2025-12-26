@@ -1,0 +1,14 @@
+
+services:
+  home-assistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:2025.6
+    environment:
+      - TZ=UTC
+    ports:
+      - "9123:8123"
+    volumes:
+      - ./config:/config
+      - ./custom_components:/config/custom_components
+    command: >
+      python -m homeassistant --config /config -v
