@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 
-from blueair_api import ModelEnum
+from blueair_api import ModelEnum, DeviceAws
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 
@@ -12,6 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     """Blueair device object."""
+    blueair_api_device: DeviceAws
 
     @property
     def model(self) -> str:
