@@ -53,7 +53,11 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             ModelEnum.PROTECT_7470I
         ]:
             return 91
-        elif self.blueair_api_device.model == ModelEnum.T10I:
+        elif self.blueair_api_device.model in [
+            ModelEnum.T10I,
+            ModelEnum.HUMIDIFIER_H35I,
+            ModelEnum.HUMIDIFIER_H76I,
+        ]:
             return 4
         else:
             return 100
