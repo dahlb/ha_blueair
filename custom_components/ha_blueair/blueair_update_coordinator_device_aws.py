@@ -49,14 +49,16 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             ModelEnum.PROTECT_7470I
         ]:
             return 91
-        elif self.blueair_api_device.model in [
+        if self.blueair_api_device.model in [
             ModelEnum.T10I,
+        ]:
+            return 4
+        if self.blueair_api_device.model in [
             ModelEnum.HUMIDIFIER_H35I,
             ModelEnum.HUMIDIFIER_H76I,
         ]:
-            return 4
-        else:
-            return 100
+            return 3
+        return 100
 
     @property
     def is_on(self) -> bool | None | NotImplemented:
