@@ -32,7 +32,7 @@ A custom integration for Blueair Filters.  If your model isn't reported correctl
   - germ shield
   - wick dry
 - climate (T10i/T20i only)
-- humidifier (H35i only)
+- humidifier (H35i/H76i only)
 
 ## Installation ##
 You can install this either manually copying files or using HACS. Configuration can be done on UI, you need to enter your username and password, (I know, translations are missing).
