@@ -1,5 +1,4 @@
 from __future__ import annotations
-from math import ceil
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     LightEntity,
@@ -45,10 +44,8 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
         return self.coordinator.brightness != 0
 
     async def async_turn_on(self, **kwargs):
-        if ATTR_BRIGHTNESS in kwargs:
-            await self.coordinator.set_brightness(kwargs[ATTR_BRIGHTNESS])
-        else:
-            await self.coordinator.set_brightness(255)
+        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, 255)
+        await self.coordinator.set_brightness(desired_brightness)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
@@ -77,10 +74,7 @@ class BlueairMoodLightEntity(BlueairEntity, LightEntity):
         return self.coordinator.mood_brightness_is_on
 
     async def async_turn_on(self, **kwargs):
-        if ATTR_BRIGHTNESS in kwargs:
-            desired_brightness = kwargs[ATTR_BRIGHTNESS]
-        else:
-            desired_brightness = 255
+        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, 255)
         await self.coordinator.set_mood_brightness(desired_brightness)
         self.async_write_ha_state()
 
