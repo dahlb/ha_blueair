@@ -120,7 +120,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     @classmethod
     def is_implemented(kls, coordinator):
-        return isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws)
+        return isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws) and coordinator.auto_regulated_humidity is NotImplemented
 
     def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws):
         """Initialize the fan entity."""

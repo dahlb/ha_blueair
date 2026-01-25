@@ -167,10 +167,28 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     def temperature_unit(self) -> int | None | NotImplemented:
         return NotImplemented
 
+    @property
+    def water_refresher_life(self) -> int | None | NotImplemented:
+        return NotImplemented
+
+    @property
+    def water_level(self) -> int | None | NotImplemented:
+        return NotImplemented
+
+    @property
+    def mood_brightness(self) -> int | None | NotImplemented:
+        return NotImplemented
+
     async def set_brightness(self, brightness) -> None:
         # Convert Home Assistant brightness (0-255) to brightness (0-4)
         await self.blueair_api_device.set_brightness(round(brightness * 4 / 255.0))
         await self.async_request_refresh()
+
+    async def set_mood_brightness(self, mood_brightness: int) -> None:
+        raise NotImplementedError
+
+    async def turn_off_mood_brightness(self) -> None:
+        raise NotImplementedError
 
     async def set_germ_shield(self, enabled: bool) -> None:
         raise NotImplementedError

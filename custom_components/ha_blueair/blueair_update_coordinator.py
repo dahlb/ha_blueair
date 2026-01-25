@@ -227,6 +227,21 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @property
     @abstractmethod
+    def water_refresher_life(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
+    def water_level(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
+    def mood_brightness(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
     def auto_regulated_humidity(self) -> bool | None | NotImplemented:
         pass
 
@@ -256,6 +271,14 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @abstractmethod
     async def set_fan_auto_mode(self, value: bool) -> None:
+        pass
+
+    @abstractmethod
+    async def set_mood_brightness(self, mood_brightness: int) -> None:
+        pass
+
+    @abstractmethod
+    async def turn_off_mood_brightness(self) -> None:
         pass
 
     @abstractmethod
