@@ -48,26 +48,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     @property
     def speed_count(self) -> int:
         """Return the max fan speed."""
-        if self.blueair_api_device.model in [
-            ModelEnum.MAX_211I,
-            ModelEnum.MAX_311I,
-            ModelEnum.MAX_311I_PLUS,
-            ModelEnum.MAX_3250I,
-            ModelEnum.MAX_3650I,
-            ModelEnum.PROTECT_7440I,
-            ModelEnum.PROTECT_7470I
-        ]:
-            return 91
-        if self.blueair_api_device.model in [
-            ModelEnum.T10I,
-        ]:
-            return 4
-        if self.blueair_api_device.model in [
-            ModelEnum.HUMIDIFIER_H35I,
-            ModelEnum.HUMIDIFIER_H76I,
-        ]:
-            return 3
-        return 100
+        return self.blueair_api_device.speed_count
 
     @property
     def is_on(self) -> bool | None | NotImplemented:
