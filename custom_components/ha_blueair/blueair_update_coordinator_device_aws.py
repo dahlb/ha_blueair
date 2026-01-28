@@ -48,7 +48,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     @property
     def speed_count(self) -> int:
         """Return the max fan speed."""
-        return self.blueair_api_device.speed_count
+        return self.blueair_api_device.fan_speed_count
 
     @property
     def is_on(self) -> bool | None | NotImplemented:
