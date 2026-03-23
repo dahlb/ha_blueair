@@ -111,8 +111,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         for coordinator in coordinators:
             await coordinator.async_config_entry_first_refresh()
 
-        hass.data[DOMAIN] = data
-
         # Start MQTT for real-time updates on AWS devices.
         mqtt_client = None
         if (
@@ -136,6 +134,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 }
 
                 def on_sensor_data(device_id, sensors):
+                    """Handle MQTT sensor data (called from MQTT thread)."""
                     coordinator = aws_coordinator_map.get(device_id)
                     if coordinator is None:
                         return
@@ -149,9 +148,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                     if "fsp0" in sensors:
                         device.fan_speed_0 = int(sensors["fsp0"])
                     device.publish_updates()
-                    coordinator.async_set_updated_data(str(device))
+                    # Schedule HA state update on the event loop (thread-safe)
+                    hass.loop.call_soon_threadsafe(
+                        coordinator.async_set_updated_data, str(device)
+                    )
 
                 def on_event(device_id, event):
+                    """Handle MQTT connectivity event (called from MQTT thread)."""
                     coordinator = aws_coordinator_map.get(device_id)
                     if coordinator is None:
                         return
@@ -161,7 +164,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                     elif event_type == "NotConnected":
                         coordinator.blueair_api_device.wifi_working = False
                     coordinator.blueair_api_device.publish_updates()
-                    coordinator.async_set_updated_data(str(coordinator.blueair_api_device))
+                    hass.loop.call_soon_threadsafe(
+                        coordinator.async_set_updated_data,
+                        str(coordinator.blueair_api_device),
+                    )
 
                 mqtt_client.on_sensor_data = on_sensor_data
                 mqtt_client.on_event = on_event
@@ -173,11 +179,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 _LOGGER.info("MQTT real-time updates started for %d device(s)", len(aws_devices))
             except Exception:
                 _LOGGER.exception("Failed to start MQTT, falling back to polling only")
+                if mqtt_client is not None:
+                    mqtt_client.disconnect()
                 mqtt_client = None
         else:
             _LOGGER.debug("MQTT credentials not available, using polling only")
 
         data[DATA_MQTT_CLIENT] = mqtt_client
+        hass.data[DOMAIN] = data
 
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
         _LOGGER.debug("integration setup completed")
