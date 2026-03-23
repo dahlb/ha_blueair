@@ -61,10 +61,5 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
 
     @property
     def available(self) -> bool:
-        """Return if entity is available.
-
-        The Blueair cloud API frequently reports online=False even when
-        the device is fully operational (see github.com/dahlb/ha_blueair/issues/287).
-        We only gate on whether the API call itself succeeded.
-        """
-        return self.coordinator.last_update_success
+        """Return if entity is available."""
+        return self.coordinator.last_update_success and self.coordinator.online
