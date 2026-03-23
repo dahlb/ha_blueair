@@ -15,7 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from blueair_api import get_devices, get_aws_devices, LoginError
+from blueair_api import get_devices, get_aws_devices, LoginError, MqttAwsBlueair
 
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
@@ -24,6 +24,7 @@ from .const import (
     PLATFORMS,
     DATA_DEVICES,
     DATA_AWS_DEVICES,
+    DATA_MQTT_CLIENT,
     REGION_USA,
     DEFAULT_SCAN_INTERVAL,
 )
@@ -83,7 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         except LoginError as ex:
             _LOGGER.debug(f"Legacy Login error: {ex}")
             devices = []
-        _, aws_devices = await get_aws_devices(
+        aws_http_client, aws_devices = await get_aws_devices(
             username=username,
             password=password,
             client_session=client_session,
@@ -112,6 +113,72 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         hass.data[DOMAIN] = data
 
+        # Start MQTT for real-time updates on AWS devices.
+        mqtt_client = None
+        if (
+            aws_devices
+            and aws_http_client.mqtt_auth_name
+            and aws_http_client.mqtt_auth_signature
+            and aws_http_client.mqtt_auth_token
+        ):
+            try:
+                mqtt_client = MqttAwsBlueair(
+                    region=region,
+                    mqtt_auth_name=aws_http_client.mqtt_auth_name,
+                    mqtt_auth_signature=aws_http_client.mqtt_auth_signature,
+                    mqtt_auth_token=aws_http_client.mqtt_auth_token,
+                    user_id=aws_http_client.user_id,
+                )
+
+                # Build a lookup from device UUID to coordinator
+                aws_coordinator_map = {
+                    c.id: c for c in data[DATA_AWS_DEVICES]
+                }
+
+                def on_sensor_data(device_id, sensors):
+                    coordinator = aws_coordinator_map.get(device_id)
+                    if coordinator is None:
+                        return
+                    device = coordinator.blueair_api_device
+                    if "pm1" in sensors:
+                        device.pm1 = int(sensors["pm1"])
+                    if "pm2_5" in sensors:
+                        device.pm2_5 = int(sensors["pm2_5"])
+                    if "pm10" in sensors:
+                        device.pm10 = int(sensors["pm10"])
+                    if "fsp0" in sensors:
+                        device.fan_speed_0 = int(sensors["fsp0"])
+                    device.publish_updates()
+                    coordinator.async_set_updated_data(str(device))
+
+                def on_event(device_id, event):
+                    coordinator = aws_coordinator_map.get(device_id)
+                    if coordinator is None:
+                        return
+                    event_type = event.get("et", "")
+                    if event_type == "Connected":
+                        coordinator.blueair_api_device.wifi_working = True
+                    elif event_type == "NotConnected":
+                        coordinator.blueair_api_device.wifi_working = False
+                    coordinator.blueair_api_device.publish_updates()
+                    coordinator.async_set_updated_data(str(coordinator.blueair_api_device))
+
+                mqtt_client.on_sensor_data = on_sensor_data
+                mqtt_client.on_event = on_event
+
+                for device in aws_devices:
+                    mqtt_client.register_device(device.uuid)
+
+                mqtt_client.connect()
+                _LOGGER.info("MQTT real-time updates started for %d device(s)", len(aws_devices))
+            except Exception:
+                _LOGGER.exception("Failed to start MQTT, falling back to polling only")
+                mqtt_client = None
+        else:
+            _LOGGER.debug("MQTT credentials not available, using polling only")
+
+        data[DATA_MQTT_CLIENT] = mqtt_client
+
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
         _LOGGER.debug("integration setup completed")
 
@@ -131,6 +198,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     _LOGGER.debug("unload entry")
+    # Disconnect MQTT before unloading platforms
+    data = hass.data.get(DOMAIN)
+    if data and data.get(DATA_MQTT_CLIENT):
+        data[DATA_MQTT_CLIENT].disconnect()
+        _LOGGER.info("MQTT disconnected")
+
     unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
     )

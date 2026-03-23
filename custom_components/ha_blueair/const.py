@@ -28,6 +28,7 @@ class FanMode(Enum):
 # Home Assistant Data Storage Constants
 DATA_DEVICES: str = "api_devices"
 DATA_AWS_DEVICES: str = "api_aws_devices"
+DATA_MQTT_CLIENT: str = "mqtt_client"
 
 REGION_EU = "eu"
 REGION_USA = "us"
