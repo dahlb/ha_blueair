@@ -135,8 +135,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
                 def on_sensor_data(device_id, sensors):
                     """Handle MQTT sensor data (called from MQTT thread)."""
+                    _LOGGER.debug(f"processing sensor update {sensors} for {device_id}")
                     coordinator = aws_coordinator_map.get(device_id)
                     if coordinator is None:
+                        _LOGGER.debug(f"sensor data update provided for unknown device: {device_id}")
                         return
                     device = coordinator.blueair_api_device
                     if "pm1" in sensors:
@@ -155,8 +157,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
                 def on_event(device_id, event):
                     """Handle MQTT connectivity event (called from MQTT thread)."""
+                    _LOGGER.debug(f"processing event update {event} for {device_id}")
                     coordinator = aws_coordinator_map.get(device_id)
                     if coordinator is None:
+                        _LOGGER.debug(f"event data update provided for unknown device: {device_id}")
                         return
                     event_type = event.get("et", "")
                     if event_type == "Connected":
