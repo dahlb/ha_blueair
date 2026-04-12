@@ -9,7 +9,7 @@ from homeassistant.util.color import (
     brightness_to_value,
 )
 
-from blueair_api import ModelEnum, DeviceAws
+from blueair_api import DeviceAws
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 
@@ -22,11 +22,8 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def model(self) -> str:
-        """Return api package enum of device model."""
-        model = self.blueair_api_device.model
-        if model == ModelEnum.UNKNOWN:
-            model = f"Unknown ({self.blueair_api_device.sku})"
-        return model
+        """Return human-readable product name for device registry."""
+        return self.blueair_api_device.model_name
 
     @property
     def hw_version(self) -> str:
@@ -168,9 +165,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def mood_brightness_scale(self) -> tuple[int, int]:
-        if self.blueair_api_device.model == ModelEnum.HUMIDIFIER_H76I:
-            return (1, 3)
-        return (1, 100)
+        return (1, self.blueair_api_device.mood_brightness_max)
 
     @property
     def mood_brightness(self) -> int | None | NotImplemented:
