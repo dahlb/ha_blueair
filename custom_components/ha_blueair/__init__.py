@@ -176,12 +176,23 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 mqtt_client.on_sensor_data = on_sensor_data
                 mqtt_client.on_event = on_event
 
+                # Credential refresher for automatic reconnect on token expiry.
+                async def refresh_mqtt_credentials():
+                    await aws_http_client.refresh_access_token()
+                    return (
+                        aws_http_client.mqtt_auth_name,
+                        aws_http_client.mqtt_auth_signature,
+                        aws_http_client.mqtt_auth_token,
+                    )
+
+                mqtt_client.credential_refresher = refresh_mqtt_credentials
+
                 for device in aws_devices:
                     mqtt_client.register_device(device.uuid)
 
                 # Run connect in executor to avoid blocking the event loop
                 # (TLS handshake is a blocking operation)
-                await hass.async_add_executor_job(mqtt_client.connect)
+                await hass.async_add_executor_job(mqtt_client.connect, hass.loop)
                 _LOGGER.info("MQTT real-time updates started for %d device(s)", len(aws_devices))
             except Exception:
                 _LOGGER.exception("Failed to start MQTT, falling back to polling only")
