@@ -17,7 +17,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from blueair_api import get_devices, get_aws_devices, LoginError, MqttAwsBlueair
 
-from .mqtt_mapping import map_and_publish_event, map_and_publish_sensor_data
+from .mqtt_mapping import map_and_publish_event
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .const import (
@@ -142,8 +142,30 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                         _LOGGER.debug(f"sensor data update provided for unknown device: {device_id}")
                         return
                     device = coordinator.blueair_api_device
-                    map_and_publish_sensor_data(sensors, device)
+                    try:
+                        device.apply_sensor_data(sensors)
+                    except Exception:
+                        _LOGGER.exception(
+                            "apply_sensor_data raised for device %s with payload %r",
+                            device_id, sensors,
+                        )
+                        return
+                    device.publish_updates()
                     # Schedule HA state update on the event loop (thread-safe)
+                    hass.loop.call_soon_threadsafe(
+                        coordinator.async_set_updated_data, str(device)
+                    )
+
+                def on_state_change(device_id, state):
+                    """Handle MQTT shadow state change (called from MQTT thread)."""
+                    _LOGGER.debug(f"processing state change {state} for {device_id}")
+                    coordinator = aws_coordinator_map.get(device_id)
+                    if coordinator is None:
+                        _LOGGER.debug(f"state change provided for unknown device: {device_id}")
+                        return
+                    device = coordinator.blueair_api_device
+                    device.apply_state_change(state)
+                    device.publish_updates()
                     hass.loop.call_soon_threadsafe(
                         coordinator.async_set_updated_data, str(device)
                     )
@@ -163,6 +185,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
 
                 mqtt_client.on_sensor_data = on_sensor_data
+                mqtt_client.on_state_change = on_state_change
                 mqtt_client.on_event = on_event
 
                 # Credential refresher for automatic reconnect on token expiry.
