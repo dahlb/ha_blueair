@@ -225,6 +225,26 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         except (TypeError, ValueError):
             return raw
 
+    @property
+    def rssi(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.rssi
+
+    @property
+    def night_light_brightness(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.night_light_brightness
+
+    @property
+    def timer_state(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.timer_state
+
+    @property
+    def timer_duration(self) -> int | None | NotImplemented:
+        return self.blueair_api_device.timer_duration
+
+    @property
+    def hour_format(self) -> bool | None | NotImplemented:
+        return self.blueair_api_device.hour_format
+
     async def set_running(self, running) -> None:
         await self.blueair_api_device.set_standby(not running)
         await self.async_request_refresh()
@@ -302,4 +322,16 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     async def set_fan_speed_0(self, value: int) -> None:
         await self.blueair_api_device.set_fan_speed_0(value)
+        await self.async_request_refresh()
+
+    async def set_night_light_brightness(self, value: int) -> None:
+        await self.blueair_api_device.set_night_light_brightness(value)
+        await self.async_request_refresh()
+
+    async def set_timer_duration(self, value: int) -> None:
+        await self.blueair_api_device.set_timer_duration(value)
+        await self.async_request_refresh()
+
+    async def set_hour_format(self, value: bool) -> None:
+        await self.blueair_api_device.set_hour_format(value)
         await self.async_request_refresh()

@@ -164,7 +164,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                         _LOGGER.debug(f"state change provided for unknown device: {device_id}")
                         return
                     device = coordinator.blueair_api_device
-                    device.apply_state_change(state)
+                    try:
+                        device.apply_state_change(state)
+                    except Exception:
+                        _LOGGER.exception(
+                            "apply_state_change raised for device %s with payload %r",
+                            device_id, state,
+                        )
+                        return
                     device.publish_updates()
                     hass.loop.call_soon_threadsafe(
                         coordinator.async_set_updated_data, str(device)
