@@ -1,5 +1,5 @@
 def map_and_publish_sensor_data(sensors, device):
-    """Handle MQTT sensor data (called from MQTT thread)."""    
+    """Handle MQTT sensor data (called from MQTT thread)."""
     if "pm1" in sensors:
         device.pm1 = int(sensors["pm1"])
     if "pm2_5" in sensors:
