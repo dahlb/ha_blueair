@@ -149,6 +149,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                         device.pm10 = int(sensors["pm10"])
                     if "fsp0" in sensors:
                         device.fan_speed_0 = int(sensors["fsp0"])
+                    if "t" in sensors:
+                        device.temperature = int(sensors["t"])
+                    if "h" in sensors:
+                        device.humidity = int(sensors["h"])
+                    if "tVOC" in sensors:
+                        device.total_voc = int(sensors["tVOC"])
                     device.publish_updates()
                     # Schedule HA state update on the event loop (thread-safe)
                     hass.loop.call_soon_threadsafe(
