@@ -17,6 +17,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from blueair_api import get_devices, get_aws_devices, LoginError, MqttAwsBlueair
 
+from .mqtt_mapping import map_and_publish_event, map_and_publish_sensor_data
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .const import (
@@ -141,21 +142,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                         _LOGGER.debug(f"sensor data update provided for unknown device: {device_id}")
                         return
                     device = coordinator.blueair_api_device
-                    if "pm1" in sensors:
-                        device.pm1 = int(sensors["pm1"])
-                    if "pm2_5" in sensors:
-                        device.pm2_5 = int(sensors["pm2_5"])
-                    if "pm10" in sensors:
-                        device.pm10 = int(sensors["pm10"])
-                    if "fsp0" in sensors:
-                        device.fan_speed_0 = int(sensors["fsp0"])
-                    if "t" in sensors:
-                        device.temperature = int(sensors["t"])
-                    if "h" in sensors:
-                        device.humidity = int(sensors["h"])
-                    if "tVOC" in sensors:
-                        device.total_voc = int(sensors["tVOC"])
-                    device.publish_updates()
+                    map_and_publish_sensor_data(sensors, device)
                     # Schedule HA state update on the event loop (thread-safe)
                     hass.loop.call_soon_threadsafe(
                         coordinator.async_set_updated_data, str(device)
@@ -168,16 +155,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                     if coordinator is None:
                         _LOGGER.debug(f"event data update provided for unknown device: {device_id}")
                         return
-                    event_type = event.get("et", "")
-                    if event_type == "Connected":
-                        coordinator.blueair_api_device.wifi_working = True
-                    elif event_type == "NotConnected":
-                        coordinator.blueair_api_device.wifi_working = False
-                    coordinator.blueair_api_device.publish_updates()
+                    device = coordinator.blueair_api_device
+                    map_and_publish_event(event, device)
                     hass.loop.call_soon_threadsafe(
-                        coordinator.async_set_updated_data,
-                        str(coordinator.blueair_api_device),
+                        coordinator.async_set_updated_data, str(device)
                     )
+
 
                 mqtt_client.on_sensor_data = on_sensor_data
                 mqtt_client.on_event = on_event
