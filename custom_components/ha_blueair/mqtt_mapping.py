@@ -1,20 +1,11 @@
-def map_and_publish_sensor_data(sensors, device):
-    """Handle MQTT sensor data (called from MQTT thread)."""
-    if "pm1" in sensors:
-        device.pm1 = int(sensors["pm1"])
-    if "pm2_5" in sensors:
-        device.pm2_5 = int(sensors["pm2_5"])
-    if "pm10" in sensors:
-        device.pm10 = int(sensors["pm10"])
-    if "fsp0" in sensors:
-        device.fan_speed_0 = int(sensors["fsp0"])
-    if "t" in sensors:
-        device.temperature = int(sensors["t"])
-    if "h" in sensors:
-        device.humidity = int(sensors["h"])
-    if "tVOC" in sensors:
-        device.total_voc = int(sensors["tVOC"])
-    device.publish_updates()
+"""MQTT event mapping helpers.
+
+Sensor and shadow state updates are mapped by ``blueair_api`` itself
+(``DeviceAws.apply_sensor_data`` / ``DeviceAws.apply_state_change``).
+This module only handles MQTT connectivity events — the small set of
+``Connected``/``NotConnected`` payloads the library doesn't translate.
+"""
+
 
 def map_and_publish_event(event, device):
     event_type = event.get("et", "")
@@ -23,3 +14,4 @@ def map_and_publish_event(event, device):
     elif event_type == "NotConnected":
         device.wifi_working = False
     device.publish_updates()
+
