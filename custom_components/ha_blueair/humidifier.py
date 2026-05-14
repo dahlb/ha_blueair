@@ -55,14 +55,14 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
 
     @property
     def mode(self):
-        if self.coordinator.night_mode:
+        if self.coordinator.night_mode is True:
             return MODE_SLEEP
-        elif self.coordinator.fan_auto_mode:
+        elif self.coordinator.fan_auto_mode is True:
             return MODE_AUTO
         elif self.is_on:
             return MODE_FAN_SPEED
         else:
-            return
+            return None
 
     @property
     def is_on(self) -> bool | None:
