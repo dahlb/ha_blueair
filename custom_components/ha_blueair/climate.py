@@ -28,6 +28,26 @@ FAN_SPEED_BY_STEP: dict[str, int] = {
 }
 
 
+def _safe_int(value: object, default: int = 0) -> int:
+    """Coerce a coordinator value to int, treating None / NotImplemented / unparseable as ``default``.
+
+    Coordinator properties on BlueairUpdateCoordinatorDeviceAws return
+    ``int``, ``None``, or the ``NotImplemented`` sentinel (per the
+    library's ``AttributeType[T]``). The naive ``int(x or 0)`` idiom is
+    wrong because ``NotImplemented`` is truthy, so the ``or 0``
+    short-circuit never fires; on Python 3.9-3.13 ``bool(NotImplemented)``
+    emitted ``DeprecationWarning`` and returned ``True``, on Python 3.14+
+    it raises ``TypeError`` (matching the upstream fix for #354 in
+    humidifier.py).
+    """
+    if value is None or value is NotImplemented:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 async def async_setup_entry(hass, config_entry: ConfigEntry, async_add_entities):
     async_setup_entry_helper(
         hass,
@@ -112,7 +132,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         if self.coordinator.is_on is False:
             return HVACMode.OFF
 
-        match int(self.coordinator.main_mode or 0):
+        match _safe_int(self.coordinator.main_mode):
             case 0:
                 return HVACMode.FAN_ONLY
             case 1:
@@ -123,12 +143,12 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
 
     def _coordinator_fan_mode(self, hvac: HVACMode | None) -> str | None:
         if hvac == HVACMode.FAN_ONLY:
-            if int(self.coordinator.ap_sub_mode or 0) == 2:
+            if _safe_int(self.coordinator.ap_sub_mode) == 2:
                 return FanMode.AUTO.value
             return _fan_mode_from_speed(self.coordinator.fan_speed_0)
 
         if hvac == HVACMode.HEAT:
-            if int(self.coordinator.heat_sub_mode or 0) == 2:
+            if _safe_int(self.coordinator.heat_sub_mode) == 2:
                 return FanMode.AUTO.value
             return _fan_mode_from_speed(self.coordinator.heat_fan_speed)
 
