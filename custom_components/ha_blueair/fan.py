@@ -35,8 +35,6 @@ class BlueairFan(BlueairEntity, FanEntity):
         self._attr_preset_modes = []
         if coordinator.fan_auto_mode is not NotImplemented:
             self._attr_preset_modes.append(MODE_AUTO)
-        if coordinator.night_mode is not NotImplemented:
-            self._attr_preset_modes.append(MODE_NIGHT)
 
         self._attr_supported_features = FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         if len(self._attr_preset_modes) > 0:
@@ -78,8 +76,6 @@ class BlueairFan(BlueairEntity, FanEntity):
         """Set the preset mode of the fan."""
         if preset_mode == MODE_AUTO:
             await self.coordinator.set_fan_auto_mode(True)
-        elif preset_mode == MODE_NIGHT:
-            await self.coordinator.set_night_mode(True)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
@@ -110,8 +106,6 @@ class BlueairFan(BlueairEntity, FanEntity):
         """Return the current preset mode, e.g., auto, smart, interval, favorite."""
         if self.coordinator.fan_auto_mode is True:
             return MODE_AUTO
-        if self.coordinator.night_mode is True:
-            return MODE_NIGHT
         return None
 
 
@@ -127,8 +121,6 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         self._attr_preset_modes = []
         if coordinator.fan_auto_mode is not NotImplemented:
             self._attr_preset_modes.append(MODE_AUTO)
-        if coordinator.night_mode is not NotImplemented:
-            self._attr_preset_modes.append(MODE_NIGHT)
 
         self._attr_supported_features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         if coordinator.fan_speed is not NotImplemented:
@@ -165,8 +157,6 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         """Set the preset mode of the fan."""
         if preset_mode == MODE_AUTO:
             await self.coordinator.set_fan_auto_mode(True)
-        elif preset_mode == MODE_NIGHT:
-            await self.coordinator.set_night_mode(True)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
@@ -205,6 +195,4 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         """Return the current preset mode, e.g., auto, smart, interval, favorite."""
         if self.coordinator.fan_auto_mode is True:
             return MODE_AUTO
-        if self.coordinator.night_mode is True:
-            return MODE_NIGHT
         return None
