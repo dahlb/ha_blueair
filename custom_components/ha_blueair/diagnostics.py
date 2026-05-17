@@ -7,7 +7,7 @@ import attr
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_UNIQUE_ID, CONF_EMAIL, CONF_PASSWORD
+from homeassistant.const import CONF_UNIQUE_ID, CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
@@ -15,7 +15,7 @@ from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 
-TO_REDACT = {CONF_EMAIL, CONF_PASSWORD, CONF_UNIQUE_ID}
+TO_REDACT = {CONF_USERNAME, CONF_PASSWORD, CONF_UNIQUE_ID}
 TO_REDACT_MAPPED = {}
 TO_REDACT_DEVICE = {}
 TO_REDACT_ENTITIES = {}
