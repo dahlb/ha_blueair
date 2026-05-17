@@ -245,6 +245,37 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     def auto_regulated_humidity(self) -> bool | None | NotImplemented:
         pass
 
+    # ----- AWS-only sensor attributes (issue #356) -----
+    # Declared abstract so any subclass MUST provide a value (legacy
+    # subclasses return NotImplemented).  Prevents the v1.49.0 regression
+    # where AWS-only properties weren't stubbed on the legacy coordinator,
+    # causing AttributeError in sensor is_implemented() checks.
+
+    @property
+    @abstractmethod
+    def timer_duration(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
+    def timer_state(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
+    def rssi(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
+    def night_light_brightness(self) -> int | None | NotImplemented:
+        pass
+
+    @property
+    @abstractmethod
+    def hour_format(self) -> bool | None | NotImplemented:
+        pass
+
     async def set_fan_speed(self, new_speed) -> None:
         await self.blueair_api_device.set_fan_speed(new_speed)
         await self.async_request_refresh()

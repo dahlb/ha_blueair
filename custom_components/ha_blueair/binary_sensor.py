@@ -20,7 +20,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
     @classmethod
     def is_implemented(kls, coordinator: BlueairUpdateCoordinator) -> bool:
-        return getattr(coordinator, kls(coordinator).entity_description.key) is not NotImplemented
+        # See sensor.BlueairSensor.is_implemented (issue #356) for rationale
+        # on the NotImplemented default.
+        return getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented) is not NotImplemented
 
     def __init__(self, coordinator):
         """Initialize the temperature sensor."""

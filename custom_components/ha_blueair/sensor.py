@@ -43,7 +43,12 @@ class BlueairSensor(BlueairEntity, SensorEntity):
 
     @classmethod
     def is_implemented(kls, coordinator):
-        return getattr(coordinator, kls(coordinator).entity_description.key) is not NotImplemented
+        # Use NotImplemented as the default so a coordinator that doesn't even
+        # declare this attribute (e.g. an AWS-only property on the legacy
+        # coordinator class) is treated as "not implemented" instead of
+        # raising AttributeError, which would abort the whole sensor platform.
+        # See issue #356.
+        return getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented) is not NotImplemented
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
         """Initialize the temperature sensor."""
@@ -214,10 +219,12 @@ class BlueairRssiSensor(BlueairSensor):
 class BlueairTimerDurationSensor(BlueairSensor):
     """Monitors the configured sleep / off timer duration (seconds).
 
-    Populated from REST states[] during refresh(), so the value is
-    available at startup on devices that ship a sleep timer (humidifiers,
-    Mini Restful).  is_implemented falls back to the schema check on
-    fresh devices where refresh() hasn't completed yet.
+    AWS-only.  ``timer_duration`` is populated from REST ``states[]``
+    during refresh(), so the value is available shortly after startup on
+    devices that ship a sleep timer (humidifiers, Mini Restful).  The
+    legacy ``Device`` API has no concept of a sleep timer, so this
+    entity is restricted to AWS coordinators via :py:meth:`is_implemented`
+    (mirrors :class:`BlueairRssiSensor`).
     """
     entity_description = SensorEntityDescription(
         key="timer_duration",
@@ -228,3 +235,12 @@ class BlueairTimerDurationSensor(BlueairSensor):
         suggested_display_precision=0,
         icon="mdi:timer-outline",
     )
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        # AWS-only entity: the legacy Device class does not model a sleep
+        # timer at all.  Guard explicitly so this entity is never offered
+        # for a legacy coordinator (issue #356).
+        if not isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws):
+            return False
+        return super().is_implemented(coordinator)
