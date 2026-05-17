@@ -23,7 +23,48 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     ])
 
 
-class BlueairFan(BlueairEntity, FanEntity):
+
+class BlueairFanBase(BlueairEntity, FanEntity):
+    """Base class for Blueair fans."""
+
+    def __init__(self, coordinator: BlueairUpdateCoordinator):
+        """Initialize the fan entity."""
+        self._attr_preset_modes = []
+        if coordinator.fan_auto_mode is not NotImplemented:
+            self._attr_preset_modes.append(MODE_AUTO)
+        if getattr(coordinator, "night_mode", NotImplemented) is not NotImplemented:
+            self._attr_preset_modes.append(MODE_NIGHT)
+
+        super().__init__("Fan", coordinator)
+
+    @property
+    def is_on(self) -> int:
+        return self.coordinator.is_on
+
+    @property
+    def speed_count(self) -> int:
+        """Return the number of speeds the fan supports."""
+        return self.coordinator.speed_count
+
+    @property
+    def preset_mode(self) -> str | None:
+        """Return the current preset mode, e.g., auto, smart, interval, favorite."""
+        if self.coordinator.fan_auto_mode is True:
+            return MODE_AUTO
+        if getattr(self.coordinator, "night_mode", None) is True:
+            return MODE_NIGHT
+        return None
+
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set the preset mode of the fan."""
+        if preset_mode == MODE_AUTO:
+            await self.coordinator.set_fan_auto_mode(True)
+        elif preset_mode == MODE_NIGHT:
+            if hasattr(self.coordinator, "set_night_mode"):
+                await self.coordinator.set_night_mode(True)
+        self.async_write_ha_state()
+
+class BlueairFan(BlueairFanBase):
     """Controls Fan."""
 
     @classmethod
@@ -32,19 +73,10 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
         """Initialize the fan entity."""
-        self._attr_preset_modes = []
-        if coordinator.fan_auto_mode is not NotImplemented:
-            self._attr_preset_modes.append(MODE_AUTO)
-
+        super().__init__(coordinator)
         self._attr_supported_features = FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         if len(self._attr_preset_modes) > 0:
             self._attr_supported_features |= FanEntityFeature.PRESET_MODE
-
-        super().__init__("Fan", coordinator)
-
-    @property
-    def is_on(self) -> int:
-        return self.coordinator.is_on
 
     @property
     def percentage(self) -> int | None:
@@ -72,12 +104,6 @@ class BlueairFan(BlueairEntity, FanEntity):
         await self.coordinator.set_fan_speed(new_speed)
         self.async_write_ha_state()
 
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set the preset mode of the fan."""
-        if preset_mode == MODE_AUTO:
-            await self.coordinator.set_fan_auto_mode(True)
-        self.async_write_ha_state()
-
     async def async_turn_off(self, **kwargs: any) -> None:
         await self.coordinator.set_fan_speed("0")
         self.async_write_ha_state()
@@ -96,20 +122,8 @@ class BlueairFan(BlueairEntity, FanEntity):
             await self.coordinator.set_fan_speed("1")
             self.async_write_ha_state()
 
-    @property
-    def speed_count(self) -> int:
-        """Return the number of speeds the fan supports."""
-        return self.coordinator.speed_count
 
-    @property
-    def preset_mode(self) -> str | None:
-        """Return the current preset mode, e.g., auto, smart, interval, favorite."""
-        if self.coordinator.fan_auto_mode is True:
-            return MODE_AUTO
-        return None
-
-
-class BlueairAwsFan(BlueairEntity, FanEntity):
+class BlueairAwsFan(BlueairFanBase):
     """Controls Fan."""
 
     @classmethod
@@ -118,21 +132,12 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws):
         """Initialize the fan entity."""
-        self._attr_preset_modes = []
-        if coordinator.fan_auto_mode is not NotImplemented:
-            self._attr_preset_modes.append(MODE_AUTO)
-
+        super().__init__(coordinator)
         self._attr_supported_features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         if coordinator.fan_speed is not NotImplemented:
             self._attr_supported_features |= FanEntityFeature.SET_SPEED
         if len(self._attr_preset_modes) > 0:
             self._attr_supported_features |= FanEntityFeature.PRESET_MODE
-
-        super().__init__("Fan", coordinator)
-
-    @property
-    def is_on(self) -> int:
-        return self.coordinator.is_on
 
     @property
     def percentage(self) -> int | None:
@@ -151,12 +156,6 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             await sleep(2)
         blueair_percentage = int(round(percentage / 100 * self.coordinator.speed_count))
         await self.coordinator.set_fan_speed(blueair_percentage)
-        self.async_write_ha_state()
-
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set the preset mode of the fan."""
-        if preset_mode == MODE_AUTO:
-            await self.coordinator.set_fan_auto_mode(True)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
@@ -185,14 +184,3 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         else:
             self.async_write_ha_state()
 
-    @property
-    def speed_count(self) -> int:
-        """Return the number of speeds the fan supports."""
-        return self.coordinator.speed_count
-
-    @property
-    def preset_mode(self) -> str | None:
-        """Return the current preset mode, e.g., auto, smart, interval, favorite."""
-        if self.coordinator.fan_auto_mode is True:
-            return MODE_AUTO
-        return None
