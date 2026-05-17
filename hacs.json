@@ -5,5 +5,6 @@
     "US"
   ],
   "homeassistant": "2025.6.0b0",
-  "hacs": "2.0.5"
+  "hacs": "2.0.5",
+  "iot_class": "cloud_polling"
 }
