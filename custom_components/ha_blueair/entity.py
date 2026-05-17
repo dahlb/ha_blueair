@@ -1,4 +1,6 @@
 """Base entity class for Blueair entities."""
+import logging
+
 from propcache import cached_property
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -8,6 +10,13 @@ from homeassistant.helpers.update_coordinator import (
 
 from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_update_coordinator_device import BlueairUpdateCoordinator
+
+_LOGGER = logging.getLogger(__name__)
+
+# Module-level set of coordinator UUIDs we've already warned about for a
+# missing MAC.  Keeps the log from spamming once per entity (~10 entities
+# per coordinator).  See the issue linked in `device_info` below.
+_MAC_MISSING_WARNED: set[str] = set()
 
 
 def async_setup_entry_helper(hass, config_entry, async_add_entities, entity_classes):
@@ -45,9 +54,27 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
 
     @cached_property[DeviceInfo | None]
     def device_info(self) -> DeviceInfo:
-        if self.coordinator.blueair_api_device.mac is None:
-            raise ValueError("MAC address is required for device info")
-        connections = {(CONNECTION_NETWORK_MAC, self.coordinator.blueair_api_device.mac)}
+        # Some Blueair API responses (notably the legacy ABL device list
+        # for accounts where the same device is also AWS-registered) carry
+        # `mac: null`.  Falling back to identifiers-only keeps the entity
+        # registerable instead of raising and aborting the platform.
+        # See dahlb/ha_blueair#356 for the original symptom.
+        mac = self.coordinator.blueair_api_device.mac
+        if mac is None:
+            uuid = self.coordinator.id
+            if uuid not in _MAC_MISSING_WARNED:
+                _MAC_MISSING_WARNED.add(uuid)
+                _LOGGER.warning(
+                    "Blueair device %s (%s) reported mac=None; registering "
+                    "device by identifier only.  This usually means the "
+                    "device appears in both the legacy and AWS device lists "
+                    "for this account.",
+                    self.coordinator.device_name,
+                    uuid,
+                )
+            connections: set[tuple[str, str]] = set()
+        else:
+            connections = {(CONNECTION_NETWORK_MAC, mac)}
         return DeviceInfo(
             connections=connections,
             identifiers={(DOMAIN, self.coordinator.id)},
