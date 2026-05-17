@@ -20,10 +20,10 @@ def test_is_on_returns_coordinator_value():
         entity_description.name = "Mock Name"
 
     sensor = MockSensor(coordinator)
-    assert sensor.is_on == True
+    assert sensor.is_on
 
     coordinator.online = False
-    assert sensor.is_on == False
+    assert not sensor.is_on
 
 def test_filter_expired_sensor():
     coordinator = MagicMock(spec=BlueairUpdateCoordinator)

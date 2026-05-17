@@ -8,7 +8,7 @@ from homeassistant.components.fan import (
 )
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
-from .const import DEFAULT_FAN_SPEED_PERCENTAGE, MODE_AUTO, MODE_NIGHT
+from .const import DEFAULT_FAN_SPEED_PERCENTAGE, MODE_AUTO
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
