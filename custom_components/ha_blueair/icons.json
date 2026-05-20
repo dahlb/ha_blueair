@@ -5,8 +5,10 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
+              "manual_fan": "mdi:fan-speed-1",
               "auto": "mdi:fan-auto",
-              "night": "mdi:weather-night"
+              "night": "mdi:weather-night",
+              "eco": "mdi:leaf"
             }
           }
         }

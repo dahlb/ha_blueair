@@ -42,3 +42,16 @@ DEFAULT_FAN_SPEED_PERCENTAGE = 50
 MODE_FAN_SPEED = "fan_speed"
 MODE_AUTO = "auto"
 MODE_NIGHT = "night"
+
+# Additional preset modes used by Blueair Signature-series air
+# purifiers (SP1i / SP3i / SP4i, type_name='blue40', hw='l_blue40'),
+# which expose all four preset modes through the `apsubmode` shadow
+# field rather than `automode` / `nightmode`. See issues
+# dahlb/ha_blueair#348 and #261.
+#
+# The integer wire values for these labels live in
+# `blueair_api.AP_SUB_MODE_LABELS` so the library can stay the
+# single source of truth for the apsubmode namespace (see also
+# Phase 3 tracking in dahlb/ha_blueair#353).
+MODE_MANUAL_FAN = "manual_fan"
+MODE_ECO = "eco"

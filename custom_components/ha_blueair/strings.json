@@ -46,8 +46,10 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
+              "manual_fan": "Manual",
               "auto": "Auto",
-              "night": "Night"
+              "night": "Night",
+              "eco": "Eco"
             }
           }
         }
