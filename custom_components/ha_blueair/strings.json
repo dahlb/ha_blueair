@@ -2,12 +2,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "BlueAir Auth",
-        "description": "Configure your Credentials.",
+        "title": "Blueair Account",
+        "description": "Enter your Blueair account credentials.",
         "data": {
-          "region": "Region",
           "username": "Username",
           "password": "Password"
+        }
+      },
+      "account_region": {
+        "title": "Blueair Account Region",
+        "description": "More than one Blueair account region accepted these credentials. Choose the account region you normally use to sign in.",
+        "data": {
+          "region": "Account region"
+        }
+      },
+      "cloud_region": {
+        "title": "Blueair Device Cloud Region",
+        "description": "We could not choose a single device cloud region automatically. Suggested value: {suggested_cloud_region}. Source: {suggestion_source}. Choose the region for the device you want this entry to control. These options can be changed in the integration configuration.",
+        "data": {
+          "cloud_region": "Device cloud region"
         }
       },
       "reauth_confirm": {
@@ -19,11 +32,36 @@
       "auth": "Login failed. Please use official app to logout and log back in and try again."
     }
   },
+  "issues": {
+    "cloud_region_mismatch": {
+      "title": "Blueair device cloud region may be incorrect",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Confirm Blueair device cloud region",
+            "description": "The current device cloud region is {cloud_region}. Select the region to use for device control. The suggested value is {suggested_cloud_region}.",
+            "data": {
+              "cloud_region": "Device cloud region"
+            }
+          }
+        },
+        "error": {
+          "auth": "Login failed while checking the device cloud region. Confirm your credentials, then try again."
+        },
+        "abort": {
+          "entry_not_found": "The Blueair config entry no longer exists."
+        }
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {
-        "title": "Blue Air: Configuration",
+        "title": "Blueair: Configuration",
+        "description": "Adjust polling and region settings. Most users should keep the detected regions unless devices appear offline or stale.",
         "data": {
+          "region": "Account region",
+          "cloud_region": "Device cloud region",
           "scan_interval": "Polling Interval in Minutes"
         }
       }

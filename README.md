@@ -82,6 +82,56 @@ users:
 
 When validation is complete, merge the branch to `main`; the normal push-to-main
 flow then publishes the stable version the usual way.
+
+## Account Region and Device Cloud Region ##
+
+Most Blueair accounts use the same region for account login and device control.
+For those accounts, keep the suggested values during setup.
+
+Some devices are hosted on a different BlueCloud region than the account login
+region. During setup, the integration detects the account region automatically,
+then checks the Blueair cloud for the likely device cloud region. If there is
+one clear region with online devices, setup saves it automatically. If the
+result is ambiguous, setup asks you to choose the device cloud region. The
+selected device cloud region is stored in the config entry and reused on every
+startup.
+
+You can change both the account region and device cloud region later from the
+integration's Configure menu if a device appears offline or stale.
+
+Initial setup flow:
+
+```text
+Blueair Account
+  -> Enter username and password
+  -> Integration detects the account region
+  -> Integration checks for the likely Device cloud region
+  -> Creates the entry automatically if one online region is clear
+  -> Otherwise asks you to choose the Device cloud region
+```
+
+If an existing entry appears to be using the wrong device cloud region, Home
+Assistant can show a repair issue. The repair flow checks again, suggests a
+device cloud region, and reloads the integration after you confirm the value.
+
+Repair flow:
+
+```text
+Repair issue
+  -> Fix
+  -> Confirm Device cloud region
+  -> Integration reloads with the selected cloud region
+```
+
+Screenshot checklist for release notes / README updates:
+
+- Initial setup: Account credentials step
+- Initial setup: Account region picker, if more than one account region works
+- Initial setup: Automatic completion when one online device cloud region is clear
+- Initial setup: Device cloud region picker when discovery is ambiguous
+- Repair issue: Cloud region may be incorrect
+- Repair flow: Device cloud region confirmation
+
 ## Limitations ##
 If you receive an error while trying to login, try resetting your password to one with no special characters except '!' and no longer then 10 characters.
 
