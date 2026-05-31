@@ -3,6 +3,16 @@ on:
   push:
     branches:
       - main
+  # Manual pre-release path. Run this workflow from the Actions tab, pick the
+  # branch you want to cut the build from, and supply a pre-release version
+  # such as "1.51.0-beta.1". Leaving the input blank reproduces the normal
+  # stable release behaviour.
+  workflow_dispatch:
+    inputs:
+      prerelease_version:
+        description: 'Pre-release version, e.g. 1.51.0-beta.1 (blank = normal stable release from main)'
+        required: false
+        default: ''
 permissions:
   contents: write
   deployments: write
@@ -11,37 +21,66 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      # Stable path: derive the next version from the conventional-commit history.
+      # Skipped when an explicit pre-release version is supplied via dispatch.
       - name: Gets semantic release info
         id: semantic_release_info
+        if: ${{ github.event.inputs.prerelease_version == '' }}
         uses: jossef/action-semantic-release-info@v3.0.0
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      - name: Update Version and Commit
-        if: ${{steps.semantic_release_info.outputs.version != ''}}
+      - name: Resolve release metadata
+        id: meta
         run: |
-          echo "Version: ${{steps.semantic_release_info.outputs.version}}"
-          sed -i "s/\"version\": \".*\"/\"version\": \"${{steps.semantic_release_info.outputs.version}}\"/g" custom_components/ha_blueair/manifest.json 
+          INPUT_VERSION="${{ github.event.inputs.prerelease_version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+            NOTES="Pre-release build ${VERSION}. Available to HACS users who enable \"Show beta versions\"."
+          else
+            VERSION="${{ steps.semantic_release_info.outputs.version }}"
+            NOTES="${{ steps.semantic_release_info.outputs.notes }}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "git_tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          # Mark the GitHub Release as a pre-release automatically whenever the
+          # version carries an -alpha / -beta / -rc suffix. HACS only surfaces
+          # pre-releases to users who opt in via "Show beta versions".
+          if echo "$VERSION" | grep -Eiq -- '-(alpha|beta|rc)'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo "notes<<RELEASE_NOTES_EOF"
+            echo "$NOTES"
+            echo "RELEASE_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Update Version and Commit
+        if: ${{ steps.meta.outputs.version != '' }}
+        run: |
+          echo "Version: ${{ steps.meta.outputs.version }}"
+          sed -i "s/\"version\": \".*\"/\"version\": \"${{ steps.meta.outputs.version }}\"/g" custom_components/ha_blueair/manifest.json 
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git diff
           git add -A
-          git commit -m "chore: bumping version to ${{steps.semantic_release_info.outputs.version}}"
-          git tag ${{ steps.semantic_release_info.outputs.git_tag }}
+          git commit -m "chore: bumping version to ${{ steps.meta.outputs.version }}"
+          git tag ${{ steps.meta.outputs.git_tag }}
       - name: Push changes
-        if: ${{steps.semantic_release_info.outputs.version != ''}}
+        if: ${{ steps.meta.outputs.version != '' }}
         uses: ad-m/github-push-action@v1.3.0
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           branch: ${{ github.ref }}
           tags: true
       - name: Create GitHub Release
-        if: ${{steps.semantic_release_info.outputs.version != ''}}
+        if: ${{ steps.meta.outputs.version != '' }}
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         with:
-          tag_name: ${{ steps.semantic_release_info.outputs.git_tag }}
-          release_name: ${{ steps.semantic_release_info.outputs.git_tag }}
-          body: ${{ steps.semantic_release_info.outputs.notes }}
+          tag_name: ${{ steps.meta.outputs.git_tag }}
+          release_name: ${{ steps.meta.outputs.git_tag }}
+          body: ${{ steps.meta.outputs.notes }}
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.meta.outputs.prerelease }}
