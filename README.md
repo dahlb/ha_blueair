@@ -46,17 +46,22 @@ never offered a pre-release and stay on the latest stable build.
 
 ### Installing a beta as a tester (HACS) ###
 
+Recent HACS versions removed the separate "Show beta versions" toggle and moved
+the beta/pre-release selection into the download dialog:
+
 1. In Home Assistant, open **HACS** and find **Blueair Filters** under
    Integrations.
-2. Open the three-dot menu on the integration and choose **Redownload**
-   (some HACS versions label this **Update information** / **Reinstall**).
-3. Enable the **Show beta versions** toggle in that dialog.
-4. Pick the beta version (for example `1.51.0-beta.1`) from the version list and
-   download it.
-5. Restart Home Assistant.
+2. Click the integration to open its repository page.
+3. In the top-right corner, open the kebab menu (**⋮**).
+4. Choose **Redownload**.
+5. Select **Need a different version?**.
+6. A list of available releases appears — including beta, pre-release, or dev
+   versions if the repository publishes them. Pick the beta version (for example
+   `1.51.0-beta.1`) and confirm.
+7. Restart Home Assistant.
 
-To return to a stable build, repeat the steps with **Show beta versions** turned
-off, select the latest non-beta version, and restart.
+To return to a stable build, repeat the steps and select the latest non-beta
+version, then restart.
 
 > When reporting on a beta, include the exact version string and a diagnostics
 > download (see [Troubleshooting](#troubleshooting-)) so issues are easy to trace.
@@ -77,8 +82,8 @@ users:
    `1.51.0-beta.1` (the suffix may be `-alpha`, `-beta`, or `-rc`).
 5. Run it. The workflow bumps `manifest.json` on that branch, tags
    `v1.51.0-beta.1`, and creates a GitHub Release that is **automatically marked
-   as a pre-release** because of the suffix. HACS then offers it only to users
-   with **Show beta versions** enabled.
+   as a pre-release** because of the suffix. HACS then offers it only to testers
+   who explicitly pick it via **Redownload → Need a different version?**.
 
 When validation is complete, merge the branch to `main`; the normal push-to-main
 flow then publishes the stable version the usual way.
