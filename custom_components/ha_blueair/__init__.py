@@ -12,16 +12,25 @@ from homeassistant.const import (
     CONF_SCAN_INTERVAL,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from blueair_api import get_devices, get_aws_devices, LoginError, MqttAwsBlueair
+from blueair_api import (
+    device_state_looks_frozen,
+    get_devices,
+    get_aws_devices,
+    LoginError,
+    MqttAwsBlueair,
+)
 
 from .mqtt_mapping import map_and_publish_event
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .const import (
     DOMAIN,
+    CONF_CLOUD_REGION,
+    REPAIR_CLOUD_REGION_MISMATCH,
     PLATFORMS,
     DATA_DEVICES,
     DATA_AWS_DEVICES,
@@ -31,6 +40,46 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _cloud_region_issue_id(config_entry: ConfigEntry) -> str:
+    return f"{REPAIR_CLOUD_REGION_MISMATCH}_{config_entry.entry_id}"
+
+
+def _async_update_cloud_region_repair_issue(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    coordinators: list[BlueairUpdateCoordinatorDeviceAws],
+    cloud_region: str,
+) -> None:
+    issue_id = _cloud_region_issue_id(config_entry)
+
+    for coordinator in coordinators:
+        raw_info = getattr(coordinator.blueair_api_device, "raw_info", None)
+        if not device_state_looks_frozen(raw_info):
+            continue
+
+        device_name = coordinator.device_name or coordinator.id
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=REPAIR_CLOUD_REGION_MISMATCH,
+            translation_placeholders={
+                "device_name": device_name,
+                "cloud_region": cloud_region,
+            },
+            data={
+                "entry_id": config_entry.entry_id,
+                "device_id": coordinator.id,
+                "device_name": device_name,
+            },
+        )
+        return
+
+    ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -52,8 +101,19 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
     if config_entry.version == 1:
         new_data = {**config_entry.data, CONF_REGION: REGION_USA}
 
-        config_entry.version = 2
-        hass.config_entries.async_update_entry(config_entry, data=new_data)
+        hass.config_entries.async_update_entry(
+            config_entry, data=new_data, version=2
+        )
+
+    if config_entry.version == 2:
+        new_data = {
+            **config_entry.data,
+            CONF_CLOUD_REGION: config_entry.data.get(CONF_REGION, REGION_USA),
+        }
+
+        hass.config_entries.async_update_entry(
+            config_entry, data=new_data, version=3
+        )
 
     _LOGGER.info("Migration to version %s successful", config_entry.version)
 
@@ -70,7 +130,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     _LOGGER.debug(f"async setup entry: {config_entry}")
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
-    region = config_entry.data[CONF_REGION]
+    region = config_entry.options.get(CONF_REGION, config_entry.data[CONF_REGION])
+    cloud_region = config_entry.options.get(
+        CONF_CLOUD_REGION,
+        config_entry.data.get(CONF_CLOUD_REGION, region),
+    )
     interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     _LOGGER.debug(f"setting up scan interval: {interval}")
 
@@ -89,7 +153,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             username=username,
             password=password,
             client_session=client_session,
-            region=region,
+            gigya_region=region,
+            cloud_region=cloud_region,
         )
 
         def create_coordinators(device):
@@ -112,6 +177,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         for coordinator in coordinators:
             await coordinator.async_config_entry_first_refresh()
 
+        _async_update_cloud_region_repair_issue(
+            hass,
+            config_entry,
+            data[DATA_AWS_DEVICES],
+            cloud_region,
+        )
+
         # Start MQTT for real-time updates on AWS devices.
         mqtt_client = None
         if (
@@ -122,7 +194,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         ):
             try:
                 mqtt_client = MqttAwsBlueair(
-                    region=region,
+                    region=cloud_region,
                     mqtt_auth_name=aws_http_client.mqtt_auth_name,
                     mqtt_auth_signature=aws_http_client.mqtt_auth_signature,
                     mqtt_auth_token=aws_http_client.mqtt_auth_token,

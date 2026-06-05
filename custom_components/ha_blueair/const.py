@@ -5,7 +5,9 @@ from homeassistant.const import Platform
 DOMAIN: str = "ha_blueair"
 
 # Integration Setting Constants
-CONFIG_FLOW_VERSION: int = 2
+CONFIG_FLOW_VERSION: int = 3
+CONF_CLOUD_REGION: str = "cloud_region"
+REPAIR_CLOUD_REGION_MISMATCH: str = "cloud_region_mismatch"
 DEFAULT_SCAN_INTERVAL: int = 5
 PLATFORMS = [
     Platform.BINARY_SENSOR,

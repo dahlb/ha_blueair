@@ -2,12 +2,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "Authentification BlueAir",
-        "description": "Connectez-vous",
+        "title": "Compte Blueair",
+        "description": "Saisissez les identifiants de votre compte Blueair.",
         "data": {
-          "region": "Région",
           "username": "Identifiant",
           "password": "Mot de passe"
+        }
+      },
+      "account_region": {
+        "title": "Région du compte Blueair",
+        "description": "Ces identifiants sont acceptés dans plusieurs régions de compte Blueair. Choisissez la région que vous utilisez habituellement pour vous connecter.",
+        "data": {
+          "region": "Région du compte"
+        }
+      },
+      "cloud_region": {
+        "title": "Région BlueCloud de l'appareil Blueair",
+        "description": "Impossible de choisir automatiquement une seule région BlueCloud pour l'appareil. Valeur suggérée : {suggested_cloud_region}. Source de la suggestion : {suggestion_source}. Choisissez la région de l'appareil que cette entrée doit contrôler. Ces options peuvent être modifiées dans la configuration de l'intégration.",
+        "data": {
+          "cloud_region": "Région BlueCloud de l'appareil"
         }
       },
       "reauth_confirm": {
@@ -17,6 +30,41 @@
     },
     "error": {
       "auth": "Échec de connexion. Veuillez utiliser l'application officielle pour vous déconnecter, puis reconnectez-vous et réessayez."
+    }
+  },
+  "issues": {
+    "cloud_region_mismatch": {
+      "title": "La région BlueCloud de l'appareil Blueair peut être incorrecte",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Confirmer la région BlueCloud de l'appareil Blueair",
+            "description": "La région BlueCloud actuelle est {cloud_region}. Choisissez la région à utiliser pour contrôler l'appareil. Valeur suggérée : {suggested_cloud_region}.",
+            "data": {
+              "cloud_region": "Région BlueCloud de l'appareil"
+            }
+          }
+        },
+        "error": {
+          "auth": "Échec de la connexion lors de la vérification de la région BlueCloud de l'appareil. Vérifiez vos identifiants, puis réessayez."
+        },
+        "abort": {
+          "entry_not_found": "L'entrée de configuration Blueair n'existe plus."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Blueair : configuration",
+        "description": "Ajustez l'intervalle d'interrogation et les régions. La plupart des utilisateurs devraient conserver les régions détectées, sauf si les appareils apparaissent hors ligne ou avec des données obsolètes.",
+        "data": {
+          "region": "Région du compte",
+          "cloud_region": "Région BlueCloud de l'appareil",
+          "scan_interval": "Intervalle d'interrogation en minutes"
+        }
+      }
     }
   },
   "entity": {

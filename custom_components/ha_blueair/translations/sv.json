@@ -2,11 +2,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "BlueAir Autensiering",
-        "description": "Konfigurera dina användaruppgifter.",
+        "title": "Blueair-konto",
+        "description": "Ange inloggningsuppgifterna för ditt Blueair-konto.",
         "data": {
           "username": "Användarnamn",
           "password": "Lösenord"
+        }
+      },
+      "account_region": {
+        "title": "Blueair-kontoregion",
+        "description": "De här inloggningsuppgifterna fungerar i mer än en Blueair-kontoregion. Välj den region du vanligtvis använder när du loggar in.",
+        "data": {
+          "region": "Kontoregion"
+        }
+      },
+      "cloud_region": {
+        "title": "Blueair-enhetens molnregion",
+        "description": "Det gick inte att automatiskt välja en enda BlueCloud-region för enheten. Föreslaget värde: {suggested_cloud_region}. Källa till förslaget: {suggestion_source}. Välj regionen för enheten som den här posten ska styra. Du kan ändra de här alternativen i integrationens konfiguration.",
+        "data": {
+          "cloud_region": "Enhetens molnregion"
         }
       },
       "reauth_confirm": {
@@ -16,6 +30,41 @@
     },
     "error": {
       "auth": "Inloggingen misslyckades. Använd den officiella appen för att logga ut och in samt försök igen."
+    }
+  },
+  "issues": {
+    "cloud_region_mismatch": {
+      "title": "Blueair-enhetens molnregion kan vara felaktig",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Bekräfta Blueair-enhetens molnregion",
+            "description": "Den aktuella molnregionen är {cloud_region}. Välj den region som ska användas för att styra enheten. Föreslaget värde: {suggested_cloud_region}.",
+            "data": {
+              "cloud_region": "Enhetens molnregion"
+            }
+          }
+        },
+        "error": {
+          "auth": "Inloggningen misslyckades när enhetens molnregion kontrollerades. Kontrollera dina användaruppgifter och försök igen."
+        },
+        "abort": {
+          "entry_not_found": "Blueair-konfigurationsposten finns inte längre."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Blueair: konfiguration",
+        "description": "Justera avsökning och regioninställningar. De flesta användare bör behålla de identifierade regionerna om inte enheter visas som offline eller har inaktuella värden.",
+        "data": {
+          "region": "Kontoregion",
+          "cloud_region": "Enhetens molnregion",
+          "scan_interval": "Avsökningsintervall i minuter"
+        }
+      }
     }
   }
 }

@@ -46,17 +46,22 @@ never offered a pre-release and stay on the latest stable build.
 
 ### Installing a beta as a tester (HACS) ###
 
+Recent HACS versions removed the separate "Show beta versions" toggle and moved
+the beta/pre-release selection into the download dialog:
+
 1. In Home Assistant, open **HACS** and find **Blueair Filters** under
    Integrations.
-2. Open the three-dot menu on the integration and choose **Redownload**
-   (some HACS versions label this **Update information** / **Reinstall**).
-3. Enable the **Show beta versions** toggle in that dialog.
-4. Pick the beta version (for example `1.51.0-beta.1`) from the version list and
-   download it.
-5. Restart Home Assistant.
+2. Click the integration to open its repository page.
+3. In the top-right corner, open the kebab menu (**⋮**).
+4. Choose **Redownload**.
+5. Select **Need a different version?**.
+6. A list of available releases appears — including beta, pre-release, or dev
+   versions if the repository publishes them. Pick the beta version (for example
+   `1.51.0-beta.1`) and confirm.
+7. Restart Home Assistant.
 
-To return to a stable build, repeat the steps with **Show beta versions** turned
-off, select the latest non-beta version, and restart.
+To return to a stable build, repeat the steps and select the latest non-beta
+version, then restart.
 
 > When reporting on a beta, include the exact version string and a diagnostics
 > download (see [Troubleshooting](#troubleshooting-)) so issues are easy to trace.
@@ -77,11 +82,61 @@ users:
    `1.51.0-beta.1` (the suffix may be `-alpha`, `-beta`, or `-rc`).
 5. Run it. The workflow bumps `manifest.json` on that branch, tags
    `v1.51.0-beta.1`, and creates a GitHub Release that is **automatically marked
-   as a pre-release** because of the suffix. HACS then offers it only to users
-   with **Show beta versions** enabled.
+   as a pre-release** because of the suffix. HACS then offers it only to testers
+   who explicitly pick it via **Redownload → Need a different version?**.
 
 When validation is complete, merge the branch to `main`; the normal push-to-main
 flow then publishes the stable version the usual way.
+
+## Account Region and Device Cloud Region ##
+
+Most Blueair accounts use the same region for account login and device control.
+For those accounts, keep the suggested values during setup.
+
+Some devices are hosted on a different BlueCloud region than the account login
+region. During setup, the integration detects the account region automatically,
+then checks the Blueair cloud for the likely device cloud region. If there is
+one clear region with online devices, setup saves it automatically. If the
+result is ambiguous, setup asks you to choose the device cloud region. The
+selected device cloud region is stored in the config entry and reused on every
+startup.
+
+You can change both the account region and device cloud region later from the
+integration's Configure menu if a device appears offline or stale.
+
+Initial setup flow:
+
+```text
+Blueair Account
+  -> Enter username and password
+  -> Integration detects the account region
+  -> Integration checks for the likely Device cloud region
+  -> Creates the entry automatically if one online region is clear
+  -> Otherwise asks you to choose the Device cloud region
+```
+
+If an existing entry appears to be using the wrong device cloud region, Home
+Assistant can show a repair issue. The repair flow checks again, suggests a
+device cloud region, and reloads the integration after you confirm the value.
+
+Repair flow:
+
+```text
+Repair issue
+  -> Fix
+  -> Confirm Device cloud region
+  -> Integration reloads with the selected cloud region
+```
+
+Screenshot checklist for release notes / README updates:
+
+- Initial setup: Account credentials step
+- Initial setup: Account region picker, if more than one account region works
+- Initial setup: Automatic completion when one online device cloud region is clear
+- Initial setup: Device cloud region picker when discovery is ambiguous
+- Repair issue: Cloud region may be incorrect
+- Repair flow: Device cloud region confirmation
+
 ## Limitations ##
 If you receive an error while trying to login, try resetting your password to one with no special characters except '!' and no longer then 10 characters.
 
