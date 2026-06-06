@@ -93,6 +93,15 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.auto_regulated_humidity
 
     @property
+    def hum_mode(self) -> bool | None | NotImplemented:
+        """Humidification on/off for 2-in-1 combo devices (e.g. DH3i).
+
+        Independent of the purifier running state (standby), so toggling
+        humidification does not power down the fan.
+        """
+        return self.blueair_api_device.hum_mode
+
+    @property
     def voc(self) -> int | None | NotImplemented:
         if self.blueair_api_device.total_voc is NotImplemented:
             return self.blueair_api_device.voc
@@ -283,6 +292,10 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     async def set_auto_regulated_humidity(self, value) -> None:
         await self.blueair_api_device.set_auto_regulated_humidity(value)
+        await self.async_request_refresh()
+
+    async def set_hum_mode(self, value: bool) -> None:
+        await self.blueair_api_device.set_hum_mode(value)
         await self.async_request_refresh()
 
     async def set_main_mode(self, value: int) -> None:
