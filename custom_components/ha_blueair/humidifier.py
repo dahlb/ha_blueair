@@ -31,16 +31,23 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         async_add_entities,
         entity_classes=[
             BlueairAwsHumidifier,
+            BlueairAwsComboHumidifier,
         ],
     )
 
 
 class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
-    """Controls Humidifier."""
+    """Controls a standalone humidifier (master power toggles the device)."""
 
     @classmethod
     def is_implemented(kls, coordinator):
-        return coordinator.auto_regulated_humidity is not NotImplemented
+        # Standalone humidifiers only. 2-in-1 combo devices (which expose a
+        # dedicated ``humidifier_mode``) are handled by BlueairAwsComboHumidifier so
+        # that turning humidification off does not power down the purifier.
+        return (
+            coordinator.auto_regulated_humidity is not NotImplemented
+            and coordinator.humidifier_mode is NotImplemented
+        )
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
         """Initialize the humidifier."""
@@ -115,4 +122,55 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
         """Set the humidity level. Sets Humidifier to 'On' to comply with hass requirements, and sets mode to Auto since this is the only mode in which the target humidity is used."""
         await self.coordinator.set_auto_regulated_humidity(humidity)
         await self.coordinator.set_fan_auto_mode(True)
+        await self.async_turn_on()
+
+
+class BlueairAwsComboHumidifier(BlueairEntity, HumidifierEntity):
+    """Controls humidification on a 2-in-1 Purify+Humidify device (e.g. DH3i).
+
+    On these devices humidification is a sub-function of the purifier, toggled
+    via ``humidifier_mode`` independently of the device's master power (``standby``).
+    Powering the purifier on/off and selecting its operating mode is handled by
+    the fan entity, so this entity intentionally exposes only humidification
+    on/off plus the target humidity (no modes).
+    """
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        return coordinator.humidifier_mode is not NotImplemented
+
+    def __init__(self, coordinator: BlueairUpdateCoordinator):
+        """Initialize the combo humidifier."""
+        self._attr_device_class = HumidifierDeviceClass.HUMIDIFIER
+        self._attr_supported_features = HumidifierEntityFeature(0)
+        super().__init__("Humidifier", coordinator)
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.coordinator.humidifier_mode
+
+    @property
+    def target_humidity(self):
+        return self.coordinator.auto_regulated_humidity
+
+    @property
+    def current_humidity(self):
+        return self.coordinator.humidity
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.coordinator.set_humidifier_mode(False)
+        self.async_write_ha_state()
+
+    async def async_turn_on(
+        self,
+        percentage: int | None = None,
+        preset_mode: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        await self.coordinator.set_humidifier_mode(True)
+        self.async_write_ha_state()
+
+    async def async_set_humidity(self, humidity):
+        """Set the target humidity and ensure humidification is on."""
+        await self.coordinator.set_auto_regulated_humidity(humidity)
         await self.async_turn_on()
