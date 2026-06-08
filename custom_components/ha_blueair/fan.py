@@ -38,6 +38,22 @@ _LABEL_TO_AP_SUB_MODE: dict[str, int] = {
 # returning to manual_fan later starts at a predictable speed.
 _SIGNATURE_APSUBMODE_FANSPEED_RESET = 11
 
+# 2-in-1 combo devices (e.g. DH3i) expose a single `mode` field whose
+# value selects the operating preset. The mapping follows the device
+# firmware's mode enum observed in the Blueair cloud API responses:
+# 1=Manual, 2=Auto, 3=Night. Unlike the Signature `apsubmode` path,
+# switching to Auto/Night needs no paired fanspeed reset — the device
+# manages its own fan speed in those modes and restores it on return
+# to Manual.
+_COMBO_MODE_TO_LABEL: dict[int, str] = {
+    1: MODE_MANUAL_FAN,
+    2: MODE_AUTO,
+    3: MODE_NIGHT,
+}
+_LABEL_TO_COMBO_MODE: dict[str, int] = {
+    label: value for value, label in _COMBO_MODE_TO_LABEL.items()
+}
+
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair fans from config entry."""
@@ -167,9 +183,23 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             and coordinator.night_mode is NotImplemented
         )
 
+    @staticmethod
+    def _supports_combo_presets(coordinator) -> bool:
+        """True for 2-in-1 combo devices (e.g. DH3i) that switch presets
+        via the single ``mode`` field (exposed as ``combo_mode``).
+
+        These devices declare neither ``automode`` nor ``nightmode``
+        shadow fields and have no ``apsubmode``; their Manual/Auto/Night
+        presets all ride on ``combo_mode`` (see ``_COMBO_MODE_TO_LABEL``).
+
+        Issue: dahlb/ha_blueair#241.
+        """
+        return coordinator.combo_mode is not NotImplemented
+
     def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws):
         """Initialize the fan entity."""
         self._signature_presets = self._supports_signature_presets(coordinator)
+        self._combo_presets = self._supports_combo_presets(coordinator)
 
         if self._signature_presets:
             # One-shot at entity creation so a debug-log session can
@@ -184,11 +214,23 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 list(AP_SUB_MODE_LABELS.values()),
             )
 
+        if self._combo_presets:
+            _LOGGER.debug(
+                "BlueairAwsFan(%s): combo preset modes enabled "
+                "(model=%s, presets=%s)",
+                getattr(coordinator.blueair_api_device, "uuid", "?"),
+                coordinator.model,
+                list(_COMBO_MODE_TO_LABEL.values()),
+            )
+
         self._attr_preset_modes = []
         if self._signature_presets:
             # Signature devices: four presets derived from
             # AP_SUB_MODE_LABELS (manual_fan / auto / night / eco).
             self._attr_preset_modes = list(AP_SUB_MODE_LABELS.values())
+        elif self._combo_presets:
+            # 2-in-1 combo devices: Manual / Auto / Night via combo_mode.
+            self._attr_preset_modes = list(_COMBO_MODE_TO_LABEL.values())
         else:
             if coordinator.fan_auto_mode is not NotImplemented:
                 self._attr_preset_modes.append(MODE_AUTO)
@@ -229,6 +271,24 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 return None
             return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
 
+        if self._combo_presets:
+            # The speed slider is only meaningful in Manual; in
+            # Auto/Night the device chooses the speed and a percentage
+            # would be misleading.
+            combo_mode = self.coordinator.combo_mode
+            try:
+                manual = (
+                    combo_mode in (None, NotImplemented)
+                    or int(combo_mode) == _LABEL_TO_COMBO_MODE[MODE_MANUAL_FAN]
+                )
+            except (TypeError, ValueError):
+                manual = True
+            if not manual:
+                return None
+            if self.coordinator.fan_speed in (None, NotImplemented):
+                return None
+            return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
+
         if self.preset_mode is None:
           return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
         else:
@@ -250,6 +310,27 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 already_manual = False
             if not already_manual:
                 await self.coordinator.set_ap_sub_mode(manual_value)
+            blueair_percentage = int(round(percentage / 100 * self.coordinator.speed_count))
+            await self.coordinator.set_fan_speed(blueair_percentage)
+            self.async_write_ha_state()
+            return
+
+        if self._combo_presets:
+            # Combo devices honor a manual fan-speed write only while in
+            # Manual mode, so switch there first (skipped if already
+            # Manual to avoid a redundant write). No fanspeed reset is
+            # needed here.
+            manual_value = _LABEL_TO_COMBO_MODE[MODE_MANUAL_FAN]
+            combo_mode = self.coordinator.combo_mode
+            try:
+                already_manual = (
+                    combo_mode not in (None, NotImplemented)
+                    and int(combo_mode) == manual_value
+                )
+            except (TypeError, ValueError):
+                already_manual = False
+            if not already_manual:
+                await self.coordinator.set_combo_mode(manual_value)
             blueair_percentage = int(round(percentage / 100 * self.coordinator.speed_count))
             await self.coordinator.set_fan_speed(blueair_percentage)
             self.async_write_ha_state()
@@ -289,6 +370,21 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             # The slider is hidden in non-manual presets, so this write
             # is invisible while the preset is active.
             await self.coordinator.set_fan_speed(_SIGNATURE_APSUBMODE_FANSPEED_RESET)
+            self.async_write_ha_state()
+            return
+
+        if self._combo_presets:
+            value = _LABEL_TO_COMBO_MODE.get(preset_mode)
+            if value is None:
+                _LOGGER.debug(
+                    "BlueairAwsFan: ignoring unknown preset_mode=%r "
+                    "(known: %s)",
+                    preset_mode, list(_LABEL_TO_COMBO_MODE),
+                )
+                return
+            # Combo devices manage their own fan speed in Auto/Night, so
+            # no paired fanspeed reset is needed (unlike Signature).
+            await self.coordinator.set_combo_mode(value)
             self.async_write_ha_state()
             return
 
@@ -338,6 +434,15 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 return None
             try:
                 return AP_SUB_MODE_LABELS.get(int(ap_sub_mode))
+            except (TypeError, ValueError):
+                return None
+
+        if self._combo_presets:
+            combo_mode = self.coordinator.combo_mode
+            if combo_mode in (None, NotImplemented):
+                return None
+            try:
+                return _COMBO_MODE_TO_LABEL.get(int(combo_mode))
             except (TypeError, ValueError):
                 return None
 

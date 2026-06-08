@@ -102,6 +102,15 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.humidifier_mode
 
     @property
+    def combo_mode(self) -> int | None | NotImplemented:
+        """Operating mode for 2-in-1 combo devices (e.g. DH3i).
+
+        Values follow the device firmware's mode enum: 1=Manual, 2=Auto,
+        3=Night. Used to surface fan presets on the combo fan entity.
+        """
+        return self.blueair_api_device.combo_mode
+
+    @property
     def voc(self) -> int | None | NotImplemented:
         if self.blueair_api_device.total_voc is NotImplemented:
             return self.blueair_api_device.voc
@@ -296,6 +305,10 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     async def set_humidifier_mode(self, value: bool) -> None:
         await self.blueair_api_device.set_humidifier_mode(value)
+        await self.async_request_refresh()
+
+    async def set_combo_mode(self, value: int) -> None:
+        await self.blueair_api_device.set_combo_mode(value)
         await self.async_request_refresh()
 
     async def set_main_mode(self, value: int) -> None:
