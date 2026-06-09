@@ -12,6 +12,7 @@ from homeassistant.const import (
     CONCENTRATION_PARTS_PER_MILLION,
     CONCENTRATION_PARTS_PER_BILLION,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    EntityCategory,
 )
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
@@ -35,6 +36,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             BlueairWaterLevelSensor,
             BlueairRssiSensor,
             BlueairTimerDurationSensor,
+            BlueairOverallFirmwareSensor,
     ])
 
 
@@ -244,3 +246,36 @@ class BlueairTimerDurationSensor(BlueairSensor):
         if not isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws):
             return False
         return super().is_implemented(coordinator)
+
+
+class BlueairOverallFirmwareSensor(BlueairSensor):
+    """Reports the device's overall firmware version (AWS shadow ``ofv``).
+
+    The device registry only exposes two version slots, already used for
+    Wi-Fi firmware (``sw_version``) and MCU firmware (``hw_version``), so
+    the overall firmware version is surfaced here as a diagnostic sensor.
+    AWS-only and disabled by default to avoid cluttering the device page;
+    the value updates live over MQTT.  This is a text value, so it carries
+    no device class, unit, or state class.
+    """
+    entity_description = SensorEntityDescription(
+        key="overall_firmware",
+        name="Overall Firmware",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        icon="mdi:chip",
+    )
+
+    @classmethod
+    def is_implemented(kls, coordinator):
+        # AWS-only entity: the legacy Device class has no overall firmware
+        # attribute.  Guard explicitly (mirrors the other AWS-only sensors)
+        # so it is never offered for a legacy coordinator (issue #356).
+        if not isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws):
+            return False
+        return super().is_implemented(coordinator)
+
+    @property
+    def state_class(self):
+        """Firmware version is a text value with no state class."""
+        return None
