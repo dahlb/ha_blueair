@@ -34,6 +34,16 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.firmware
 
     @property
+    def overall_firmware(self) -> str | None | NotImplemented:
+        """Overall firmware version (AWS shadow field ``ofv``).
+
+        Distinct from ``sw_version`` (Wi-Fi firmware) and ``hw_version``
+        (MCU firmware); surfaced as a diagnostic sensor since the device
+        registry only has the two version slots.
+        """
+        return self.blueair_api_device.overall_firmware
+
+    @property
     def serial_number(self) -> str:
         return self.blueair_api_device.serial_number
 
