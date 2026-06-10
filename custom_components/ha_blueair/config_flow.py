@@ -238,6 +238,21 @@ class ConfigFlowHandler(config_entries.ConfigFlow):
         except Exception:
             _LOGGER.debug("BlueCloud region discovery failed", exc_info=True)
         else:
+            _LOGGER.debug(
+                "BlueCloud region discovery: selected=%s winner=%s "
+                "multi_region=%s per_region=%s",
+                scan.selected_region,
+                scan.winner,
+                scan.multi_region_detected,
+                {
+                    region_key: {
+                        "devices": probe.device_count,
+                        "online": probe.online_count,
+                        "error": probe.error,
+                    }
+                    for region_key, probe in scan.per_region.items()
+                },
+            )
             if scan.winner is not None:
                 self._cloud_region_default = scan.winner
                 self._cloud_region_source = "online devices found in this region"
@@ -247,8 +262,25 @@ class ConfigFlowHandler(config_entries.ConfigFlow):
                     if probe.online_count and probe.online_count > 0
                 ]
                 if len(online_regions) == 1:
+                    _LOGGER.debug(
+                        "BlueCloud region discovery: auto-selecting %s "
+                        "(only online region)",
+                        scan.winner,
+                    )
                     self.data[CONF_CLOUD_REGION] = scan.winner
                     return await self._async_create_blueair_entry()
+                _LOGGER.debug(
+                    "BlueCloud region discovery: not auto-selecting "
+                    "(online_regions=%s); prompting user with default %s",
+                    online_regions,
+                    self._cloud_region_default,
+                )
+            else:
+                _LOGGER.debug(
+                    "BlueCloud region discovery: no winner; prompting user "
+                    "with default %s",
+                    self._cloud_region_default,
+                )
         finally:
             if api_cloud is not None:
                 await api_cloud.cleanup_client_session()
