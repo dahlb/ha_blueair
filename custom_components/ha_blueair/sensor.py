@@ -15,9 +15,23 @@ from homeassistant.const import (
     EntityCategory,
 )
 
+import homeassistant.helpers.issue_registry as ir
+
+from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
+
+# Percentage sensors that used to (incorrectly) report device_class=battery.
+# See dahlb/ha_blueair#378.
+_LIFE_LEVEL_SENSOR_KEYS = (
+    "filter_life",
+    "wick_life",
+    "water_refresher_life",
+    "water_level",
+)
+BATTERY_DEVICE_CLASS_ISSUE_ID = "life_sensors_no_longer_battery"
+
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
@@ -38,6 +52,34 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             BlueairTimerDurationSensor,
             BlueairOverallFirmwareSensor,
     ])
+
+    # The filter/wick/water-refresher life and water-level sensors previously
+    # used device_class=battery, so existing installs swept them into battery
+    # dashboards, low-battery automations and HomeKit battery reporting.  That
+    # classification has been removed (#378).  Surface a dismissible repair to
+    # let affected users know and point them at the migration guide.  Only fire
+    # when the account actually exposes one of these sensors, and self-heal if
+    # it no longer does.
+    coordinators = (
+        hass.data[DOMAIN][DATA_DEVICES] + hass.data[DOMAIN][DATA_AWS_DEVICES]
+    )
+    has_life_level_sensor = any(
+        getattr(coordinator, key, NotImplemented) is not NotImplemented
+        for coordinator in coordinators
+        for key in _LIFE_LEVEL_SENSOR_KEYS
+    )
+    if has_life_level_sensor:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            BATTERY_DEVICE_CLASS_ISSUE_ID,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=BATTERY_DEVICE_CLASS_ISSUE_ID,
+            learn_more_url="https://github.com/dahlb/ha_blueair#filter-wick-and-water-sensors-no-longer-report-as-batteries",
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, BATTERY_DEVICE_CLASS_ISSUE_ID)
 
 
 class BlueairSensor(BlueairEntity, SensorEntity):
@@ -151,7 +193,6 @@ class BlueairFilterLifeSensor(BlueairSensor):
     entity_description = SensorEntityDescription(
         key="filter_life",
         name="Filter Life",
-        device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:air-filter",
@@ -163,7 +204,6 @@ class BlueairWickLifeSensor(BlueairSensor):
     entity_description = SensorEntityDescription(
         key="wick_life",
         name="Wick Life",
-        device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:air-filter",
@@ -174,7 +214,6 @@ class BlueairWaterRefresherLifeSensor(BlueairSensor):
     entity_description = SensorEntityDescription(
         key="water_refresher_life",
         name="Water Refresher Life",
-        device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:air-filter",
@@ -185,7 +224,6 @@ class BlueairWaterLevelSensor(BlueairSensor):
     entity_description = SensorEntityDescription(
         key="water_level",
         name="Water Level",
-        device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         icon="mdi:waves",

@@ -55,5 +55,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "life_sensors_no_longer_battery": {
+      "title": "Filter, Wick and Water sensors no longer report as batteries",
+      "description": "The Filter Life, Wick Life, Water Refresher Life and Water Level sensors previously used the `battery` device class, which incorrectly pulled them into battery dashboards, low-battery automations and HomeKit battery reporting. They are percentages, not batteries, so the `battery` device class has been removed. The values, units and history are unchanged.\n\nIf you relied on the old battery classification, follow the migration guide (Learn more) to re-create it with a template sensor. Otherwise you can safely dismiss this notice."
+    }
   }
 }
