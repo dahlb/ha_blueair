@@ -215,6 +215,12 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     async def turn_off_mood_brightness(self) -> None:
         raise NotImplementedError
 
+    async def set_night_light_brightness(self, night_light_brightness: int) -> None:
+        raise NotImplementedError
+
+    async def turn_off_night_light_brightness(self) -> None:
+        raise NotImplementedError
+
     async def set_germ_shield(self, enabled: bool) -> None:
         raise NotImplementedError
 
