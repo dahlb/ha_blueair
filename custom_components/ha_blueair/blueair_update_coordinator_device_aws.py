@@ -258,8 +258,21 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         return self.blueair_api_device.rssi
 
     @property
+    def night_light_brightness_scale(self) -> tuple[int, int]:
+        return (1, 100)
+
+    @property
     def night_light_brightness(self) -> int | None | NotImplemented:
+        if self.blueair_api_device.night_light_brightness not in (None, NotImplemented):
+            return value_to_brightness(
+                self.night_light_brightness_scale,
+                self.blueair_api_device.night_light_brightness,
+            )
         return self.blueair_api_device.night_light_brightness
+
+    @property
+    def night_light_brightness_is_on(self) -> bool | None | NotImplemented:
+        return self.blueair_api_device.night_light_brightness != 0
 
     @property
     def timer_state(self) -> int | None | NotImplemented:
@@ -360,8 +373,15 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.blueair_api_device.set_fan_speed_0(value)
         await self.async_request_refresh()
 
-    async def set_night_light_brightness(self, value: int) -> None:
-        await self.blueair_api_device.set_night_light_brightness(value)
+    async def set_night_light_brightness(self, night_light_brightness) -> None:
+        desired_brightness_in_range = ceil(
+            brightness_to_value(self.night_light_brightness_scale, night_light_brightness)
+        )
+        await self.blueair_api_device.set_night_light_brightness(desired_brightness_in_range)
+        await self.async_request_refresh()
+
+    async def turn_off_night_light_brightness(self) -> None:
+        await self.blueair_api_device.set_night_light_brightness(0)
         await self.async_request_refresh()
 
     async def set_timer_duration(self, value: int) -> None:

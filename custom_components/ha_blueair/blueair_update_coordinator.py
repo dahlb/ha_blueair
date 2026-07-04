@@ -313,6 +313,14 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         pass
 
     @abstractmethod
+    async def set_night_light_brightness(self, night_light_brightness: int) -> None:
+        pass
+
+    @abstractmethod
+    async def turn_off_night_light_brightness(self) -> None:
+        pass
+
+    @abstractmethod
     async def set_wick_dry_mode(self, value) -> None:
         pass
 
