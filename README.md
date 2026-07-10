@@ -37,6 +37,44 @@ A custom integration for Blueair Filters.  If your model isn't reported correctl
 ## Installation ##
 You can install this either manually copying files or using HACS. Configuration can be done on UI, you need to enter your username and password, (I know, translations are missing).
 
+## Filter, Wick and Water sensors no longer report as batteries ##
+
+The **Filter Life**, **Wick Life**, **Water Refresher Life** and **Water Level**
+sensors used to be created with Home Assistant's `battery` device class. Because
+they report a percentage, that classification pulled them into battery
+dashboards, battery groups, low-battery notification automations/blueprints, and
+HomeKit / voice-assistant battery reporting — even though none of them is a
+battery.
+
+These are filter/wick/refresher remaining-life and water-level percentages, so
+the `battery` device class has been removed. There is no Home Assistant device
+class that fits "filter life" or "water level", so they now have no device class.
+The state values, `%` unit, `measurement` state class, icons and long-term
+history are unchanged — only the battery classification is gone.
+
+If you deliberately relied on the battery classification (for example a battery
+dashboard that lists these sensors), you can re-create it with a
+[template sensor](https://www.home-assistant.io/integrations/template/). Home
+Assistant does not let you override a natively-set device class from the UI, so a
+template sensor is the supported way to keep a battery-classified copy:
+
+```yaml
+# configuration.yaml
+template:
+  - sensor:
+      - name: "Bedroom Blueair Filter Battery"
+        unique_id: bedroom_blueair_filter_battery
+        device_class: battery
+        unit_of_measurement: "%"
+        state_class: measurement
+        # Replace with your own entity id from Developer Tools > States
+        state: "{{ states('sensor.bedroom_blueair_filter_life') }}"
+        availability: "{{ has_value('sensor.bedroom_blueair_filter_life') }}"
+```
+
+After a restart the new `sensor.bedroom_blueair_filter_battery` behaves like a
+battery again, while the original sensor stays correctly unclassified.
+
 ## Beta / Pre-release Builds ##
 
 Some changes are easier to validate with a small group of opt-in testers before
