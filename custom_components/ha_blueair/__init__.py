@@ -87,7 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         except LoginError as ex:
             _LOGGER.debug(f"Legacy Login error: {ex}")
             devices = []
-        except Exception as ex:
+        except (ClientError, TimeoutError) as ex:
             _LOGGER.warning(f"Legacy Blueair API unavailable, skipping legacy devices: {ex}")
             devices = []
         aws_http_client, aws_devices = await get_aws_devices(
