@@ -3,6 +3,8 @@ from datetime import timedelta
 
 import voluptuous as vol
 
+from aiohttp import ClientError
+
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.const import (
@@ -84,6 +86,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
         except LoginError as ex:
             _LOGGER.debug(f"Legacy Login error: {ex}")
+            devices = []
+        except (ClientError, TimeoutError) as ex:
+            _LOGGER.warning(f"Legacy Blueair API unavailable, skipping legacy devices: {ex}")
             devices = []
         aws_http_client, aws_devices = await get_aws_devices(
             username=username,
@@ -239,6 +244,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     except LoginError as error:
         _LOGGER.debug("login failure, ha should retry")
         raise ConfigEntryNotReady("Login failure") from error
+    except (ClientError, TimeoutError) as error:
+        _LOGGER.debug("blueair cloud unreachable, ha should retry")
+        raise ConfigEntryNotReady("Blueair cloud unreachable") from error
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
