@@ -39,13 +39,17 @@ class BlueairRestoredBrightnessEntity(BlueairEntity, LightEntity, RestoreEntity)
         """Restore the previous brightness after a Home Assistant restart."""
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
-        if last_state is None or self.is_on:
+        if self.is_on:
             return
 
-        last_brightness = last_state.attributes.get(_ATTR_LAST_BRIGHTNESS)
-        if isinstance(last_brightness, int) and not isinstance(last_brightness, bool):
-            if 0 < last_brightness <= 255:
-                self._last_brightness = last_brightness
+        if last_state is not None:
+            last_brightness = last_state.attributes.get(_ATTR_LAST_BRIGHTNESS)
+            if isinstance(last_brightness, int) and not isinstance(last_brightness, bool):
+                if 0 < last_brightness <= 255:
+                    self._last_brightness = last_brightness
+                    return
+
+        self._last_brightness = 255
 
 
 class BlueairLightEntity(BlueairRestoredBrightnessEntity):
