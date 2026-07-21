@@ -4,11 +4,13 @@ from homeassistant.components.light import (
     LightEntity,
 )
 from homeassistant.components.light.const import ColorMode
+from homeassistant.helpers.restore_state import RestoreEntity
 import logging
 
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
+_ATTR_LAST_BRIGHTNESS = "last_brightness"
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
@@ -25,7 +27,28 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     )
 
 
-class BlueairLightEntity(BlueairEntity, LightEntity):
+class BlueairRestoredBrightnessEntity(BlueairEntity, LightEntity, RestoreEntity):
+    """Base light entity that retains brightness while the light is off."""
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int]:
+        """Return the brightness used when the light is next turned on."""
+        return {_ATTR_LAST_BRIGHTNESS: self._last_brightness}
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the previous brightness after a Home Assistant restart."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is None or self.is_on:
+            return
+
+        last_brightness = last_state.attributes.get(_ATTR_LAST_BRIGHTNESS)
+        if isinstance(last_brightness, int) and not isinstance(last_brightness, bool):
+            if 0 < last_brightness <= 255:
+                self._last_brightness = last_brightness
+
+
+class BlueairLightEntity(BlueairRestoredBrightnessEntity):
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
@@ -62,7 +85,7 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
         self.async_write_ha_state()
 
 
-class BlueairMoodLightEntity(BlueairEntity, LightEntity):
+class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity):
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
@@ -99,7 +122,7 @@ class BlueairMoodLightEntity(BlueairEntity, LightEntity):
         self.async_write_ha_state()
 
 
-class BlueairNightLightEntity(BlueairEntity, LightEntity):
+class BlueairNightLightEntity(BlueairRestoredBrightnessEntity):
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
