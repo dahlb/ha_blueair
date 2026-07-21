@@ -3,9 +3,7 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     LightEntity,
 )
-from homeassistant.components.light.const import (
-    ColorMode
-)
+from homeassistant.components.light.const import ColorMode
 import logging
 
 from .entity import BlueairEntity, async_setup_entry_helper
@@ -15,12 +13,16 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    async_setup_entry_helper(hass, config_entry, async_add_entities,
+    async_setup_entry_helper(
+        hass,
+        config_entry,
+        async_add_entities,
         entity_classes=[
             BlueairLightEntity,
             BlueairMoodLightEntity,
             BlueairNightLightEntity,
-    ])
+        ],
+    )
 
 
 class BlueairLightEntity(BlueairEntity, LightEntity):
@@ -33,11 +35,15 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
 
     def __init__(self, coordinator):
         super().__init__("LED Light", coordinator)
+        self._last_brightness = self.coordinator.brightness or 255
 
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        return self.coordinator.brightness
+        brightness = self.coordinator.brightness
+        if brightness:
+            self._last_brightness = brightness
+        return brightness
 
     @property
     def is_on(self) -> bool:
@@ -45,13 +51,16 @@ class BlueairLightEntity(BlueairEntity, LightEntity):
         return self.coordinator.brightness != 0
 
     async def async_turn_on(self, **kwargs):
-        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, 255)
+        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, self._last_brightness)
+        if ATTR_BRIGHTNESS in kwargs:
+            self._last_brightness = desired_brightness
         await self.coordinator.set_brightness(desired_brightness)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
         await self.coordinator.set_brightness(0)
         self.async_write_ha_state()
+
 
 class BlueairMoodLightEntity(BlueairEntity, LightEntity):
     _attr_color_mode = ColorMode.BRIGHTNESS
@@ -63,11 +72,15 @@ class BlueairMoodLightEntity(BlueairEntity, LightEntity):
 
     def __init__(self, coordinator):
         super().__init__("Mood Light", coordinator)
+        self._last_brightness = self.coordinator.mood_brightness or 255
 
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        return self.coordinator.mood_brightness
+        brightness = self.coordinator.mood_brightness
+        if brightness:
+            self._last_brightness = brightness
+        return brightness
 
     @property
     def is_on(self) -> bool:
@@ -75,7 +88,9 @@ class BlueairMoodLightEntity(BlueairEntity, LightEntity):
         return self.coordinator.mood_brightness_is_on
 
     async def async_turn_on(self, **kwargs):
-        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, 255)
+        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, self._last_brightness)
+        if ATTR_BRIGHTNESS in kwargs:
+            self._last_brightness = desired_brightness
         await self.coordinator.set_mood_brightness(desired_brightness)
         self.async_write_ha_state()
 
@@ -94,11 +109,15 @@ class BlueairNightLightEntity(BlueairEntity, LightEntity):
 
     def __init__(self, coordinator):
         super().__init__("Night Light", coordinator)
+        self._last_brightness = self.coordinator.night_light_brightness or 255
 
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        return self.coordinator.night_light_brightness
+        brightness = self.coordinator.night_light_brightness
+        if brightness:
+            self._last_brightness = brightness
+        return brightness
 
     @property
     def is_on(self) -> bool:
@@ -106,7 +125,9 @@ class BlueairNightLightEntity(BlueairEntity, LightEntity):
         return self.coordinator.night_light_brightness_is_on
 
     async def async_turn_on(self, **kwargs):
-        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, 255)
+        desired_brightness = kwargs.get(ATTR_BRIGHTNESS, self._last_brightness)
+        if ATTR_BRIGHTNESS in kwargs:
+            self._last_brightness = desired_brightness
         await self.coordinator.set_night_light_brightness(desired_brightness)
         self.async_write_ha_state()
 
