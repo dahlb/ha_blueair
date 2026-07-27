@@ -1,5 +1,5 @@
 colorlog==6.11.0
 homeassistant==2025.6.0
 pip>=26.1.2
-ruff==0.15.22
+ruff==0.16.0
 blueair-api==1.56.0
