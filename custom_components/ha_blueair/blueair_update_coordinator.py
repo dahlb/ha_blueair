@@ -245,6 +245,14 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     def auto_regulated_humidity(self) -> bool | None | NotImplemented:
         pass
 
+    @property
+    def humidifier_mode(self) -> bool | None | NotImplemented:
+        pass
+
+    @property
+    def combo_mode(self) -> int | None | NotImplemented:
+        pass
+
     # ----- AWS-only sensor attributes (issue #356) -----
     # Declared abstract so any subclass MUST provide a value (legacy
     # subclasses return NotImplemented).  Prevents the v1.49.0 regression

@@ -157,6 +157,14 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return NotImplemented
 
     @property
+    def humidifier_mode(self) -> bool | None | NotImplemented:
+        return NotImplemented
+
+    @property
+    def combo_mode(self) -> int | None | NotImplemented:
+        return NotImplemented
+
+    @property
     def main_mode(self) -> int | None | NotImplemented:
         return NotImplemented
 
