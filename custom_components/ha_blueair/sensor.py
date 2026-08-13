@@ -7,11 +7,10 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     UnitOfTemperature,
     UnitOfTime,
+    UnitOfRatio,
+    UnitOfDensity,
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
-    CONCENTRATION_PARTS_PER_MILLION,
-    CONCENTRATION_PARTS_PER_BILLION,
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
     EntityCategory,
 )
 
@@ -142,7 +141,7 @@ class BlueairVOCSensor(BlueairSensor):
         key="voc",
         name="VOC",
         device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS,
-        native_unit_of_measurement=CONCENTRATION_PARTS_PER_BILLION,
+        native_unit_of_measurement=UnitOfRatio.PARTS_PER_BILLION,
         suggested_display_precision=0,
     )
 
@@ -153,7 +152,7 @@ class BlueairPM1Sensor(BlueairSensor):
         key="pm1",
         name="PM 1",
         device_class=SensorDeviceClass.PM1,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UnitOfDensity.MICROGRAMS_PER_CUBIC_METER,
     )
 
 
@@ -163,7 +162,7 @@ class BlueairPM10Sensor(BlueairSensor):
         key="pm10",
         name="PM 10",
         device_class=SensorDeviceClass.PM10,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UnitOfDensity.MICROGRAMS_PER_CUBIC_METER,
     )
 
 
@@ -173,7 +172,7 @@ class BlueairPM25Sensor(BlueairSensor):
         key="pm25",
         name="PM 2.5",
         device_class=SensorDeviceClass.PM25,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UnitOfDensity.MICROGRAMS_PER_CUBIC_METER,
     )
 
 
@@ -183,7 +182,7 @@ class BlueairCO2Sensor(BlueairSensor):
         key="co2",
         name="CO2",
         device_class=SensorDeviceClass.CO2,
-        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+        native_unit_of_measurement=UnitOfRatio.PARTS_PER_MILLION,
         suggested_display_precision=0,
     )
 
