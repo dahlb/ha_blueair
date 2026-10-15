@@ -137,6 +137,10 @@ class BlueairFan(BlueairEntity, FanEntity):
             await self.async_set_percentage(percentage=percentage)
         elif preset_mode is not None:
             await self.async_set_preset_mode(preset_mode)
+        elif self.is_on:
+            # Already running and nothing asked for: keep the current
+            # speed and mode (issue #390).
+            self.async_write_ha_state()
         else:
             await self.coordinator.set_fan_speed("1")
             self.async_write_ha_state()
@@ -404,20 +408,28 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         preset_mode: str | None = None,
         **kwargs: any,
     ) -> None:
-        if self.is_on is False:
+        was_off = self.is_on is False
+        if was_off:
             await self.coordinator.set_running(True)
-        if percentage is None:
+        if preset_mode is not None:
+            await self.async_set_preset_mode(preset_mode=preset_mode)
+        elif percentage is not None:
+            await self.async_set_percentage(percentage=percentage)
+        elif (
+            was_off
+            and self.preset_mode in (None, MODE_MANUAL_FAN)
+            and self.coordinator.fan_speed in (None, 0)
+        ):
             # FIXME: i35 (and probably others) do not remember the
             # last fan speed and always set the speed to 0. I don't know
             # where to store the last fan speed such that it persists across
             # HA reboots. Thus we set the default turn_on fan speed to 50%
             # to make sure the fan actually spins at all.
-            percentage = DEFAULT_FAN_SPEED_PERCENTAGE
-        if preset_mode is not None:
-            await self.async_set_preset_mode(preset_mode=preset_mode)
-        elif percentage is not None:
-            await self.async_set_percentage(percentage=percentage)
+            await self.async_set_percentage(percentage=DEFAULT_FAN_SPEED_PERCENTAGE)
         else:
+            # A plain turn on resumes whatever the device was doing
+            # (auto, night, its last speed) instead of forcing 50%, and
+            # leaves an already-running fan alone (issue #390).
             self.async_write_ha_state()
 
     @property
