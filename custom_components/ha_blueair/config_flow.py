@@ -17,6 +17,8 @@ from .const import (
     REGIONS,
     REGION_USA,
     DEFAULT_SCAN_INTERVAL,
+    CONF_NIGHT_PRESET,
+    DEFAULT_NIGHT_PRESET,
 )
 
 from blueair_api import AuthError, get_aws_devices
@@ -37,6 +39,12 @@ class OptionFlowHandler(config_entries.OptionsFlow):
                         CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                     ),
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
+                vol.Required(
+                    CONF_NIGHT_PRESET,
+                    default=config_entry.options.get(
+                        CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET
+                    ),
+                ): bool,
             }
         )
 

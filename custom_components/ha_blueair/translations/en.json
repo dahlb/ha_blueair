@@ -24,7 +24,11 @@
       "init": {
         "title": "Blue Air: Configuration",
         "data": {
-          "scan_interval": "Polling Interval in Minutes"
+          "scan_interval": "Polling Interval in Minutes",
+          "night_preset": "Offer the Night preset on fans"
+        },
+        "data_description": {
+          "night_preset": "Turn off to leave Night out of the fans' preset modes, for example so HomeKit Bridge doesn't give each purifier a Night switch. A fan put in Night some other way still reports it."
         }
       }
     }
