@@ -28,7 +28,7 @@
           "night_preset": "Offer the Night preset on fans"
         },
         "data_description": {
-          "night_preset": "Turn off to leave Night out of the fans' preset modes, for example so HomeKit Bridge doesn't give each purifier a Night switch. A fan put in Night some other way still reports it."
+          "night_preset": "Turn off to leave Night out of the fans' preset modes, for example so HomeKit Bridge doesn't give each purifier a Night switch. A fan put in Night some other way still reports it. If you use HomeKit Bridge, reload it after changing this: it only builds an accessory's preset switches once."
         }
       }
     }
