@@ -30,6 +30,8 @@ from .const import (
     DATA_MQTT_CLIENT,
     REGION_USA,
     DEFAULT_SCAN_INTERVAL,
+    CONF_NIGHT_PRESET,
+    DEFAULT_NIGHT_PRESET,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -232,8 +234,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
         _LOGGER.debug("integration setup completed")
 
+        night_preset = config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET)
+
         async def update_listener(hass: HomeAssistant, updated_config_entry: ConfigEntry):
             """Handle options update."""
+            if updated_config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET) != night_preset:
+                # Fans build their preset list once, when they're created.
+                hass.config_entries.async_schedule_reload(updated_config_entry.entry_id)
+                return
             new_interval = updated_config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
             _LOGGER.debug(f"changing scan interval: {new_interval}")
             for coordinator_to_update in coordinators:
