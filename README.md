@@ -14,7 +14,7 @@ A custom integration for Blueair Filters.  If your model isn't reported correctl
 - fan
   - speed
   - turn off/on
-  - preset modes: night/auto (if supported)
+  - preset modes: night/auto (if supported; night can be left out in the integration's options, e.g. to drop the Night switch HomeKit Bridge adds)
 - light
   - brightness
   - turn off/on
