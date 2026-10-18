@@ -205,6 +205,15 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         self._signature_presets = self._supports_signature_presets(coordinator)
         self._combo_presets = self._supports_combo_presets(coordinator)
 
+        self._signature_mode_labels = dict(AP_SUB_MODE_LABELS)
+        if coordinator.blueair_api_device.hw == "l_blue40":
+            # App-verified SP4i manual mode is 1, not the generic 0.
+            self._signature_mode_labels.pop(0, None)
+            self._signature_mode_labels[1] = MODE_MANUAL_FAN
+        self._signature_mode_values = {
+            label: value for value, label in self._signature_mode_labels.items()
+        }
+
         if self._signature_presets:
             # One-shot at entity creation so a debug-log session can
             # answer "did this device enter the Signature preset path?"
@@ -266,7 +275,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 manual = True
             else:
                 try:
-                    manual = int(ap_sub_mode) == _LABEL_TO_AP_SUB_MODE[MODE_MANUAL_FAN]
+                    manual = int(ap_sub_mode) == self._signature_mode_values[MODE_MANUAL_FAN]
                 except (TypeError, ValueError):
                     manual = True
             if not manual:
@@ -303,7 +312,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             # Switch into manual_fan first so the device honors the
             # percentage write. Skipped if already there to avoid an
             # extraneous shadow write on every speed change.
-            manual_value = _LABEL_TO_AP_SUB_MODE[MODE_MANUAL_FAN]
+            manual_value = self._signature_mode_values[MODE_MANUAL_FAN]
             ap_sub_mode = self.coordinator.ap_sub_mode
             try:
                 already_manual = (
@@ -353,7 +362,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode of the fan."""
         if self._signature_presets:
-            value = _LABEL_TO_AP_SUB_MODE.get(preset_mode)
+            value = self._signature_mode_values.get(preset_mode)
             if value is None:
                 # HA frontend validates against preset_modes before
                 # calling us, so this only fires when an automation
@@ -363,7 +372,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 _LOGGER.debug(
                     "BlueairAwsFan: ignoring unknown preset_mode=%r "
                     "(known: %s)",
-                    preset_mode, list(_LABEL_TO_AP_SUB_MODE),
+                    preset_mode, list(self._signature_mode_values),
                 )
                 return
             await self.coordinator.set_ap_sub_mode(value)
@@ -445,7 +454,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             if ap_sub_mode in (None, NotImplemented):
                 return None
             try:
-                return AP_SUB_MODE_LABELS.get(int(ap_sub_mode))
+                return self._signature_mode_labels.get(int(ap_sub_mode))
             except (TypeError, ValueError):
                 return None
 

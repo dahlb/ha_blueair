@@ -55,6 +55,9 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     @property
     def speed_count(self) -> int:
         """Return the max fan speed."""
+        # Blueair app speed 4 is native 91 on the Signature SP4i.
+        if self.blueair_api_device.hw == "l_blue40":
+            return 91
         return self.blueair_api_device.fan_speed_count
 
     @property
