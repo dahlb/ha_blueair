@@ -12,7 +12,9 @@ from blueair_api import AP_SUB_MODE_LABELS
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 from .const import (
+    CONF_NIGHT_PRESET,
     DEFAULT_FAN_SPEED_PERCENTAGE,
+    DEFAULT_NIGHT_PRESET,
     MODE_AUTO,
     MODE_MANUAL_FAN,
     MODE_NIGHT,
@@ -55,6 +57,13 @@ _LABEL_TO_COMBO_MODE: dict[str, int] = {
 }
 
 
+def _drop_night_if_disabled(coordinator, preset_modes: list[str]) -> list[str]:
+    """Leave Night out of a fan's presets when the options turn it off."""
+    if coordinator.config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET):
+        return preset_modes
+    return [mode for mode in preset_modes if mode != MODE_NIGHT]
+
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair fans from config entry."""
     async_setup_entry_helper(hass, config_entry, async_add_entities,
@@ -78,6 +87,7 @@ class BlueairFan(BlueairEntity, FanEntity):
             self._attr_preset_modes.append(MODE_AUTO)
         if coordinator.night_mode is not NotImplemented:
             self._attr_preset_modes.append(MODE_NIGHT)
+        self._attr_preset_modes = _drop_night_if_disabled(coordinator, self._attr_preset_modes)
 
         self._attr_supported_features = FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         if len(self._attr_preset_modes) > 0:
@@ -240,6 +250,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 self._attr_preset_modes.append(MODE_AUTO)
             if coordinator.night_mode is not NotImplemented:
                 self._attr_preset_modes.append(MODE_NIGHT)
+        self._attr_preset_modes = _drop_night_if_disabled(coordinator, self._attr_preset_modes)
 
         self._attr_supported_features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         if coordinator.fan_speed is not NotImplemented:
