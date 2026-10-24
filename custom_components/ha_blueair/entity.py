@@ -89,4 +89,12 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.online
+        if not self.coordinator.last_update_success:
+            return False
+        if self.coordinator.model == "sense+":
+            # Sense+ can report wifi_working=False while refreshes and commands
+            # still succeed. Require a usable legacy fan state instead.
+            return str(self.coordinator.blueair_api_device.fan_speed) in (
+                "0", "1", "2", "3"
+            )
+        return self.coordinator.online
