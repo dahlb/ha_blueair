@@ -22,3 +22,5 @@ jobs:
           run: python3 -m pip install -r requirements.txt
         - name: "Run"
           run: python3 -m ruff check .
+        - name: "Run availability regression tests"
+          run: python3 -m unittest discover -s tests -v
