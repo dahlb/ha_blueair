@@ -2,7 +2,10 @@
 
 import logging
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from propcache import cached_property
 
@@ -17,16 +20,23 @@ _LOGGER = logging.getLogger(__name__)
 _MAC_MISSING_WARNED: set[str] = set()
 
 
-def async_setup_entry_helper(hass, config_entry, async_add_entities, entity_classes):
+def async_setup_entry_helper(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+    entity_classes: list[type[BlueairEntity]],
+) -> None:
+    """Add entities of the given classes for every coordinator that supports them."""
     coordinators: list[BlueairUpdateCoordinator] = []
     coordinators.extend(hass.data[DOMAIN][DATA_DEVICES])
     coordinators.extend(hass.data[DOMAIN][DATA_AWS_DEVICES])
 
-    entities = []
-    for coordinator in coordinators:
-        for kls in entity_classes:
-            if kls.is_implemented(coordinator):
-                entities.append(kls(coordinator))
+    entities = [
+        kls(coordinator)
+        for coordinator in coordinators
+        for kls in entity_classes
+        if kls.is_implemented(coordinator)
+    ]
 
     async_add_entities(entities)
 
@@ -37,7 +47,7 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     _attr_translation_key = DOMAIN
 
     @classmethod
-    def is_implemented(kls, coordinator) -> bool:
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Returns true if the coordinator supports this entity."""
         raise NotImplementedError
 
@@ -47,12 +57,14 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
         coordinator: BlueairUpdateCoordinator,
         **kwargs,
     ) -> None:
+        """Initialize the blueair entity."""
         super().__init__(coordinator)
         self._attr_name = f"{coordinator.device_name} {entity_type}"
         self._attr_unique_id = f"{coordinator.id}_{entity_type}"
 
     @cached_property[DeviceInfo | None]
     def device_info(self) -> DeviceInfo:
+        """Return device information for the device registry."""
         # Some Blueair API responses (notably the legacy ABL device list
         # for accounts where the same device is also AWS-registered) carry
         # `mac: null`.  Falling back to identifiers-only keeps the entity

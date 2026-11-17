@@ -1,14 +1,23 @@
+"""Binary sensor platform for Blueair devices."""
+
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(
         hass,
@@ -23,16 +32,19 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
+    """Blueair binary sensor."""
+
     @classmethod
-    def is_implemented(kls, coordinator: BlueairUpdateCoordinator) -> bool:
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         # See sensor.BlueairSensor.is_implemented (issue #356) for rationale
         # on the NotImplemented default.
         return (
-            getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented)
+            getattr(coordinator, cls(coordinator).entity_description.key, NotImplemented)
             is not NotImplemented
         )
 
-    def __init__(self, coordinator):
+    def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the temperature sensor."""
         super().__init__(self.entity_description.name, coordinator)
 
@@ -43,6 +55,8 @@ class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
 
 
 class BlueairFilterExpiredSensor(BlueairBinarySensor):
+    """Blueair filter expired sensor."""
+
     entity_description = BinarySensorEntityDescription(
         key="filter_expired",
         name="Filter Expiration",
@@ -52,6 +66,8 @@ class BlueairFilterExpiredSensor(BlueairBinarySensor):
 
 
 class BlueairOnlineSensor(BlueairBinarySensor):
+    """Blueair online sensor."""
+
     entity_description = BinarySensorEntityDescription(
         key="online",
         name="Online",
@@ -61,10 +77,10 @@ class BlueairOnlineSensor(BlueairBinarySensor):
 
     @property
     def icon(self) -> str | None:
+        """Return the icon to use in the frontend."""
         if self.is_on:
             return self.entity_description.icon
-        else:
-            return "mdi:wifi-strength-outline"
+        return "mdi:wifi-strength-outline"
 
     @property
     def available(self) -> bool:
@@ -73,6 +89,8 @@ class BlueairOnlineSensor(BlueairBinarySensor):
 
 
 class BlueairWaterShortageSensor(BlueairBinarySensor):
+    """Blueair water shortage sensor."""
+
     entity_description = BinarySensorEntityDescription(
         key="water_shortage",
         name="Water Shortage",

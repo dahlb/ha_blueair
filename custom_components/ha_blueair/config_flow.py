@@ -1,8 +1,11 @@
+"""Config flow for the Blueair integration."""
+
 import logging
 from typing import Any
 
 from blueair_api import AuthError, get_aws_devices
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
 import voluptuous as vol
@@ -38,7 +41,7 @@ class OptionFlowHandler(config_entries.OptionsFlow):
             }
         )
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Display preferences UI."""
         if user_input is not None:
             _LOGGER.debug("user input in option flow : %s", user_input)
@@ -49,21 +52,25 @@ class OptionFlowHandler(config_entries.OptionsFlow):
 
 @config_entries.HANDLERS.register(DOMAIN)
 class ConfigFlowHandler(config_entries.ConfigFlow):
+    """Handle a Blueair config flow."""
+
     VERSION = CONFIG_FLOW_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_PUSH
 
-    data: dict[str, Any] | None = {}
-
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> OptionFlowHandler:
         """Return preferences handler."""
         return OptionFlowHandler(config_entry)
 
-    def __init__(self):
-        pass
+    def __init__(self) -> None:
+        """Initialize the config flow handler."""
+        self.data: dict[str, Any] = {}
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Handle the user step of the config flow."""
         data_schema = {
             vol.Required(
                 CONF_REGION,

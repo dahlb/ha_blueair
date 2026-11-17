@@ -66,22 +66,21 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     @abstractmethod
     def model(self) -> str:
         """Return model for device, or the UUID if it's not known."""
-        pass
 
     @property
     @abstractmethod
     def hw_version(self) -> str:
-        pass
+        """Return the hardware version."""
 
     @property
     @abstractmethod
     def sw_version(self) -> str:
-        pass
+        """Return the software version."""
 
     @property
     @abstractmethod
     def serial_number(self) -> str:
-        pass
+        """Return the serial number."""
 
     @property
     def fan_speed(self) -> int:
@@ -92,173 +91,174 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     @abstractmethod
     def speed_count(self) -> int:
         """Return the max fan speed."""
-        pass
 
     @property
     @abstractmethod
     def is_on(self) -> bool:
-        pass
+        """Return whether the device is on."""
 
     @property
     def online(self) -> bool:
+        """Return whether the device is online."""
         return self.blueair_api_device.wifi_working
 
     @property
     @abstractmethod
     def brightness(self) -> int:
-        pass
+        """Return the brightness."""
 
     @property
     def child_lock(self) -> bool:
+        """Return whether the child lock is enabled."""
         return self.blueair_api_device.child_lock
 
     @property
     @abstractmethod
     def germ_shield(self) -> bool:
-        pass
+        """Return whether germ shield is enabled."""
 
     @property
     def night_mode(self) -> bool:
+        """Return whether night mode is enabled."""
         return self.blueair_api_device.night_mode
 
     @property
     @abstractmethod
     def temperature(self) -> int:
-        pass
+        """Return the temperature."""
 
     @property
     @abstractmethod
     def humidity(self) -> int:
-        pass
+        """Return the humidity."""
 
     @property
     @abstractmethod
     def voc(self) -> int:
-        pass
+        """Return the VOC level."""
 
     @property
     @abstractmethod
     def pm1(self) -> int:
-        pass
+        """Return the PM1 concentration."""
 
     @property
     @abstractmethod
     def pm10(self) -> int:
-        pass
+        """Return the PM10 concentration."""
 
     @property
     @abstractmethod
     def pm25(self) -> int:
-        pass
+        """Return the PM2.5 concentration."""
 
     @property
     @abstractmethod
     def co2(self) -> int:
-        pass
+        """Return the CO2 level."""
 
     @property
     @abstractmethod
-    def fan_auto_mode(self) -> bool | None | NotImplemented:
-        pass
+    def fan_auto_mode(self) -> bool | NotImplemented | None:
+        """Return whether automatic fan mode is enabled."""
 
     @property
     @abstractmethod
-    def wick_dry_mode(self) -> bool | None | NotImplemented:
-        pass
+    def wick_dry_mode(self) -> bool | NotImplemented | None:
+        """Return whether wick dry mode is enabled."""
 
     @property
     @abstractmethod
-    def water_shortage(self) -> bool | None | NotImplemented:
-        pass
+    def water_shortage(self) -> bool | NotImplemented | None:
+        """Return whether the water tank is low."""
 
     @property
     @abstractmethod
-    def filter_expired(self) -> bool | None | NotImplemented:
+    def filter_expired(self) -> bool | NotImplemented | None:
         """Return the current filter status."""
-        pass
 
     @property
     @abstractmethod
-    def filter_life(self) -> int | None | NotImplemented:
-        pass
+    def filter_life(self) -> int | NotImplemented | None:
+        """Return the filter life."""
 
     @property
     @abstractmethod
-    def wick_life(self) -> int | None | NotImplemented:
-        pass
+    def wick_life(self) -> int | NotImplemented | None:
+        """Return the wick life."""
 
     @property
     @abstractmethod
-    def main_mode(self) -> int | None | NotImplemented:
-        pass
+    def main_mode(self) -> int | NotImplemented | None:
+        """Return the main mode."""
 
     @property
     @abstractmethod
-    def heat_temp(self) -> int | None | NotImplemented:
-        pass
+    def heat_temp(self) -> int | NotImplemented | None:
+        """Return the heat temp."""
 
     @property
     @abstractmethod
-    def heat_sub_mode(self) -> int | None | NotImplemented:
-        pass
+    def heat_sub_mode(self) -> int | NotImplemented | None:
+        """Return the heat sub mode."""
 
     @property
     @abstractmethod
-    def heat_fan_speed(self) -> int | None | NotImplemented:
-        pass
+    def heat_fan_speed(self) -> int | NotImplemented | None:
+        """Return the heat fan speed."""
 
     @property
     @abstractmethod
-    def cool_sub_mode(self) -> int | None | NotImplemented:
-        pass
+    def cool_sub_mode(self) -> int | NotImplemented | None:
+        """Return the cool sub mode."""
 
     @property
     @abstractmethod
-    def cool_fan_speed(self) -> int | None | NotImplemented:
-        pass
+    def cool_fan_speed(self) -> int | NotImplemented | None:
+        """Return the cool fan speed."""
 
     @property
     @abstractmethod
-    def ap_sub_mode(self) -> int | None | NotImplemented:
-        pass
+    def ap_sub_mode(self) -> int | NotImplemented | None:
+        """Return the air purifier sub mode."""
 
     @property
     @abstractmethod
-    def fan_speed_0(self) -> int | None | NotImplemented:
-        pass
+    def fan_speed_0(self) -> int | NotImplemented | None:
+        """Return the fan speed 0 value."""
 
     @property
     @abstractmethod
-    def temperature_unit(self) -> int | None | NotImplemented:
-        pass
+    def temperature_unit(self) -> int | NotImplemented | None:
+        """Return the temperature unit."""
 
     @property
     @abstractmethod
-    def water_refresher_life(self) -> int | None | NotImplemented:
-        pass
+    def water_refresher_life(self) -> int | NotImplemented | None:
+        """Return the water refresher life."""
 
     @property
     @abstractmethod
-    def water_level(self) -> int | None | NotImplemented:
-        pass
+    def water_level(self) -> int | NotImplemented | None:
+        """Return the water level."""
 
     @property
     @abstractmethod
-    def mood_brightness(self) -> int | None | NotImplemented:
-        pass
+    def mood_brightness(self) -> int | NotImplemented | None:
+        """Return the mood brightness."""
 
     @property
     @abstractmethod
-    def auto_regulated_humidity(self) -> bool | None | NotImplemented:
-        pass
+    def auto_regulated_humidity(self) -> bool | NotImplemented | None:
+        """Return whether automatic humidity regulation is enabled."""
 
     @property
-    def humidifier_mode(self) -> bool | None | NotImplemented:
-        pass
+    def humidifier_mode(self) -> bool | NotImplemented | None:
+        """Return the humidifier mode."""
 
     @property
-    def combo_mode(self) -> int | None | NotImplemented:
-        pass
+    def combo_mode(self) -> int | NotImplemented | None:
+        """Return the combo mode."""
 
     # ----- AWS-only sensor attributes (issue #356) -----
     # Declared abstract so any subclass MUST provide a value (legacy
@@ -268,109 +268,111 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @property
     @abstractmethod
-    def timer_duration(self) -> int | None | NotImplemented:
-        pass
+    def timer_duration(self) -> int | NotImplemented | None:
+        """Return the timer duration."""
 
     @property
     @abstractmethod
-    def timer_state(self) -> int | None | NotImplemented:
-        pass
+    def timer_state(self) -> int | NotImplemented | None:
+        """Return the timer state."""
 
     @property
     @abstractmethod
-    def rssi(self) -> int | None | NotImplemented:
-        pass
+    def rssi(self) -> int | NotImplemented | None:
+        """Return the Wi-Fi signal strength (RSSI)."""
 
     @property
     @abstractmethod
-    def night_light_brightness(self) -> int | None | NotImplemented:
-        pass
+    def night_light_brightness(self) -> int | NotImplemented | None:
+        """Return the night light brightness."""
 
     @property
     @abstractmethod
-    def hour_format(self) -> bool | None | NotImplemented:
-        pass
+    def hour_format(self) -> bool | NotImplemented | None:
+        """Return the clock hour format setting."""
 
-    async def set_fan_speed(self, new_speed) -> None:
+    async def set_fan_speed(self, new_speed: int) -> None:
+        """Set the fan speed."""
         await self.blueair_api_device.set_fan_speed(new_speed)
         await self.async_request_refresh()
 
     @abstractmethod
-    async def set_brightness(self, brightness) -> None:
-        pass
+    async def set_brightness(self, brightness: int) -> None:
+        """Set the brightness."""
 
     @abstractmethod
-    async def set_running(self, running) -> None:
-        pass
+    async def set_running(self, running: bool) -> None:
+        """Turn the device on or off."""
 
     @abstractmethod
     async def set_germ_shield(self, enabled: bool) -> None:
-        pass
+        """Set the germ shield."""
 
     async def set_child_lock(self, locked: bool) -> None:
+        """Set the child lock."""
         await self.blueair_api_device.set_child_lock(locked)
         await self.async_request_refresh()
 
     @abstractmethod
-    async def set_night_mode(self, mode) -> None:
-        pass
+    async def set_night_mode(self, mode: bool) -> None:
+        """Set the night mode."""
 
     @abstractmethod
     async def set_fan_auto_mode(self, value: bool) -> None:
-        pass
+        """Set the fan auto mode."""
 
     @abstractmethod
     async def set_mood_brightness(self, mood_brightness: int) -> None:
-        pass
+        """Set the mood brightness."""
 
     @abstractmethod
     async def turn_off_mood_brightness(self) -> None:
-        pass
+        """Turn off the mood light."""
 
     @abstractmethod
     async def set_night_light_brightness(self, night_light_brightness: int) -> None:
-        pass
+        """Set the night light brightness."""
 
     @abstractmethod
     async def turn_off_night_light_brightness(self) -> None:
-        pass
+        """Turn off the night light."""
 
     @abstractmethod
-    async def set_wick_dry_mode(self, value) -> None:
-        pass
+    async def set_wick_dry_mode(self, value: bool) -> None:
+        """Set the wick dry mode."""
 
     @abstractmethod
-    async def set_auto_regulated_humidity(self, value) -> None:
-        pass
+    async def set_auto_regulated_humidity(self, value: bool) -> None:
+        """Set the auto regulated humidity."""
 
     @abstractmethod
     async def set_main_mode(self, value: int) -> None:
-        pass
+        """Set the main mode."""
 
     @abstractmethod
     async def set_heat_temp(self, value: int) -> None:
-        pass
+        """Set the heat temp."""
 
     @abstractmethod
     async def set_heat_sub_mode(self, value: int) -> None:
-        pass
+        """Set the heat sub mode."""
 
     @abstractmethod
     async def set_heat_fan_speed(self, value: int) -> None:
-        pass
+        """Set the heat fan speed."""
 
     @abstractmethod
     async def set_cool_sub_mode(self, value: int) -> None:
-        pass
+        """Set the cool sub mode."""
 
     @abstractmethod
     async def set_cool_fan_speed(self, value: int) -> None:
-        pass
+        """Set the cool fan speed."""
 
     @abstractmethod
     async def set_ap_sub_mode(self, value: int) -> None:
-        pass
+        """Set the air purifier sub mode."""
 
     @abstractmethod
     async def set_fan_speed_0(self, value: int) -> None:
-        pass
+        """Set the fan speed 0 value."""

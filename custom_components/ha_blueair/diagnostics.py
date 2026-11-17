@@ -1,3 +1,5 @@
+"""Diagnostics support for the Blueair integration."""
+
 from __future__ import annotations
 
 from logging import getLogger

@@ -8,6 +8,7 @@ import importlib.util
 from pathlib import Path
 import sys
 from types import ModuleType, SimpleNamespace
+from typing import Any
 import unittest
 from unittest.mock import patch
 
@@ -15,18 +16,20 @@ from unittest.mock import patch
 class CoordinatorEntity:
     """Minimal base needed to import the entity under test."""
 
-    def __class_getitem__(cls, item):
+    def __class_getitem__(cls, item: object) -> type[CoordinatorEntity]:
+        """Support subscripting like the real generic class."""
         return cls
 
 
 class CachedProperty:
     """Stand-in for the unrelated device_info descriptor."""
 
-    def __class_getitem__(cls, item):
+    def __class_getitem__(cls, item: object) -> type[property]:
+        """Support subscripting like the real generic descriptor."""
         return property
 
 
-def load_entity():
+def load_entity() -> type[Any]:
     """Import the actual entity module with isolated external dependencies."""
     package = "_blueair_entity_test"
     modules = {}
@@ -61,10 +64,18 @@ class AvailabilityTest(unittest.TestCase):
     """Check Sense+ fallback and unchanged behavior for other models."""
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
+        """Load the entity class under test."""
         cls.entity_class = load_entity()
 
-    def available(self, model="sense+", speed=0, success=True, online=False):
+    def available(
+        self,
+        model: str = "sense+",
+        speed: object = 0,
+        success: bool = True,
+        online: bool = False,
+    ) -> bool:
+        """Return the entity's availability for a stubbed coordinator state."""
         entity = object.__new__(self.entity_class)
         entity.coordinator = SimpleNamespace(
             model=model,
@@ -74,29 +85,32 @@ class AvailabilityTest(unittest.TestCase):
         )
         return entity.available
 
-    def test_sense_plus_valid_states_without_wifi_flag(self):
+    def test_sense_plus_valid_states_without_wifi_flag(self) -> None:
+        """Sense+ is available for every valid fan speed, even with wifi_working False."""
         for speed in (0, 1, 2, 3, "0", "1", "2", "3"):
             with self.subTest(speed=speed):
-                self.assertTrue(self.available(speed=speed))
+                assert self.available(speed=speed)
 
-    def test_sense_plus_invalid_states(self):
+    def test_sense_plus_invalid_states(self) -> None:
+        """Sense+ is unavailable when the fan speed is not a valid state."""
         for speed in (None, NotImplemented, -1, 4, "4", "", "bad", 2.5, "2.5", True, False, [], {}):
             with self.subTest(speed=speed):
-                self.assertFalse(self.available(speed=speed, online=True))
+                assert not self.available(speed=speed, online=True)
 
-    def test_failed_refresh_stays_unavailable(self):
+    def test_failed_refresh_stays_unavailable(self) -> None:
+        """A failed refresh makes the entity unavailable regardless of online."""
         for online in (False, True):
             with self.subTest(online=online):
-                self.assertFalse(self.available(success=False, online=online))
+                assert not self.available(success=False, online=online)
 
-    def test_other_models_keep_online_requirement(self):
+    def test_other_models_keep_online_requirement(self) -> None:
+        """Other models require both a successful refresh and online."""
         for model in ("classic_680i", "Blue Pure 211i Max", "unknown"):
             for success in (False, True):
                 for online in (False, True):
                     with self.subTest(model=model, success=success, online=online):
-                        self.assertEqual(
-                            self.available(model=model, success=success, online=online),
-                            success and online,
+                        assert self.available(model=model, success=success, online=online) == (
+                            success and online
                         )
 
 

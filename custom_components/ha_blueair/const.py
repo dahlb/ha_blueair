@@ -1,3 +1,5 @@
+"""Constants for the Blueair integration."""
+
 # Configuration Constants
 from enum import Enum
 
@@ -25,6 +27,8 @@ PLATFORMS = [
 
 
 class FanMode(Enum):
+    """Fan modes reported by Blueair devices."""
+
     AUTO = "auto"
     STEP1 = "step1"
     STEP2 = "step2"

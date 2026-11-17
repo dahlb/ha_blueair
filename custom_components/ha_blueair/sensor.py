@@ -1,9 +1,12 @@
+"""Sensor platform for Blueair devices."""
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
@@ -13,6 +16,8 @@ from homeassistant.const import (
     UnitOfTemperature,
     UnitOfTime,
 )
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 import homeassistant.helpers.issue_registry as ir
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
@@ -31,7 +36,11 @@ _LIFE_LEVEL_SENSOR_KEYS = (
 BATTERY_DEVICE_CLASS_ISSUE_ID = "life_sensors_no_longer_battery"
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
     """Set up the Blueair sensors from config entry."""
     async_setup_entry_helper(
         hass,
@@ -86,18 +95,19 @@ class BlueairSensor(BlueairEntity, SensorEntity):
     """Generic Blueair Sensor, configured through EntityDescription."""
 
     @classmethod
-    def is_implemented(kls, coordinator):
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         # Use NotImplemented as the default so a coordinator that doesn't even
         # declare this attribute (e.g. an AWS-only property on the legacy
         # coordinator class) is treated as "not implemented" instead of
         # raising AttributeError, which would abort the whole sensor platform.
         # See issue #356.
         return (
-            getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented)
+            getattr(coordinator, cls(coordinator).entity_description.key, NotImplemented)
             is not NotImplemented
         )
 
-    def __init__(self, coordinator: BlueairUpdateCoordinator):
+    def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the temperature sensor."""
         super().__init__(self.entity_description.name, coordinator)
 
@@ -112,7 +122,7 @@ class BlueairSensor(BlueairEntity, SensorEntity):
         return super().available and self.native_value is not None
 
     @property
-    def state_class(self):
+    def state_class(self) -> SensorStateClass:
         """Return the state class of this entity, from STATE_CLASSES, if any."""
         return SensorStateClass.MEASUREMENT
 
@@ -154,7 +164,7 @@ class BlueairVOCSensor(BlueairSensor):
 
 
 class BlueairPM1Sensor(BlueairSensor):
-    """Monitors the pm1"""
+    """Monitors the pm1."""
 
     entity_description = SensorEntityDescription(
         key="pm1",
@@ -165,7 +175,7 @@ class BlueairPM1Sensor(BlueairSensor):
 
 
 class BlueairPM10Sensor(BlueairSensor):
-    """Monitors the pm10"""
+    """Monitors the pm10."""
 
     entity_description = SensorEntityDescription(
         key="pm10",
@@ -176,7 +186,7 @@ class BlueairPM10Sensor(BlueairSensor):
 
 
 class BlueairPM25Sensor(BlueairSensor):
-    """Monitors the pm2.5"""
+    """Monitors the pm2.5."""
 
     entity_description = SensorEntityDescription(
         key="pm25",
@@ -187,7 +197,7 @@ class BlueairPM25Sensor(BlueairSensor):
 
 
 class BlueairCO2Sensor(BlueairSensor):
-    """Monitors the Co2"""
+    """Monitors the Co2."""
 
     entity_description = SensorEntityDescription(
         key="co2",
@@ -199,7 +209,7 @@ class BlueairCO2Sensor(BlueairSensor):
 
 
 class BlueairFilterLifeSensor(BlueairSensor):
-    """Monitors the filter remaining life"""
+    """Monitors the filter remaining life."""
 
     entity_description = SensorEntityDescription(
         key="filter_life",
@@ -211,7 +221,7 @@ class BlueairFilterLifeSensor(BlueairSensor):
 
 
 class BlueairWickLifeSensor(BlueairSensor):
-    """Monitors the wick remaining life"""
+    """Monitors the wick remaining life."""
 
     entity_description = SensorEntityDescription(
         key="wick_life",
@@ -223,7 +233,7 @@ class BlueairWickLifeSensor(BlueairSensor):
 
 
 class BlueairWaterRefresherLifeSensor(BlueairSensor):
-    """Monitors the water refresher remaining life"""
+    """Monitors the water refresher remaining life."""
 
     entity_description = SensorEntityDescription(
         key="water_refresher_life",
@@ -235,7 +245,7 @@ class BlueairWaterRefresherLifeSensor(BlueairSensor):
 
 
 class BlueairWaterLevelSensor(BlueairSensor):
-    """Monitors the water level"""
+    """Monitors the water level."""
 
     entity_description = SensorEntityDescription(
         key="water_level",
@@ -267,7 +277,8 @@ class BlueairRssiSensor(BlueairSensor):
     )
 
     @classmethod
-    def is_implemented(kls, coordinator):
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         if not isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws):
             return False
         return "rssi" in (coordinator.blueair_api_device.mqtt_sensor_slugs or [])
@@ -295,7 +306,8 @@ class BlueairTimerDurationSensor(BlueairSensor):
     )
 
     @classmethod
-    def is_implemented(kls, coordinator):
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         # AWS-only entity: the legacy Device class does not model a sleep
         # timer at all.  Guard explicitly so this entity is never offered
         # for a legacy coordinator (issue #356).
@@ -324,7 +336,8 @@ class BlueairOverallFirmwareSensor(BlueairSensor):
     )
 
     @classmethod
-    def is_implemented(kls, coordinator):
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         # AWS-only entity: the legacy Device class has no overall firmware
         # attribute.  Guard explicitly (mirrors the other AWS-only sensors)
         # so it is never offered for a legacy coordinator (issue #356).
@@ -333,6 +346,6 @@ class BlueairOverallFirmwareSensor(BlueairSensor):
         return super().is_implemented(coordinator)
 
     @property
-    def state_class(self):
+    def state_class(self) -> None:
         """Firmware version is a text value with no state class."""
         return None
