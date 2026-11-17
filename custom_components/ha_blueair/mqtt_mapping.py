@@ -14,4 +14,3 @@ def map_and_publish_event(event, device):
     elif event_type == "NotConnected":
         device.wifi_working = False
     device.publish_updates()
-

@@ -5,15 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.humidifier import (
-    HumidifierDeviceClass,
-    HumidifierEntity,
-)
-from homeassistant.components.humidifier.const import (
-    HumidifierEntityFeature,
-    MODE_AUTO,
-    MODE_SLEEP,
-)
+from homeassistant.components.humidifier import HumidifierDeviceClass, HumidifierEntity
+from homeassistant.components.humidifier.const import MODE_AUTO, MODE_SLEEP, HumidifierEntityFeature
 
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinator
 from .const import MODE_FAN_SPEED

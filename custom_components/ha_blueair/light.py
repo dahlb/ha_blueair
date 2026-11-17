@@ -1,11 +1,10 @@
 from __future__ import annotations
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    LightEntity,
-)
+
+import logging
+
+from homeassistant.components.light import ATTR_BRIGHTNESS, LightEntity
 from homeassistant.components.light.const import ColorMode
 from homeassistant.helpers.restore_state import RestoreEntity
-import logging
 
 from .entity import BlueairEntity, async_setup_entry_helper
 

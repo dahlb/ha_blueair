@@ -1,15 +1,12 @@
 """Blueair device object."""
+
 from __future__ import annotations
 
 import logging
-
 from math import ceil
-from homeassistant.util.color import (
-    value_to_brightness,
-    brightness_to_value,
-)
 
 from blueair_api import DeviceAws
+from homeassistant.util.color import brightness_to_value, value_to_brightness
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 
@@ -18,6 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     """Blueair device object."""
+
     blueair_api_device: DeviceAws
 
     @property
@@ -60,7 +58,10 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     @property
     def is_on(self) -> bool | None | NotImplemented:
         """Return the current fan state."""
-        if self.blueair_api_device.standby is None or self.blueair_api_device.standby is NotImplemented:
+        if (
+            self.blueair_api_device.standby is None
+            or self.blueair_api_device.standby is NotImplemented
+        ):
             return self.blueair_api_device.standby
         else:
             return not self.blueair_api_device.standby
@@ -68,10 +69,14 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     @property
     def brightness(self) -> int | None | NotImplemented:
         """Return the brightness of this light between 0..255."""
-        if self.blueair_api_device.brightness is None or self.blueair_api_device.brightness is NotImplemented:
+        if (
+            self.blueair_api_device.brightness is None
+            or self.blueair_api_device.brightness is NotImplemented
+        ):
             return self.blueair_api_device.brightness
         else:
             return round(self.blueair_api_device.brightness / 100 * 255.0, 0)
+
     @property
     def germ_shield(self) -> bool | None | NotImplemented:
         return self.blueair_api_device.germ_shield
@@ -91,7 +96,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             return raw
         try:
             return float(raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return raw
 
     @property
@@ -198,7 +203,9 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
     @property
     def mood_brightness(self) -> int | None | NotImplemented:
         if self.blueair_api_device.mood_brightness not in (None, NotImplemented):
-            return value_to_brightness(self.mood_brightness_scale, self.blueair_api_device.mood_brightness)
+            return value_to_brightness(
+                self.mood_brightness_scale, self.blueair_api_device.mood_brightness
+            )
         return self.blueair_api_device.mood_brightness
 
     @property
@@ -216,7 +223,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             return raw
         try:
             return float(raw) / 10.0
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return raw
 
     @property
@@ -250,7 +257,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             return raw
         try:
             return int(raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return raw
 
     @property
@@ -297,7 +304,9 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.async_request_refresh()
 
     async def set_mood_brightness(self, mood_brightness) -> None:
-        desired_brightness_in_range = ceil(brightness_to_value(self.mood_brightness_scale, mood_brightness))
+        desired_brightness_in_range = ceil(
+            brightness_to_value(self.mood_brightness_scale, mood_brightness)
+        )
 
         await self.blueair_api_device.set_mood_brightness(desired_brightness_in_range)
         await self.async_request_refresh()
@@ -343,7 +352,7 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             return
         try:
             v = float(value)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return
         payload = int(round(v * 10))
         await self.blueair_api_device.set_heat_temp(payload)

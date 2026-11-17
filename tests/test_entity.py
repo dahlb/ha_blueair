@@ -34,25 +34,22 @@ def load_entity():
         package: {"__path__": []},
         "propcache": {"cached_property": CachedProperty},
         "homeassistant.helpers.device_registry": {
-            "CONNECTION_NETWORK_MAC": "mac", "DeviceInfo": dict
+            "CONNECTION_NETWORK_MAC": "mac",
+            "DeviceInfo": dict,
         },
-        "homeassistant.helpers.update_coordinator": {
-            "CoordinatorEntity": CoordinatorEntity
-        },
+        "homeassistant.helpers.update_coordinator": {"CoordinatorEntity": CoordinatorEntity},
         f"{package}.const": {
-            "DOMAIN": "ha_blueair", "DATA_DEVICES": "devices",
-            "DATA_AWS_DEVICES": "aws_devices"
+            "DOMAIN": "ha_blueair",
+            "DATA_DEVICES": "devices",
+            "DATA_AWS_DEVICES": "aws_devices",
         },
-        f"{package}.blueair_update_coordinator_device": {
-            "BlueairUpdateCoordinator": object
-        },
+        f"{package}.blueair_update_coordinator_device": {"BlueairUpdateCoordinator": object},
     }
     for name, values in attributes.items():
         module = ModuleType(name)
         module.__dict__.update(values)
         modules[name] = module
-    path = (Path(__file__).resolve().parents[1]
-            / "custom_components/ha_blueair/entity.py")
+    path = Path(__file__).resolve().parents[1] / "custom_components/ha_blueair/entity.py"
     spec = importlib.util.spec_from_file_location(f"{package}.entity", path)
     module = importlib.util.module_from_spec(spec)
     with patch.dict(sys.modules, modules):
@@ -70,7 +67,9 @@ class AvailabilityTest(unittest.TestCase):
     def available(self, model="sense+", speed=0, success=True, online=False):
         entity = object.__new__(self.entity_class)
         entity.coordinator = SimpleNamespace(
-            model=model, last_update_success=success, online=online,
+            model=model,
+            last_update_success=success,
+            online=online,
             blueair_api_device=SimpleNamespace(fan_speed=speed),
         )
         return entity.available
@@ -81,8 +80,7 @@ class AvailabilityTest(unittest.TestCase):
                 self.assertTrue(self.available(speed=speed))
 
     def test_sense_plus_invalid_states(self):
-        for speed in (None, NotImplemented, -1, 4, "4", "", "bad", 2.5,
-                      "2.5", True, False, [], {}):
+        for speed in (None, NotImplemented, -1, 4, "4", "", "bad", 2.5, "2.5", True, False, [], {}):
             with self.subTest(speed=speed):
                 self.assertFalse(self.available(speed=speed, online=True))
 
@@ -97,8 +95,7 @@ class AvailabilityTest(unittest.TestCase):
                 for online in (False, True):
                     with self.subTest(model=model, success=success, online=online):
                         self.assertEqual(
-                            self.available(model=model, success=success,
-                                           online=online),
+                            self.available(model=model, success=success, online=online),
                             success and online,
                         )
 

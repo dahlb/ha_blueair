@@ -1,40 +1,38 @@
 import contextlib
-import logging
 from datetime import timedelta
-
-import voluptuous as vol
+import logging
 
 from aiohttp import ClientError
-
-from homeassistant.core import Event, HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from blueair_api import LoginError, MqttAwsBlueair, get_aws_devices, get_devices
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONF_USERNAME,
     CONF_PASSWORD,
     CONF_REGION,
     CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
     EVENT_HOMEASSISTANT_STOP,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.typing import ConfigType
-import homeassistant.helpers.config_validation as cv
+from homeassistant.core import Event, HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from blueair_api import get_devices, get_aws_devices, LoginError, MqttAwsBlueair
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.typing import ConfigType
+import voluptuous as vol
 
-from .mqtt_mapping import map_and_publish_event
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .const import (
+    CONF_NIGHT_PRESET,
+    DATA_AWS_DEVICES,
+    DATA_DEVICES,
+    DATA_MQTT_CLIENT,
+    DEFAULT_NIGHT_PRESET,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     PLATFORMS,
-    DATA_DEVICES,
-    DATA_AWS_DEVICES,
-    DATA_MQTT_CLIENT,
     REGION_USA,
-    DEFAULT_SCAN_INTERVAL,
-    CONF_NIGHT_PRESET,
-    DEFAULT_NIGHT_PRESET,
 )
+from .mqtt_mapping import map_and_publish_event
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -121,13 +119,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 blueair_api_device=device,
                 interval=interval,
             )
+
         data[DATA_DEVICES] = list(map(create_coordinators, devices))
+
         def create_aws_coordinators(device):
             return BlueairUpdateCoordinatorDeviceAws(
                 hass=hass,
                 blueair_api_device=device,
                 interval=interval,
             )
+
         data[DATA_AWS_DEVICES] = list(map(create_aws_coordinators, aws_devices))
 
         coordinators = data[DATA_DEVICES] + data[DATA_AWS_DEVICES]
@@ -153,16 +154,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 )
 
                 # Build a lookup from device UUID to coordinator
-                aws_coordinator_map = {
-                    c.id: c for c in data[DATA_AWS_DEVICES]
-                }
+                aws_coordinator_map = {c.id: c for c in data[DATA_AWS_DEVICES]}
 
                 def on_sensor_data(device_id, sensors):
                     """Handle MQTT sensor data (called from MQTT thread)."""
                     _LOGGER.debug(f"processing sensor update {sensors} for {device_id}")
                     coordinator = aws_coordinator_map.get(device_id)
                     if coordinator is None:
-                        _LOGGER.debug(f"sensor data update provided for unknown device: {device_id}")
+                        _LOGGER.debug(
+                            f"sensor data update provided for unknown device: {device_id}"
+                        )
                         return
                     device = coordinator.blueair_api_device
                     try:
@@ -170,7 +171,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                     except Exception:
                         _LOGGER.exception(
                             "apply_sensor_data raised for device %s with payload %r",
-                            device_id, sensors,
+                            device_id,
+                            sensors,
                         )
                         return
                     device.publish_updates()
@@ -189,7 +191,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                     except Exception:
                         _LOGGER.exception(
                             "apply_state_change raised for device %s with payload %r",
-                            device_id, state,
+                            device_id,
+                            state,
                         )
                         return
                     device.publish_updates()
@@ -205,7 +208,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                     device = coordinator.blueair_api_device
                     map_and_publish_event(event, device)
                     _schedule_update(hass, coordinator, device)
-
 
                 mqtt_client.on_sensor_data = on_sensor_data
                 mqtt_client.on_state_change = on_state_change
@@ -258,14 +260,20 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         async def update_listener(hass: HomeAssistant, updated_config_entry: ConfigEntry):
             """Handle options update."""
-            if updated_config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET) != night_preset:
+            if (
+                updated_config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET)
+                != night_preset
+            ):
                 # Fans build their preset list once, when they're created.
                 hass.config_entries.async_schedule_reload(updated_config_entry.entry_id)
                 return
-            new_interval = updated_config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            new_interval = updated_config_entry.options.get(
+                CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+            )
             _LOGGER.debug(f"changing scan interval: {new_interval}")
             for coordinator_to_update in coordinators:
                 coordinator_to_update.update_interval = timedelta(minutes=new_interval)
+
         config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
 
         return True
@@ -286,9 +294,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         await hass.async_add_executor_job(data[DATA_MQTT_CLIENT].disconnect)
         _LOGGER.info("MQTT disconnected")
 
-    unload_ok = await hass.config_entries.async_unload_platforms(
-        config_entry, PLATFORMS
-    )
+    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN] = None
 

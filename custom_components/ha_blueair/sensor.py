@@ -5,20 +5,19 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    UnitOfTemperature,
-    UnitOfTime,
-    UnitOfRatio,
-    UnitOfDensity,
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
+    UnitOfDensity,
+    UnitOfRatio,
+    UnitOfTemperature,
+    UnitOfTime,
 )
-
 import homeassistant.helpers.issue_registry as ir
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
+from .const import DATA_AWS_DEVICES, DATA_DEVICES, DOMAIN
 from .entity import BlueairEntity, async_setup_entry_helper
 
 # Percentage sensors that used to (incorrectly) report device_class=battery.
@@ -34,7 +33,10 @@ BATTERY_DEVICE_CLASS_ISSUE_ID = "life_sensors_no_longer_battery"
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    async_setup_entry_helper(hass, config_entry, async_add_entities,
+    async_setup_entry_helper(
+        hass,
+        config_entry,
+        async_add_entities,
         entity_classes=[
             BlueairTemperatureSensor,
             BlueairHumiditySensor,
@@ -50,7 +52,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             BlueairRssiSensor,
             BlueairTimerDurationSensor,
             BlueairOverallFirmwareSensor,
-    ])
+        ],
+    )
 
     # The filter/wick/water-refresher life and water-level sensors previously
     # used device_class=battery, so existing installs swept them into battery
@@ -59,9 +62,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     # let affected users know and point them at the migration guide.  Only fire
     # when the account actually exposes one of these sensors, and self-heal if
     # it no longer does.
-    coordinators = (
-        hass.data[DOMAIN][DATA_DEVICES] + hass.data[DOMAIN][DATA_AWS_DEVICES]
-    )
+    coordinators = hass.data[DOMAIN][DATA_DEVICES] + hass.data[DOMAIN][DATA_AWS_DEVICES]
     has_life_level_sensor = any(
         getattr(coordinator, key, NotImplemented) is not NotImplemented
         for coordinator in coordinators
@@ -91,7 +92,10 @@ class BlueairSensor(BlueairEntity, SensorEntity):
         # coordinator class) is treated as "not implemented" instead of
         # raising AttributeError, which would abort the whole sensor platform.
         # See issue #356.
-        return getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented) is not NotImplemented
+        return (
+            getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented)
+            is not NotImplemented
+        )
 
     def __init__(self, coordinator: BlueairUpdateCoordinator):
         """Initialize the temperature sensor."""
@@ -115,6 +119,7 @@ class BlueairSensor(BlueairEntity, SensorEntity):
 
 class BlueairTemperatureSensor(BlueairSensor):
     """Generic Blueair Sensor, configured through EntityDescription."""
+
     entity_description = SensorEntityDescription(
         key="temperature",
         name="Temperature",
@@ -126,6 +131,7 @@ class BlueairTemperatureSensor(BlueairSensor):
 
 class BlueairHumiditySensor(BlueairSensor):
     """Monitors the humidity."""
+
     entity_description = SensorEntityDescription(
         key="humidity",
         name="Humidity",
@@ -137,6 +143,7 @@ class BlueairHumiditySensor(BlueairSensor):
 
 class BlueairVOCSensor(BlueairSensor):
     """Monitors the VOC."""
+
     entity_description = SensorEntityDescription(
         key="voc",
         name="VOC",
@@ -148,6 +155,7 @@ class BlueairVOCSensor(BlueairSensor):
 
 class BlueairPM1Sensor(BlueairSensor):
     """Monitors the pm1"""
+
     entity_description = SensorEntityDescription(
         key="pm1",
         name="PM 1",
@@ -158,6 +166,7 @@ class BlueairPM1Sensor(BlueairSensor):
 
 class BlueairPM10Sensor(BlueairSensor):
     """Monitors the pm10"""
+
     entity_description = SensorEntityDescription(
         key="pm10",
         name="PM 10",
@@ -168,6 +177,7 @@ class BlueairPM10Sensor(BlueairSensor):
 
 class BlueairPM25Sensor(BlueairSensor):
     """Monitors the pm2.5"""
+
     entity_description = SensorEntityDescription(
         key="pm25",
         name="PM 2.5",
@@ -178,6 +188,7 @@ class BlueairPM25Sensor(BlueairSensor):
 
 class BlueairCO2Sensor(BlueairSensor):
     """Monitors the Co2"""
+
     entity_description = SensorEntityDescription(
         key="co2",
         name="CO2",
@@ -189,6 +200,7 @@ class BlueairCO2Sensor(BlueairSensor):
 
 class BlueairFilterLifeSensor(BlueairSensor):
     """Monitors the filter remaining life"""
+
     entity_description = SensorEntityDescription(
         key="filter_life",
         name="Filter Life",
@@ -200,6 +212,7 @@ class BlueairFilterLifeSensor(BlueairSensor):
 
 class BlueairWickLifeSensor(BlueairSensor):
     """Monitors the wick remaining life"""
+
     entity_description = SensorEntityDescription(
         key="wick_life",
         name="Wick Life",
@@ -208,8 +221,10 @@ class BlueairWickLifeSensor(BlueairSensor):
         icon="mdi:air-filter",
     )
 
+
 class BlueairWaterRefresherLifeSensor(BlueairSensor):
     """Monitors the water refresher remaining life"""
+
     entity_description = SensorEntityDescription(
         key="water_refresher_life",
         name="Water Refresher Life",
@@ -218,8 +233,10 @@ class BlueairWaterRefresherLifeSensor(BlueairSensor):
         icon="mdi:air-filter",
     )
 
+
 class BlueairWaterLevelSensor(BlueairSensor):
     """Monitors the water level"""
+
     entity_description = SensorEntityDescription(
         key="water_level",
         name="Water Level",
@@ -239,6 +256,7 @@ class BlueairRssiSensor(BlueairSensor):
     entity would never be created on REST-only devices or before the
     first MQTT publish.
     """
+
     entity_description = SensorEntityDescription(
         key="rssi",
         name="Signal Strength",
@@ -265,6 +283,7 @@ class BlueairTimerDurationSensor(BlueairSensor):
     entity is restricted to AWS coordinators via :py:meth:`is_implemented`
     (mirrors :class:`BlueairRssiSensor`).
     """
+
     entity_description = SensorEntityDescription(
         key="timer_duration",
         name="Timer Duration",
@@ -295,6 +314,7 @@ class BlueairOverallFirmwareSensor(BlueairSensor):
     the value updates live over MQTT.  This is a text value, so it carries
     no device class, unit, or state class.
     """
+
     entity_description = SensorEntityDescription(
         key="overall_firmware",
         name="Overall Firmware",

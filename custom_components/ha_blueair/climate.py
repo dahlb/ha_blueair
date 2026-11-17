@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import time
 from logging import Logger, getLogger
+import time
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
 from homeassistant.config_entries import ConfigEntry
@@ -29,7 +29,7 @@ FAN_SPEED_BY_STEP: dict[str, int] = {
 
 
 def _safe_int(value: object, default: int = 0) -> int:
-    """Coerce a coordinator value to int, treating None / NotImplemented / unparseable as ``default``.
+    """Coerce a coordinator value to int, treating None / NotImplemented / unparsable as ``default``.
 
     Coordinator properties on BlueairUpdateCoordinatorDeviceAws return
     ``int``, ``None``, or the ``NotImplemented`` sentinel (per the
@@ -44,7 +44,7 @@ def _safe_int(value: object, default: int = 0) -> int:
         return default
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
 
 
@@ -62,7 +62,7 @@ def _fan_mode_from_speed(speed: int | float | None | NotImplemented) -> str | No
         return None
     try:
         s = float(speed)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
     if s < 12:
@@ -165,7 +165,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             return None
         try:
             return float(raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return None
 
     def _remember_last_fan_mode(self, hvac: HVACMode | None, fan: str | None) -> None:
@@ -175,9 +175,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         if hvac == HVACMode.FAN_ONLY:
             self._last_fan_mode_fan_only = fan
         elif hvac == HVACMode.COOL:
-            self._last_fan_mode_cool = (
-                fan if fan != FanMode.AUTO.value else FanMode.STEP1.value
-            )
+            self._last_fan_mode_cool = fan if fan != FanMode.AUTO.value else FanMode.STEP1.value
         elif hvac == HVACMode.HEAT:
             self._last_fan_mode_heat = fan
 
@@ -223,7 +221,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         raw = self.coordinator.temperature_unit
         try:
             unit = int(raw) if raw not in (None, NotImplemented) else None
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             unit = None
         return UnitOfTemperature.CELSIUS if unit == 0 else UnitOfTemperature.FAHRENHEIT
 

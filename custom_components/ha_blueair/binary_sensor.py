@@ -10,19 +10,27 @@ from .entity import BlueairEntity, async_setup_entry_helper
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    async_setup_entry_helper(hass, config_entry, async_add_entities,
+    async_setup_entry_helper(
+        hass,
+        config_entry,
+        async_add_entities,
         entity_classes=[
             BlueairOnlineSensor,
             BlueairFilterExpiredSensor,
             BlueairWaterShortageSensor,
-    ])
+        ],
+    )
+
 
 class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
     @classmethod
     def is_implemented(kls, coordinator: BlueairUpdateCoordinator) -> bool:
         # See sensor.BlueairSensor.is_implemented (issue #356) for rationale
         # on the NotImplemented default.
-        return getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented) is not NotImplemented
+        return (
+            getattr(coordinator, kls(coordinator).entity_description.key, NotImplemented)
+            is not NotImplemented
+        )
 
     def __init__(self, coordinator):
         """Initialize the temperature sensor."""

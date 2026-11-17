@@ -1,18 +1,23 @@
 """Blueair device object."""
+
 from __future__ import annotations
+
 import logging
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def _cast[T](type_: type(T), value: T | None | NotImplemented) -> T:
     if value in (None, NotImplemented):
         return value
     return type_(value)
 
+
 class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     """Blueair device object."""
+
     @property
     def model(self) -> str:
         """Return model for device."""
@@ -62,7 +67,10 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
 
     @property
     def brightness(self) -> int | None | NotImplemented:
-        if self.blueair_api_device.brightness is None or self.blueair_api_device.brightness is NotImplemented:
+        if (
+            self.blueair_api_device.brightness is None
+            or self.blueair_api_device.brightness is NotImplemented
+        ):
             return self.blueair_api_device.brightness
         else:
             return round(self.blueair_api_device.brightness / 4 * 255.0, 0)

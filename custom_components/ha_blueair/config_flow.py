@@ -1,27 +1,21 @@
 import logging
 from typing import Any
 
-import voluptuous as vol
+from blueair_api import AuthError, get_aws_devices
 from homeassistant import config_entries
-from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_REGION,
-    CONF_SCAN_INTERVAL,
-)
+from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
+import voluptuous as vol
 
 from .const import (
-    DOMAIN,
-    CONFIG_FLOW_VERSION,
-    REGIONS,
-    REGION_USA,
-    DEFAULT_SCAN_INTERVAL,
     CONF_NIGHT_PRESET,
+    CONFIG_FLOW_VERSION,
     DEFAULT_NIGHT_PRESET,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    REGION_USA,
+    REGIONS,
 )
-
-from blueair_api import AuthError, get_aws_devices
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,15 +29,11 @@ class OptionFlowHandler(config_entries.OptionsFlow):
             {
                 vol.Required(
                     CONF_SCAN_INTERVAL,
-                    default=config_entry.options.get(
-                        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
-                    ),
+                    default=config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
                 vol.Required(
                     CONF_NIGHT_PRESET,
-                    default=config_entry.options.get(
-                        CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET
-                    ),
+                    default=config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET),
                 ): bool,
             }
         )
@@ -59,7 +49,6 @@ class OptionFlowHandler(config_entries.OptionsFlow):
 
 @config_entries.HANDLERS.register(DOMAIN)
 class ConfigFlowHandler(config_entries.ConfigFlow):
-
     VERSION = CONFIG_FLOW_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_PUSH
 
@@ -92,7 +81,9 @@ class ConfigFlowHandler(config_entries.ConfigFlow):
 
             api_cloud = None
             try:
-                api_cloud, _devices = await get_aws_devices(username=username, password=password, region=region)
+                api_cloud, _devices = await get_aws_devices(
+                    username=username, password=password, region=region
+                )
                 self.data.update(user_input)
                 await self.async_set_unique_id(username)
                 self._abort_if_unique_id_configured()

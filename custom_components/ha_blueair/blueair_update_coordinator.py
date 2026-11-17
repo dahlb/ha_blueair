@@ -1,14 +1,18 @@
 """Blueair device object."""
+
 from __future__ import annotations
 
-import logging
-from datetime import timedelta
 from abc import ABC, abstractmethod
+from datetime import timedelta
+import logging
 
 from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevice
-
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, REQUEST_REFRESH_DEFAULT_COOLDOWN, Debouncer
+from homeassistant.helpers.update_coordinator import (
+    REQUEST_REFRESH_DEFAULT_COOLDOWN,
+    DataUpdateCoordinator,
+    Debouncer,
+)
 
 from .const import DOMAIN
 
@@ -19,7 +23,10 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     """Blueair device object."""
 
     def __init__(
-        self, hass: HomeAssistant, blueair_api_device: BlueAirApiDevice | BlueAirAwsDevice, interval: int
+        self,
+        hass: HomeAssistant,
+        blueair_api_device: BlueAirApiDevice | BlueAirAwsDevice,
+        interval: int,
     ) -> None:
         """Initialize the device."""
         self.hass: HomeAssistant = hass
@@ -42,7 +49,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
             update_interval=timedelta(minutes=interval),
             update_method=refresh,
             request_refresh_debouncer=request_refresh_debouncer,
-            always_update=False
+            always_update=False,
         )
 
     @property

@@ -1,10 +1,8 @@
 from __future__ import annotations
+
 import logging
 
-from homeassistant.components.switch import (
-    SwitchEntity,
-    SwitchDeviceClass, SwitchEntityDescription,
-)
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity, SwitchEntityDescription
 
 from .entity import BlueairEntity, async_setup_entry_helper
 
@@ -13,12 +11,16 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Blueair sensors from config entry."""
-    async_setup_entry_helper(hass, config_entry, async_add_entities,
+    async_setup_entry_helper(
+        hass,
+        config_entry,
+        async_add_entities,
         entity_classes=[
             BlueairChildLockSwitchEntity,
             BlueairGermShieldSwitchEntity,
             BlueairWickDryModeSwitchEntity,
-    ])
+        ],
+    )
 
 
 class BlueairSwitchEntity(BlueairEntity, SwitchEntity):
