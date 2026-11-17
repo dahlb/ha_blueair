@@ -1,7 +1,7 @@
 {
-	"name": "ludeeus/integration_blueprint",
+	"name": "dahlb/ha_blueair",
 	"image": "mcr.microsoft.com/devcontainers/python:3.14-bullseye",
-	"postCreateCommand": "sh scripts/setup",
+	"postCreateCommand": "scripts/setup",
 	"forwardPorts": [
 		8123
 	],
