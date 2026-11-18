@@ -195,7 +195,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         fan = self._coordinator_fan_mode(hvac)
         tgt = self._coordinator_target_temperature(hvac)
 
-        self._attr_current_temperature = self.coordinator.temperature
+        self._attr_native_current_temperature = self.coordinator.temperature
         self._attr_current_humidity = self.coordinator.humidity
 
         self._remember_last_fan_mode(hvac, fan)
@@ -203,7 +203,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         if force or not self._is_optimistic():
             self._attr_hvac_mode = hvac
             self._attr_fan_mode = fan
-            self._attr_target_temperature = tgt
+            self._attr_native_target_temperature = tgt
             self._optimistic_hvac_mode = None
             self._optimistic_fan_mode = None
             self._optimistic_target_temperature = None
@@ -224,11 +224,11 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             and tgt is not None
             and abs(tgt - self._optimistic_target_temperature) < 0.01
         ):
-            self._attr_target_temperature = tgt
+            self._attr_native_target_temperature = tgt
             self._optimistic_target_temperature = None
 
     @property
-    def temperature_unit(self) -> str:
+    def native_temperature_unit(self) -> str:
         """Return the temperature unit."""
         raw = self.coordinator.temperature_unit
         try:
@@ -251,11 +251,11 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         return [FanMode.AUTO.value, *steps]
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return the target temperature."""
         if self.hvac_mode != HVACMode.HEAT:
             return None
-        return self._attr_target_temperature
+        return self._attr_native_target_temperature
 
     @property
     def fan_mode(self) -> str | None:
@@ -282,7 +282,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             self._optimistic_hvac_mode = HVACMode.OFF
             self._attr_fan_mode = None
             self._optimistic_fan_mode = None
-            self._attr_target_temperature = None
+            self._attr_native_target_temperature = None
             self._optimistic_target_temperature = None
             self._update_supported_features()
             self.async_write_ha_state()
@@ -303,12 +303,12 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         self._optimistic_hvac_mode = hvac_mode
 
         if hvac_mode != HVACMode.HEAT:
-            self._attr_target_temperature = None
+            self._attr_native_target_temperature = None
             self._optimistic_target_temperature = None
         else:
             seeded = self._coordinator_target_temperature(HVACMode.HEAT)
             if seeded is not None:
-                self._attr_target_temperature = seeded
+                self._attr_native_target_temperature = seeded
 
         self._update_supported_features()
         self.async_write_ha_state()
@@ -414,7 +414,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         temp_c = max(MIN_TEMP_C, min(MAX_TEMP_C, temp_c))
 
         self._start_optimistic()
-        self._attr_target_temperature = temp_c
+        self._attr_native_target_temperature = temp_c
         self._optimistic_target_temperature = temp_c
         self.async_write_ha_state()
 

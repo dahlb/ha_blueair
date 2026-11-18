@@ -55,7 +55,6 @@ class ConfigFlowHandler(config_entries.ConfigFlow):
     """Handle a Blueair config flow."""
 
     VERSION = CONFIG_FLOW_VERSION
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_PUSH
 
     @staticmethod
     @callback
