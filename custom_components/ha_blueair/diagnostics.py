@@ -1,19 +1,20 @@
+"""Diagnostics support for the Blueair integration."""
+
 from __future__ import annotations
 
-from typing import Any
 from logging import getLogger
+from typing import Any
 
 import attr
-
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_UNIQUE_ID, CONF_EMAIL, CONF_PASSWORD
+from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, CONF_UNIQUE_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
-from .const import DOMAIN, DATA_DEVICES, DATA_AWS_DEVICES
 from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
 from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
+from .const import DATA_AWS_DEVICES, DATA_DEVICES, DOMAIN
 
 TO_REDACT = {CONF_EMAIL, CONF_PASSWORD, CONF_UNIQUE_ID}
 TO_REDACT_MAPPED = {}
@@ -28,7 +29,9 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, dict[str, Any]]:
     """Return diagnostics for a config entry."""
     device_coordinators: list[BlueairUpdateCoordinatorDevice] = hass.data[DOMAIN][DATA_DEVICES]
-    device_aws_coordinators: list[BlueairUpdateCoordinatorDeviceAws] = hass.data[DOMAIN][DATA_AWS_DEVICES]
+    device_aws_coordinators: list[BlueairUpdateCoordinatorDeviceAws] = hass.data[DOMAIN][
+        DATA_AWS_DEVICES
+    ]
     coordinators = device_coordinators + device_aws_coordinators
     data = {
         "entry": async_redact_data(config_entry.as_dict(), TO_REDACT),
@@ -41,9 +44,7 @@ async def async_get_config_entry_diagnostics(
 
         device_registry = dr.async_get(hass)
         entity_registry = er.async_get(hass)
-        hass_device = device_registry.async_get_device(
-            identifiers={(DOMAIN, coordinator.id)}
-        )
+        hass_device = device_registry.async_get_device(identifiers={(DOMAIN, coordinator.id)})
         if hass_device is not None:
             data[coordinator.blueair_api_device.mac]["device"] = {
                 **async_redact_data(attr.asdict(hass_device), TO_REDACT_DEVICE),
@@ -66,7 +67,9 @@ async def async_get_config_entry_diagnostics(
                     # The context doesn't provide useful information in this case.
                     state_dict.pop("context", None)
 
-                data[coordinator.blueair_api_device.mac]["device"]["entities"][entity_entry.entity_id] = {
+                data[coordinator.blueair_api_device.mac]["device"]["entities"][
+                    entity_entry.entity_id
+                ] = {
                     **async_redact_data(
                         attr.asdict(
                             entity_entry,

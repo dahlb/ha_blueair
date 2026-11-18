@@ -1,8 +1,12 @@
+"""Constants for the Blueair integration."""
+
 # Configuration Constants
 from enum import Enum
+
 from homeassistant.const import Platform
 
 DOMAIN: str = "ha_blueair"
+VERSION: str = "1.57.2"
 
 # Integration Setting Constants
 CONFIG_FLOW_VERSION: int = 2
@@ -21,7 +25,10 @@ PLATFORMS = [
     Platform.SWITCH,
 ]
 
+
 class FanMode(Enum):
+    """Fan modes reported by Blueair devices."""
+
     AUTO = "auto"
     STEP1 = "step1"
     STEP2 = "step2"

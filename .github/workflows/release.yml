@@ -1,4 +1,5 @@
 name: Release
+
 on:
   push:
     branches:
@@ -13,32 +14,47 @@ on:
         description: 'Pre-release version, e.g. 1.51.0-beta.1 (blank = normal stable release from main)'
         required: false
         default: ''
+
 permissions:
   contents: write
   deployments: write
+
 jobs:
   build:
+    if: github.event.repository.fork == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout the repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       # Stable path: derive the next version from the conventional-commit history.
       # Skipped when an explicit pre-release version is supplied via dispatch.
-      - name: Gets semantic release info
+      - name: Get semantic release info
         id: semantic_release_info
         if: ${{ github.event.inputs.prerelease_version == '' }}
-        uses: jossef/action-semantic-release-info@v3.0.0
+        uses: cycjimmy/semantic-release-action@v8
+        with:
+          dry_run: true
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Resolve release metadata
         id: meta
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.prerelease_version }}
+          SEMANTIC_PUBLISHED: ${{ steps.semantic_release_info.outputs.new_release_published }}
+          SEMANTIC_VERSION: ${{ steps.semantic_release_info.outputs.new_release_version }}
+          SEMANTIC_NOTES: ${{ steps.semantic_release_info.outputs.new_release_notes }}
         run: |
-          INPUT_VERSION="${{ github.event.inputs.prerelease_version }}"
           if [ -n "$INPUT_VERSION" ]; then
             VERSION="$INPUT_VERSION"
             NOTES="Pre-release build ${VERSION}. Available to HACS users who enable \"Show beta versions\"."
+          elif [ "$SEMANTIC_PUBLISHED" = "true" ]; then
+            VERSION="$SEMANTIC_VERSION"
+            NOTES="$SEMANTIC_NOTES"
           else
-            VERSION="${{ steps.semantic_release_info.outputs.version }}"
-            NOTES="${{ steps.semantic_release_info.outputs.notes }}"
+            VERSION=""
+            NOTES=""
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "git_tag=v$VERSION" >> "$GITHUB_OUTPUT"
@@ -55,32 +71,56 @@ jobs:
             echo "$NOTES"
             echo "RELEASE_NOTES_EOF"
           } >> "$GITHUB_OUTPUT"
-      - name: Update Version and Commit
+      - name: Update Version
         if: ${{ steps.meta.outputs.version != '' }}
+        env:
+          NEW_VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          echo "Version: ${{ steps.meta.outputs.version }}"
-          sed -i "s/\"version\": \".*\"/\"version\": \"${{ steps.meta.outputs.version }}\"/g" custom_components/ha_blueair/manifest.json 
+          echo "Version: $NEW_VERSION"
+          sed -i "s/^VERSION: str = \".*\"/VERSION: str = \"$NEW_VERSION\"/g" custom_components/ha_blueair/const.py
+          sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/g" custom_components/ha_blueair/manifest.json
+      - name: Verify version updates
+        if: ${{ steps.meta.outputs.version != '' }}
+        env:
+          NEW_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          if ! grep -Fq "VERSION: str = \"$NEW_VERSION\"" custom_components/ha_blueair/const.py; then
+            echo "Expected custom_components/ha_blueair/const.py to contain VERSION: str = \"$NEW_VERSION\" after version update" >&2
+            exit 1
+          fi
+          if ! grep -Fq "\"version\": \"$NEW_VERSION\"" custom_components/ha_blueair/manifest.json; then
+            echo "Expected custom_components/ha_blueair/manifest.json to contain \"version\": \"$NEW_VERSION\" after version update" >&2
+            exit 1
+          fi
+      - name: Commit version updates
+        if: ${{ steps.meta.outputs.version != '' }}
+        env:
+          NEW_VERSION: ${{ steps.meta.outputs.version }}
+          NEW_GIT_TAG: ${{ steps.meta.outputs.git_tag }}
+        run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git diff
           git add -A
-          git commit -m "chore: bumping version to ${{ steps.meta.outputs.version }}"
-          git tag ${{ steps.meta.outputs.git_tag }}
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: bumping version to $NEW_VERSION [skip ci]"
+          fi
+          if ! git rev-parse -q --verify "refs/tags/$NEW_GIT_TAG" >/dev/null; then
+            git tag "$NEW_GIT_TAG"
+          fi
       - name: Push changes
         if: ${{ steps.meta.outputs.version != '' }}
-        uses: ad-m/github-push-action@v1.3.0
+        uses: ad-m/github-push-action@v1
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           branch: ${{ github.ref }}
           tags: true
       - name: Create GitHub Release
         if: ${{ steps.meta.outputs.version != '' }}
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.meta.outputs.git_tag }}
-          release_name: ${{ steps.meta.outputs.git_tag }}
+          name: ${{ steps.meta.outputs.git_tag }}
           body: ${{ steps.meta.outputs.notes }}
           draft: false
           prerelease: ${{ steps.meta.outputs.prerelease }}

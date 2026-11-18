@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import time
 from logging import Logger, getLogger
+import time
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import BlueairUpdateCoordinatorDeviceAws
 from .blueair_update_coordinator import BlueairUpdateCoordinator
@@ -29,7 +31,7 @@ FAN_SPEED_BY_STEP: dict[str, int] = {
 
 
 def _safe_int(value: object, default: int = 0) -> int:
-    """Coerce a coordinator value to int, treating None / NotImplemented / unparseable as ``default``.
+    """Coerce a value to int, treating None / NotImplemented / unparsable as ``default``.
 
     Coordinator properties on BlueairUpdateCoordinatorDeviceAws return
     ``int``, ``None``, or the ``NotImplemented`` sentinel (per the
@@ -44,11 +46,16 @@ def _safe_int(value: object, default: int = 0) -> int:
         return default
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
 
 
-async def async_setup_entry(hass, config_entry: ConfigEntry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    """Set up the platform from a config entry."""
     async_setup_entry_helper(
         hass,
         config_entry,
@@ -57,12 +64,12 @@ async def async_setup_entry(hass, config_entry: ConfigEntry, async_add_entities)
     )
 
 
-def _fan_mode_from_speed(speed: int | float | None | NotImplemented) -> str | None:
+def _fan_mode_from_speed(speed: float | NotImplemented | None) -> str | None:
     if speed in (None, NotImplemented):
         return None
     try:
         s = float(speed)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
     if s < 12:
@@ -75,8 +82,11 @@ def _fan_mode_from_speed(speed: int | float | None | NotImplemented) -> str | No
 
 
 class BlueairThermostat(BlueairEntity, ClimateEntity):
+    """Blueair climate entity for heater/cooler devices."""
+
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         return (
             coordinator.main_mode is not NotImplemented
             and coordinator.temperature is not NotImplemented
@@ -87,7 +97,8 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
     _attr_max_temp = MAX_TEMP_C
     _attr_target_temperature_step = TEMP_STEP_C
 
-    def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws):
+    def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
+        """Initialize the blueair thermostat."""
         super().__init__("Climate", coordinator)
 
         self._attr_hvac_modes = [
@@ -165,7 +176,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             return None
         try:
             return float(raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return None
 
     def _remember_last_fan_mode(self, hvac: HVACMode | None, fan: str | None) -> None:
@@ -175,9 +186,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         if hvac == HVACMode.FAN_ONLY:
             self._last_fan_mode_fan_only = fan
         elif hvac == HVACMode.COOL:
-            self._last_fan_mode_cool = (
-                fan if fan != FanMode.AUTO.value else FanMode.STEP1.value
-            )
+            self._last_fan_mode_cool = fan if fan != FanMode.AUTO.value else FanMode.STEP1.value
         elif hvac == HVACMode.HEAT:
             self._last_fan_mode_heat = fan
 
@@ -220,15 +229,17 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
 
     @property
     def temperature_unit(self) -> str:
+        """Return the temperature unit."""
         raw = self.coordinator.temperature_unit
         try:
             unit = int(raw) if raw not in (None, NotImplemented) else None
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             unit = None
         return UnitOfTemperature.CELSIUS if unit == 0 else UnitOfTemperature.FAHRENHEIT
 
     @property
     def fan_modes(self) -> list[str]:
+        """Return the list of supported fan modes."""
         steps = [
             FanMode.STEP1.value,
             FanMode.STEP2.value,
@@ -241,12 +252,14 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
 
     @property
     def target_temperature(self) -> float | None:
+        """Return the target temperature."""
         if self.hvac_mode != HVACMode.HEAT:
             return None
         return self._attr_target_temperature
 
     @property
     def fan_mode(self) -> str | None:
+        """Return the current fan mode."""
         return self._attr_fan_mode
 
     def _handle_coordinator_update(self) -> None:
@@ -254,12 +267,15 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         super()._handle_coordinator_update()
 
     async def async_turn_on(self) -> None:
+        """Turn the entity on."""
         await self.coordinator.set_running(True)
 
     async def async_turn_off(self) -> None:
+        """Turn the entity off."""
         await self.coordinator.set_running(False)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        """Set the HVAC mode."""
         if hvac_mode == HVACMode.OFF:
             self._start_optimistic()
             self._attr_hvac_mode = HVACMode.OFF
@@ -344,6 +360,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
             return
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
+        """Set the fan mode."""
         self._start_optimistic()
 
         if fan_mode == FanMode.AUTO.value:
@@ -386,6 +403,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         self.async_write_ha_state()
 
     async def async_set_temperature(self, **kwargs) -> None:
+        """Set the target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return

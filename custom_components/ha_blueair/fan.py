@@ -1,16 +1,19 @@
 """Support for Blueair fans."""
+
 from __future__ import annotations
 
-import logging
 from asyncio import sleep
-from homeassistant.components.fan import (
-    FanEntity,
-    FanEntityFeature,
-)
+import logging
 
 from blueair_api import AP_SUB_MODE_LABELS
+from homeassistant.components.fan import FanEntity, FanEntityFeature
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .blueair_update_coordinator import BlueairUpdateCoordinator
+from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
+from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .const import (
     CONF_NIGHT_PRESET,
     DEFAULT_FAN_SPEED_PERCENTAGE,
@@ -19,8 +22,6 @@ from .const import (
     MODE_MANUAL_FAN,
     MODE_NIGHT,
 )
-from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
-from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,30 +58,41 @@ _LABEL_TO_COMBO_MODE: dict[str, int] = {
 }
 
 
-def _drop_night_if_disabled(coordinator, preset_modes: list[str]) -> list[str]:
+def _drop_night_if_disabled(
+    coordinator: BlueairUpdateCoordinator, preset_modes: list[str]
+) -> list[str]:
     """Leave Night out of a fan's presets when the options turn it off."""
     if coordinator.config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET):
         return preset_modes
     return [mode for mode in preset_modes if mode != MODE_NIGHT]
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
     """Set up the Blueair fans from config entry."""
-    async_setup_entry_helper(hass, config_entry, async_add_entities,
+    async_setup_entry_helper(
+        hass,
+        config_entry,
+        async_add_entities,
         entity_classes=[
             BlueairFan,
             BlueairAwsFan,
-    ])
+        ],
+    )
 
 
 class BlueairFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 
     @classmethod
-    def is_implemented(kls, coordinator: BlueairUpdateCoordinator):
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         return isinstance(coordinator, BlueairUpdateCoordinatorDevice)
 
-    def __init__(self, coordinator: BlueairUpdateCoordinator):
+    def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the fan entity."""
         self._attr_preset_modes = []
         if coordinator.fan_auto_mode is not NotImplemented:
@@ -89,7 +101,9 @@ class BlueairFan(BlueairEntity, FanEntity):
             self._attr_preset_modes.append(MODE_NIGHT)
         self._attr_preset_modes = _drop_night_if_disabled(coordinator, self._attr_preset_modes)
 
-        self._attr_supported_features = FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
+        self._attr_supported_features = (
+            FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
+        )
         if len(self._attr_preset_modes) > 0:
             self._attr_supported_features |= FanEntityFeature.PRESET_MODE
 
@@ -97,15 +111,15 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     @property
     def is_on(self) -> int:
+        """Return whether the device is on."""
         return self.coordinator.is_on
 
     @property
     def percentage(self) -> int | None:
         """Return the current speed percentage."""
         if self.preset_mode is None:
-          return int(round(self.coordinator.fan_speed * 33.33, 0))
-        else:
-          return None
+            return int(round(self.coordinator.fan_speed * 33.33, 0))
+        return None
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Sets fan speed percentage."""
@@ -134,6 +148,7 @@ class BlueairFan(BlueairEntity, FanEntity):
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
+        """Turn the entity off."""
         await self.coordinator.set_fan_speed("0")
         self.async_write_ha_state()
 
@@ -143,6 +158,7 @@ class BlueairFan(BlueairEntity, FanEntity):
         preset_mode: str | None = None,
         **kwargs: any,
     ) -> None:
+        """Turn the entity on."""
         if percentage is not None:
             await self.async_set_percentage(percentage=percentage)
         elif preset_mode is not None:
@@ -174,13 +190,15 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
     """Controls Fan."""
 
     @classmethod
-    def is_implemented(kls, coordinator):
+    def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
         return isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws)
 
     @staticmethod
-    def _supports_signature_presets(coordinator) -> bool:
-        """True for Blueair Signature-series devices that switch presets
-        via ``apsubmode`` (no ``automode`` / ``nightmode`` shadow fields).
+    def _supports_signature_presets(coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return True for Signature-series devices that switch presets via ``apsubmode``.
+
+        These have no ``automode`` / ``nightmode`` shadow fields.
 
         Currently observed on SP4i (and assumed on SP1i / SP3i — same
         ``blue40`` / ``l_blue40`` capability shape). The library's
@@ -198,9 +216,10 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         )
 
     @staticmethod
-    def _supports_combo_presets(coordinator) -> bool:
-        """True for 2-in-1 combo devices (e.g. DH3i) that switch presets
-        via the single ``mode`` field (exposed as ``combo_mode``).
+    def _supports_combo_presets(coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return True for 2-in-1 combo devices (e.g. DH3i) that switch presets via ``mode``.
+
+        The single ``mode`` field is exposed as ``combo_mode``.
 
         These devices declare neither ``automode`` nor ``nightmode``
         shadow fields and have no ``apsubmode``; their Manual/Auto/Night
@@ -210,7 +229,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         """
         return coordinator.combo_mode is not NotImplemented
 
-    def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws):
+    def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
         """Initialize the fan entity."""
         self._signature_presets = self._supports_signature_presets(coordinator)
         self._combo_presets = self._supports_combo_presets(coordinator)
@@ -221,8 +240,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             # without polling state. Fires once per entity instance
             # (typically once at HA startup / integration reload).
             _LOGGER.debug(
-                "BlueairAwsFan(%s): Signature preset modes enabled "
-                "(model=%s, presets=%s)",
+                "BlueairAwsFan(%s): Signature preset modes enabled (model=%s, presets=%s)",
                 getattr(coordinator.blueair_api_device, "uuid", "?"),
                 coordinator.model,
                 list(AP_SUB_MODE_LABELS.values()),
@@ -230,8 +248,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
         if self._combo_presets:
             _LOGGER.debug(
-                "BlueairAwsFan(%s): combo preset modes enabled "
-                "(model=%s, presets=%s)",
+                "BlueairAwsFan(%s): combo preset modes enabled (model=%s, presets=%s)",
                 getattr(coordinator.blueair_api_device, "uuid", "?"),
                 coordinator.model,
                 list(_COMBO_MODE_TO_LABEL.values()),
@@ -262,6 +279,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
 
     @property
     def is_on(self) -> int:
+        """Return whether the device is on."""
         return self.coordinator.is_on
 
     @property
@@ -278,7 +296,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             else:
                 try:
                     manual = int(ap_sub_mode) == _LABEL_TO_AP_SUB_MODE[MODE_MANUAL_FAN]
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     manual = True
             if not manual:
                 return None
@@ -296,7 +314,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                     combo_mode in (None, NotImplemented)
                     or int(combo_mode) == _LABEL_TO_COMBO_MODE[MODE_MANUAL_FAN]
                 )
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 manual = True
             if not manual:
                 return None
@@ -305,11 +323,11 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
 
         if self.preset_mode is None:
-          return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
-        else:
-          return None
+            return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
+        return None
 
     async def async_set_percentage(self, percentage: int) -> None:
+        """Set the fan speed percentage."""
         if self._signature_presets:
             # Switch into manual_fan first so the device honors the
             # percentage write. Skipped if already there to avoid an
@@ -318,14 +336,13 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             ap_sub_mode = self.coordinator.ap_sub_mode
             try:
                 already_manual = (
-                    ap_sub_mode not in (None, NotImplemented)
-                    and int(ap_sub_mode) == manual_value
+                    ap_sub_mode not in (None, NotImplemented) and int(ap_sub_mode) == manual_value
                 )
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 already_manual = False
             if not already_manual:
                 await self.coordinator.set_ap_sub_mode(manual_value)
-            blueair_percentage = int(round(percentage / 100 * self.coordinator.speed_count))
+            blueair_percentage = round(percentage / 100 * self.coordinator.speed_count)
             await self.coordinator.set_fan_speed(blueair_percentage)
             self.async_write_ha_state()
             return
@@ -339,14 +356,13 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             combo_mode = self.coordinator.combo_mode
             try:
                 already_manual = (
-                    combo_mode not in (None, NotImplemented)
-                    and int(combo_mode) == manual_value
+                    combo_mode not in (None, NotImplemented) and int(combo_mode) == manual_value
                 )
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 already_manual = False
             if not already_manual:
                 await self.coordinator.set_combo_mode(manual_value)
-            blueair_percentage = int(round(percentage / 100 * self.coordinator.speed_count))
+            blueair_percentage = round(percentage / 100 * self.coordinator.speed_count)
             await self.coordinator.set_fan_speed(blueair_percentage)
             self.async_write_ha_state()
             return
@@ -355,9 +371,11 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             await self.coordinator.set_fan_auto_mode(False)
         if self.coordinator.night_mode is True:
             await self.coordinator.set_night_mode(False)
-            # need to wait when turning off night mode for device to receive message from aws then it sets the speed to what night mode had set and updates aws with that speed, without this wait the following set is overridden by the device
+            # need to wait when turning off night mode for device to receive message from
+            # aws then it sets the speed to what night mode had set and updates aws with
+            # that speed, without this wait the following set is overridden by the device
             await sleep(2)
-        blueair_percentage = int(round(percentage / 100 * self.coordinator.speed_count))
+        blueair_percentage = round(percentage / 100 * self.coordinator.speed_count)
         await self.coordinator.set_fan_speed(blueair_percentage)
         self.async_write_ha_state()
 
@@ -372,9 +390,9 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 # at debug level so the user can diagnose without
                 # having to enable trace-level logging on HA core.
                 _LOGGER.debug(
-                    "BlueairAwsFan: ignoring unknown preset_mode=%r "
-                    "(known: %s)",
-                    preset_mode, list(_LABEL_TO_AP_SUB_MODE),
+                    "BlueairAwsFan: ignoring unknown preset_mode=%r (known: %s)",
+                    preset_mode,
+                    list(_LABEL_TO_AP_SUB_MODE),
                 )
                 return
             await self.coordinator.set_ap_sub_mode(value)
@@ -392,9 +410,9 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             value = _LABEL_TO_COMBO_MODE.get(preset_mode)
             if value is None:
                 _LOGGER.debug(
-                    "BlueairAwsFan: ignoring unknown preset_mode=%r "
-                    "(known: %s)",
-                    preset_mode, list(_LABEL_TO_COMBO_MODE),
+                    "BlueairAwsFan: ignoring unknown preset_mode=%r (known: %s)",
+                    preset_mode,
+                    list(_LABEL_TO_COMBO_MODE),
                 )
                 return
             # Combo devices manage their own fan speed in Auto/Night, so
@@ -410,6 +428,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
+        """Turn the entity off."""
         await self.coordinator.set_running(False)
         self.async_write_ha_state()
 
@@ -419,6 +438,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         preset_mode: str | None = None,
         **kwargs: any,
     ) -> None:
+        """Turn the entity on."""
         was_off = self.is_on is False
         if was_off:
             await self.coordinator.set_running(True)
@@ -431,7 +451,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             and self.preset_mode in (None, MODE_MANUAL_FAN)
             and self.coordinator.fan_speed in (None, 0)
         ):
-            # FIXME: i35 (and probably others) do not remember the
+            # NOTE: i35 (and probably others) do not remember the
             # last fan speed and always set the speed to 0. I don't know
             # where to store the last fan speed such that it persists across
             # HA reboots. Thus we set the default turn_on fan speed to 50%
@@ -457,7 +477,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 return None
             try:
                 return AP_SUB_MODE_LABELS.get(int(ap_sub_mode))
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 return None
 
         if self._combo_presets:
@@ -466,7 +486,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 return None
             try:
                 return _COMBO_MODE_TO_LABEL.get(int(combo_mode))
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 return None
 
         if self.coordinator.fan_auto_mode is True:
