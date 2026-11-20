@@ -25,7 +25,7 @@ def load_coordinator_device_aws() -> type[Any]:
             "brightness_to_value": object,
         },
         "blueair_api": {"DeviceAws": object},
-        f"{package}.blueair_update_coordinator": {
+        f"{package}.coordinator": {
             "BlueairUpdateCoordinator": object,
         },
     }
@@ -35,10 +35,10 @@ def load_coordinator_device_aws() -> type[Any]:
         modules[name] = module
     path = (
         Path(__file__).resolve().parents[1]
-        / "custom_components/ha_blueair/blueair_update_coordinator_device_aws.py"
+        / "custom_components/ha_blueair/coordinator_device_aws.py"
     )
     spec = importlib.util.spec_from_file_location(
-        f"{package}.blueair_update_coordinator_device_aws",
+        f"{package}.coordinator_device_aws",
         path,
     )
     module = importlib.util.module_from_spec(spec)

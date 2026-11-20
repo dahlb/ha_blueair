@@ -8,6 +8,11 @@
           "region": "Region",
           "username": "Username",
           "password": "Password"
+        },
+        "data_description": {
+          "region": "The Blueair cloud region your account was created in (the region you picked in the Blueair app).",
+          "username": "The email address you use to sign in to the Blueair app.",
+          "password": "The password for that Blueair account."
         }
       },
       "reauth_confirm": {
@@ -16,7 +21,9 @@
       }
     },
     "error": {
-      "auth": "Login failed. Please use official app to logout and log back in and try again."
+      "auth": "Login failed. Please use official app to logout and log back in and try again.",
+      "cannot_connect": "Unable to reach Blueair. Try again shortly.",
+      "unknown": "Unexpected error contacting Blueair."
     }
   },
   "options": {
@@ -28,6 +35,7 @@
           "night_preset": "Offer the Night preset on fans"
         },
         "data_description": {
+          "scan_interval": "How often to poll Blueair for every device, in minutes (1-30). Devices with real-time MQTT updates still poll at this interval as a fallback.",
           "night_preset": "Turn off to leave Night out of the fans' preset modes, for example so HomeKit Bridge doesn't give each purifier a Night switch. A fan put in Night some other way still reports it. If you use HomeKit Bridge, reload it after changing this: it only builds an accessory's preset switches once."
         }
       }

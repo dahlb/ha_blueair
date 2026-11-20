@@ -120,6 +120,15 @@ users:
 
 When validation is complete, merge the branch to `main`; the normal push-to-main
 flow then publishes the stable version the usual way.
+## Removal ##
+This integration follows the standard Home Assistant removal process; no extra steps are needed.
+
+1. Go to **Settings → Devices & Services → Blueair**.
+2. Click the three-dot menu next to your Blueair account and choose **Delete**. This removes its devices and entities and stops all requests to Blueair's cloud.
+3. *(Optional)* If you installed through HACS and will not use the integration again, open **HACS**, find **Blueair Filters**, choose **Remove**, then restart Home Assistant. For a manual install, delete `config/custom_components/ha_blueair` and restart.
+
+Removing the integration does not change any settings on your Blueair devices or in your Blueair account.
+
 ## Limitations ##
 If you receive an error while trying to login, try resetting your password to one with no special characters except '!' and no longer then 10 characters.
 

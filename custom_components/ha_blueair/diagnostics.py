@@ -7,14 +7,12 @@ from typing import Any
 
 import attr
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, CONF_UNIQUE_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
-from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
-from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
-from .const import DATA_AWS_DEVICES, DATA_DEVICES, DOMAIN
+from . import BlueairConfigEntry
+from .const import DOMAIN
 
 TO_REDACT = {CONF_EMAIL, CONF_PASSWORD, CONF_UNIQUE_ID}
 TO_REDACT_MAPPED = {}
@@ -25,14 +23,10 @@ _LOGGER = getLogger(__name__)
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: BlueairConfigEntry
 ) -> dict[str, dict[str, Any]]:
     """Return diagnostics for a config entry."""
-    device_coordinators: list[BlueairUpdateCoordinatorDevice] = hass.data[DOMAIN][DATA_DEVICES]
-    device_aws_coordinators: list[BlueairUpdateCoordinatorDeviceAws] = hass.data[DOMAIN][
-        DATA_AWS_DEVICES
-    ]
-    coordinators = device_coordinators + device_aws_coordinators
+    coordinators = config_entry.runtime_data.coordinators
     data = {
         "entry": async_redact_data(config_entry.as_dict(), TO_REDACT),
     }

@@ -13,20 +13,13 @@ rules:
       AWS devices get MQTT push updates; every device also polls at the configurable scan
       interval (default 5 minutes, 1-30).
   brands: done
-  common-modules:
-    status: todo
-    comment: >-
-      The coordinators live in blueair_update_coordinator*.py; the rule expects the
-      coordinator in coordinator.py (entity.py already exists).
+  common-modules: done
   config-flow:
-    status: todo
+    status: done
     comment: >-
-      UI config flow exists, but its fields have no data_description, it registers through
-      config_entries.HANDLERS instead of ConfigFlow(domain=...), and only AuthError is
-      mapped to a form error (connection failures surface as an unknown error).
-  config-flow-test-coverage:
-    status: todo
-    comment: There are no config flow tests.
+      ConfigFlow(domain=...) with data_description for every field, and login failures
+      mapped to auth / cannot_connect / unknown form errors.
+  config-flow-test-coverage: done
   dependency-transparency: done
   docs-actions:
     status: exempt
@@ -36,25 +29,14 @@ rules:
     comment: The integration provides no conditions.
   docs-high-level-description: done
   docs-installation-instructions: done
-  docs-removal-instructions:
-    status: todo
-    comment: README has no section on removing the integration.
+  docs-removal-instructions: done
   docs-triggers:
     status: exempt
     comment: The integration provides no triggers.
   entity-event-setup: done
   entity-unique-id: done
-  has-entity-name:
-    status: todo
-    comment: >-
-      Entities set _attr_name to "{device name} {entity type}" and do not set
-      _attr_has_entity_name.
-  runtime-data:
-    status: todo
-    comment: >-
-      Coordinators and the MQTT client are stored in hass.data[DOMAIN], which each config
-      entry overwrites and unload sets to None, so a second Blueair account breaks the
-      first; use ConfigEntry.runtime_data.
+  has-entity-name: done
+  runtime-data: done
   test-before-configure: done
   test-before-setup: done
   unique-config-entry:

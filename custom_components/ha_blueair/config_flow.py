@@ -3,9 +3,10 @@
 import logging
 from typing import Any
 
+from aiohttp import ClientError
 from blueair_api import AuthError, get_aws_devices
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
 import voluptuous as vol
@@ -50,8 +51,7 @@ class OptionFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(step_id="init", data_schema=self.schema)
 
 
-@config_entries.HANDLERS.register(DOMAIN)
-class ConfigFlowHandler(config_entries.ConfigFlow):
+class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a Blueair config flow."""
 
     VERSION = CONFIG_FLOW_VERSION
@@ -99,6 +99,14 @@ class ConfigFlowHandler(config_entries.ConfigFlow):
                 )
             except AuthError:
                 errors["base"] = "auth"
+            except ClientError, TimeoutError:
+                # blueair_api's other errors (rate limits, server errors) are
+                # ClientError subclasses too: Blueair could not be reached.
+                _LOGGER.debug("Blueair cloud unreachable during setup", exc_info=True)
+                errors["base"] = "cannot_connect"
+            except KeyError, TypeError, ValueError:
+                _LOGGER.exception("Unexpected response from Blueair during setup")
+                errors["base"] = "unknown"
             finally:
                 if api_cloud is not None:
                     await api_cloud.cleanup_client_session()

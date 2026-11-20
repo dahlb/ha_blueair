@@ -8,7 +8,7 @@ from math import ceil
 from blueair_api import DeviceAws
 from homeassistant.util.color import brightness_to_value, value_to_brightness
 
-from .blueair_update_coordinator import BlueairUpdateCoordinator
+from .coordinator import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

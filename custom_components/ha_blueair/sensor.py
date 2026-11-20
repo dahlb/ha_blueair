@@ -6,7 +6,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
@@ -20,9 +19,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 import homeassistant.helpers.issue_registry as ir
 
-from .blueair_update_coordinator import BlueairUpdateCoordinator
-from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
-from .const import DATA_AWS_DEVICES, DATA_DEVICES, DOMAIN
+from . import BlueairConfigEntry
+from .const import DOMAIN
+from .coordinator import BlueairUpdateCoordinator
+from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
 
 # Percentage sensors that used to (incorrectly) report device_class=battery.
@@ -38,7 +38,7 @@ BATTERY_DEVICE_CLASS_ISSUE_ID = "life_sensors_no_longer_battery"
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: BlueairConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the Blueair sensors from config entry."""
@@ -71,7 +71,7 @@ async def async_setup_entry(
     # let affected users know and point them at the migration guide.  Only fire
     # when the account actually exposes one of these sensors, and self-heal if
     # it no longer does.
-    coordinators = hass.data[DOMAIN][DATA_DEVICES] + hass.data[DOMAIN][DATA_AWS_DEVICES]
+    coordinators = config_entry.runtime_data.coordinators
     has_life_level_sensor = any(
         getattr(coordinator, key, NotImplemented) is not NotImplemented
         for coordinator in coordinators
