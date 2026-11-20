@@ -1,0 +1,170 @@
+# Home Assistant Integration Quality Scale self-assessment.
+# Rules: https://developers.home-assistant.io/docs/core/integration-quality-scale/rules
+# hassfest only validates this file for core integrations; tests/test_quality_scale.py
+# checks its format here.
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration registers no service actions.
+  appropriate-polling:
+    status: done
+    comment: >-
+      AWS devices get MQTT push updates; every device also polls at the configurable scan
+      interval (default 5 minutes, 1-30).
+  brands: done
+  common-modules:
+    status: todo
+    comment: >-
+      The coordinators live in blueair_update_coordinator*.py; the rule expects the
+      coordinator in coordinator.py (entity.py already exists).
+  config-flow:
+    status: todo
+    comment: >-
+      UI config flow exists, but its fields have no data_description, it registers through
+      config_entries.HANDLERS instead of ConfigFlow(domain=...), and only AuthError is
+      mapped to a form error (connection failures surface as an unknown error).
+  config-flow-test-coverage:
+    status: todo
+    comment: There are no config flow tests.
+  dependency-transparency: done
+  docs-actions:
+    status: exempt
+    comment: The integration registers no service actions.
+  docs-conditions:
+    status: exempt
+    comment: The integration provides no conditions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions:
+    status: todo
+    comment: README has no section on removing the integration.
+  docs-triggers:
+    status: exempt
+    comment: The integration provides no triggers.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name:
+    status: todo
+    comment: >-
+      Entities set _attr_name to "{device name} {entity type}" and do not set
+      _attr_has_entity_name.
+  runtime-data:
+    status: todo
+    comment: >-
+      Coordinators and the MQTT client are stored in hass.data[DOMAIN], which each config
+      entry overwrites and unload sets to None, so a second Blueair account breaks the
+      first; use ConfigEntry.runtime_data.
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry:
+    status: done
+    comment: Config entries are keyed by the account username.
+
+  # Silver
+  action-exceptions:
+    status: todo
+    comment: >-
+      Entity commands (fan speed, light brightness, switches, ...) let raw aiohttp / API
+      errors escape instead of raising HomeAssistantError.
+  config-entry-unloading:
+    status: done
+    comment: Unload disconnects MQTT and unloads every platform.
+  docs-configuration-parameters:
+    status: todo
+    comment: README does not document the scan interval or night preset options.
+  docs-installation-parameters:
+    status: todo
+    comment: README mentions username and password but not the region field.
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable:
+    status: todo
+    comment: >-
+      The coordinators' update method lets transport errors escape as unexpected
+      exceptions, which DataUpdateCoordinator logs with a stack trace on every failed
+      poll; raise UpdateFailed so the outage and recovery are each logged once.
+  parallel-updates:
+    status: todo
+    comment: No platform sets PARALLEL_UPDATES.
+  reauthentication-flow:
+    status: todo
+    comment: >-
+      Setup turns LoginError into ConfigEntryNotReady, and the config flow has no reauth
+      step (strings.json has an unused reauth_confirm entry).
+  test-coverage:
+    status: todo
+    comment: >-
+      Coverage is about 32%; config flow, fan, light, sensor, switch, humidifier,
+      binary_sensor and diagnostics have no tests. The rule requires above 95%.
+
+  # Gold
+  devices: done
+  diagnostics:
+    status: done
+    comment: >-
+      Diagnostics are implemented, but the device section is not redacted (serial number
+      and MAC address are included).
+  discovery:
+    status: exempt
+    comment: Cloud account integration; devices are found through the Blueair account.
+  discovery-update-info:
+    status: exempt
+    comment: Cloud account integration; devices are found through the Blueair account.
+  docs-data-update:
+    status: todo
+    comment: README does not describe MQTT push versus polling.
+  docs-examples:
+    status: todo
+    comment: README has no automation examples.
+  docs-known-limitations: done
+  docs-supported-devices:
+    status: todo
+    comment: >-
+      README names the models for climate and humidifier only; it needs a list of
+      supported devices.
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases:
+    status: todo
+    comment: README has no use case section.
+  dynamic-devices:
+    status: todo
+    comment: Devices added to the account after setup need a reload to appear.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations:
+    status: todo
+    comment: Entity names are hard-coded English strings rather than translation keys.
+  exception-translations:
+    status: todo
+    comment: The integration raises no translated exceptions.
+  icon-translations: done
+  reconfiguration-flow:
+    status: todo
+    comment: There is no reconfigure step to change the region or credentials.
+  repair-issues:
+    status: done
+    comment: >-
+      Raises a repair issue for life sensors that no longer use the battery device class.
+  stale-devices:
+    status: todo
+    comment: >-
+      Devices removed from the account stay in the device registry; remove them or
+      implement async_remove_config_entry_device.
+
+  # Platinum
+  async-dependency:
+    status: todo
+    comment: >-
+      blueair_api's HTTP client is async, but its MQTT client wraps paho, which runs its own
+      network thread and needs connect/disconnect in the executor.
+  inject-websession:
+    status: todo
+    comment: >-
+      Setup passes Home Assistant's shared session to blueair_api, but the config flow's
+      credential check lets blueair_api open (and then close) its own session.
+  strict-typing:
+    status: todo
+    comment: mypy reports about 190 errors without strict mode.
