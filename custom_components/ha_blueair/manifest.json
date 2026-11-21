@@ -12,6 +12,7 @@
     "ha_blueair",
     "blueair_api"
   ],
+  "quality_scale": "platinum",
   "requirements": [
     "blueair-api==2.0.0"
   ],

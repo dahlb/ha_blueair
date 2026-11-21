@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -82,6 +83,8 @@ QUALITY_SCALE_RULES: frozenset[str] = frozenset(
     rule for rules in QUALITY_SCALE_TIERS.values() for rule in rules
 )
 
+MANIFEST_FILE = QUALITY_SCALE_FILE.with_name("manifest.json")
+
 
 def _load_rules() -> dict[str, Any]:
     """Return the ``rules`` mapping from quality_scale.yaml.
@@ -111,3 +114,35 @@ def test_quality_scale_rule_matches_hassfest_schema(rule: str) -> None:
     assert value["status"] in {"todo", "done", "exempt"}
     assert isinstance(value["comment"], str)
     assert value["comment"].strip()
+
+
+def test_manifest_quality_scale_matches_the_self_assessment() -> None:
+    """Declare the highest tier whose rules, and every lower tier's, are all met.
+
+    The README's Quality Scale badge reads ``quality_scale`` from manifest.json,
+    so this keeps the badge honest: a rule going back to ``todo`` fails the test
+    until the manifest tier is lowered too.
+    """
+    rules = _load_rules()
+
+    def met(rule: str) -> bool:
+        """Return whether a rule is done or exempt.
+
+        Args:
+            rule: Quality scale rule name.
+
+        Returns:
+            bool: True when the rule's status is ``done`` or ``exempt``.
+        """
+        value = rules[rule]
+        status = value if isinstance(value, str) else value["status"]
+        return status in {"done", "exempt"}
+
+    earned = "no_score"
+    for tier, tier_rules in QUALITY_SCALE_TIERS.items():
+        if not all(met(rule) for rule in tier_rules):
+            break
+        earned = tier
+
+    manifest = json.loads(MANIFEST_FILE.read_text(encoding="utf-8"))
+    assert manifest["quality_scale"] == earned

@@ -4,6 +4,7 @@
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 [![hacs][hacsbadge]][hacs]
+[![Quality Scale][quality-scale-shield]][quality-scale]
 
 ![Project Maintenance][maintenance-shield]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
@@ -262,6 +263,8 @@ If you receive an error, please go through these steps;
 [maintenance-shield]: https://img.shields.io/badge/maintainer-Bren%20Dahl%20%40dahlb-blue.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/dahlb/ha_blueair.svg?style=for-the-badge
 [releases]: https://github.com/dahlb/ha_blueair/releases
+[quality-scale]: custom_components/ha_blueair/quality_scale.yaml
+[quality-scale-shield]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdahlb%2Fha_blueair%2Fmain%2Fcustom_components%2Fha_blueair%2Fmanifest.json&query=%24.quality_scale&label=Quality%20Scale&style=for-the-badge&logo=home-assistant&color=41BDF5
 [buymecoffee]: https://www.buymeacoffee.com/dahlb
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
 
