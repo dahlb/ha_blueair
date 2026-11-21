@@ -183,3 +183,5 @@ parallel = false
 
 [tool.coverage.report]
 show_missing = true
+# The Home Assistant quality scale's Silver test-coverage rule requires more than 95%.
+fail_under = 95

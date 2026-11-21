@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from types import NotImplementedType
 
 from .coordinator import BlueairUpdateCoordinator
 
@@ -141,6 +142,15 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
             return NotImplemented
         return self.blueair_api_device.fan_auto_mode
 
+    @property
+    def night_mode(self) -> NotImplementedType:
+        """Return NotImplemented: the legacy API cannot set night mode.
+
+        Reporting the device's night_mode here made the fan offer a Night preset
+        whose set_night_mode raised NotImplementedError on every use.
+        """
+        return NotImplemented
+
     # ----- Stubs for AWS-only sensor attributes (issue #356) -----
     # The legacy REST device does not expose these fields, but the
     # abstract base requires every subclass to declare them so that
@@ -259,7 +269,9 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     async def set_brightness(self, brightness: int) -> None:
         """Set the brightness."""
         # Convert Home Assistant brightness (0-255) to brightness (0-4)
-        await self.blueair_api_device.set_brightness(round(brightness * 4 / 255.0))
+        await self._async_device_command(
+            self.blueair_api_device.set_brightness(round(brightness * 4 / 255.0))
+        )
         await self.async_request_refresh()
 
     async def set_mood_brightness(self, mood_brightness: int) -> None:
@@ -292,7 +304,7 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
 
     async def set_fan_auto_mode(self, value: bool) -> None:
         """Set the fan auto mode."""
-        await self.blueair_api_device.set_fan_auto_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_fan_auto_mode(value))
 
     async def set_wick_dry_mode(self, value: bool) -> None:
         """Set the wick dry mode."""

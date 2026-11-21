@@ -24,7 +24,7 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_STOP,
 )
 from homeassistant.core import Event, HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
@@ -228,9 +228,8 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
     if config_entry.version == 1:
         new_data = {**config_entry.data, CONF_REGION: REGION_USA}
-
-        config_entry.version = 2
-        hass.config_entries.async_update_entry(config_entry, data=new_data)
+        # Home Assistant rejects assigning config_entry.version directly.
+        hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
 
     _LOGGER.info("Migration to version %s successful", config_entry.version)
 
@@ -274,6 +273,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
         def create_coordinators(device: Device) -> BlueairUpdateCoordinatorDevice:
             return BlueairUpdateCoordinatorDevice(
                 hass=hass,
+                config_entry=config_entry,
                 blueair_api_device=device,
                 interval=interval,
             )
@@ -283,6 +283,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
         def create_aws_coordinators(device: DeviceAws) -> BlueairUpdateCoordinatorDeviceAws:
             return BlueairUpdateCoordinatorDeviceAws(
                 hass=hass,
+                config_entry=config_entry,
                 blueair_api_device=device,
                 interval=interval,
             )
@@ -327,8 +328,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
 
         config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
     except LoginError as error:
-        _LOGGER.debug("login failure, ha should retry")
-        raise ConfigEntryNotReady("Login failure") from error
+        # Blueair rejected the stored credentials: ask the user to log in again.
+        raise ConfigEntryAuthFailed(
+            translation_domain=DOMAIN, translation_key="auth_failed"
+        ) from error
     except (ClientError, TimeoutError) as error:
         _LOGGER.debug("blueair cloud unreachable, ha should retry")
         raise ConfigEntryNotReady("Blueair cloud unreachable") from error

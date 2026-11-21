@@ -26,6 +26,9 @@ from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
 
+# Commands go to Blueair's cloud API; send one at a time.
+PARALLEL_UPDATES = 1
+
 # Reverse lookup for AP_SUB_MODE_LABELS: HA preset label -> apsubmode
 # wire value. Built once at import time; the library guarantees keys
 # are ints and values are unique (see test_labels_are_unique).
@@ -94,12 +97,12 @@ class BlueairFan(BlueairEntity, FanEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the fan entity."""
+        # The legacy API can set auto mode but not night mode (the legacy
+        # coordinator reports night_mode as NotImplemented), so Auto is the only
+        # possible preset.
         self._attr_preset_modes = []
         if coordinator.fan_auto_mode is not NotImplemented:
             self._attr_preset_modes.append(MODE_AUTO)
-        if coordinator.night_mode is not NotImplemented:
-            self._attr_preset_modes.append(MODE_NIGHT)
-        self._attr_preset_modes = _drop_night_if_disabled(coordinator, self._attr_preset_modes)
 
         self._attr_supported_features = (
             FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
@@ -134,8 +137,6 @@ class BlueairFan(BlueairEntity, FanEntity):
 
         if self.coordinator.fan_auto_mode is True:
             await self.coordinator.set_fan_auto_mode(False)
-        if self.coordinator.night_mode is True:
-            await self.coordinator.set_night_mode(False)
         await self.coordinator.set_fan_speed(new_speed)
         self.async_write_ha_state()
 
@@ -143,8 +144,6 @@ class BlueairFan(BlueairEntity, FanEntity):
         """Set the preset mode of the fan."""
         if preset_mode == MODE_AUTO:
             await self.coordinator.set_fan_auto_mode(True)
-        elif preset_mode == MODE_NIGHT:
-            await self.coordinator.set_night_mode(True)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: any) -> None:
@@ -181,8 +180,6 @@ class BlueairFan(BlueairEntity, FanEntity):
         """Return the current preset mode, e.g., auto, smart, interval, favorite."""
         if self.coordinator.fan_auto_mode is True:
             return MODE_AUTO
-        if self.coordinator.night_mode is True:
-            return MODE_NIGHT
         return None
 
 

@@ -35,6 +35,10 @@ _LIFE_LEVEL_SENSOR_KEYS = (
 )
 BATTERY_DEVICE_CLASS_ISSUE_ID = "life_sensors_no_longer_battery"
 
+# Read-only platform: the coordinators fetch data centrally, so entity updates
+# never call Blueair and need no limit.
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

@@ -35,7 +35,19 @@ A custom integration for Blueair Filters.  If your model isn't reported correctl
 - humidifier (H35i/H76i only)
 
 ## Installation ##
-You can install this either manually copying files or using HACS. Configuration can be done on UI, you need to enter your username and password, (I know, translations are missing).
+You can install this either manually copying files or using HACS. Then add the integration from **Settings → Devices & Services → Add Integration → Blueair** and enter:
+
+- **Region** — the Blueair cloud region your account was created in (`us`, `eu`, `au` or `cn`; the region you picked in the Blueair app).
+- **Username** — the email address you use to sign in to the Blueair app.
+- **Password** — the password for that Blueair account.
+
+If Blueair later rejects the saved password (for example after you change it in the app), Home Assistant shows a **Re-authenticate** prompt for the integration; enter the new password there instead of removing and re-adding it.
+
+## Options ##
+Click **Configure** on the integration to change:
+
+- **Polling Interval in Minutes** (default 5, range 1-30) — how often every device is polled. Devices with real-time MQTT updates (most current models) still poll at this interval as a fallback.
+- **Offer the Night preset on fans** (default on) — turn off to leave Night out of fans' preset list, e.g. so HomeKit Bridge doesn't add a Night switch. Changing it reloads the integration.
 
 ## Filter, Wick and Water sensors no longer report as batteries ##
 

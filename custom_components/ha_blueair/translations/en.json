@@ -17,13 +17,23 @@
       },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
-        "description": "The BlueAir integration needs to re-authenticate your account."
+        "description": "Blueair rejected the saved password for {username}. Enter the account's current password.",
+        "data": {
+          "password": "Password"
+        },
+        "data_description": {
+          "password": "The current password for your Blueair account."
+        }
       }
     },
     "error": {
       "auth": "Login failed. Please use official app to logout and log back in and try again.",
       "cannot_connect": "Unable to reach Blueair. Try again shortly.",
       "unknown": "Unexpected error contacting Blueair."
+    },
+    "abort": {
+      "reauth_successful": "Re-authentication was successful.",
+      "already_configured": "This Blueair account is already configured."
     }
   },
   "options": {
@@ -72,6 +82,17 @@
     "life_sensors_no_longer_battery": {
       "title": "Filter, Wick and Water sensors no longer report as batteries",
       "description": "The Filter Life, Wick Life, Water Refresher Life and Water Level sensors previously used the `battery` device class, which incorrectly pulled them into battery dashboards, low-battery automations and HomeKit battery reporting. They are percentages, not batteries, so the `battery` device class has been removed. The values, units and history are unchanged.\n\nIf you relied on the old battery classification, follow the migration guide (Learn more) to re-create it with a template sensor. Otherwise you can safely dismiss this notice."
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Blueair rejected the saved credentials. Reauthenticate the integration."
+    },
+    "update_failed": {
+      "message": "Unable to update from Blueair: {error}"
+    },
+    "command_failed": {
+      "message": "Unable to send the command to {device}: {error}"
     }
   }
 }
