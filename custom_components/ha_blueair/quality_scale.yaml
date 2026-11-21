@@ -10,8 +10,9 @@ rules:
   appropriate-polling:
     status: done
     comment: >-
-      AWS devices get MQTT push updates; every device also polls at the configurable scan
-      interval (default 5 minutes, 1-30).
+      Devices poll at the configurable scan interval (default 5 minutes, 1-30). AWS devices
+      get MQTT push updates, and poll only every 30 minutes (or the scan interval, if longer)
+      while MQTT is connected.
   brands: done
   common-modules: done
   config-flow:

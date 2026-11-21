@@ -554,6 +554,8 @@ class FakeMqtt:
         self.on_state_change: Any = None
         self.on_event: Any = None
         self.credential_refresher: Any = None
+        self.on_connect_callback: Any = None
+        self.on_disconnect_callback: Any = None
         FakeMqtt.instances.append(self)
 
     def register_device(self, uuid: str) -> None:
@@ -567,12 +569,16 @@ class FakeMqtt:
     async def connect(self) -> None:
         """Connect, or raise the configured error.
 
+        Like the real client, calls ``on_connect_callback`` before returning.
+
         Raises:
             BaseException: The configured ``connect_error``.
         """
         if FakeMqtt.connect_error is not None:
             raise FakeMqtt.connect_error
         self.connected = True
+        if self.on_connect_callback is not None:
+            self.on_connect_callback()
 
     async def disconnect(self) -> None:
         """Record a disconnect."""

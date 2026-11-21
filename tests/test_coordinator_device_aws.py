@@ -25,6 +25,8 @@ def load_coordinator_device_aws() -> type[Any]:
             "brightness_to_value": object,
         },
         "blueair_api": {"DeviceAws": object},
+        "homeassistant.exceptions": {"ServiceValidationError": Exception},
+        f"{package}.const": {"DOMAIN": "ha_blueair"},
         f"{package}.coordinator": {
             "BlueairUpdateCoordinator": object,
             "Capability": object,

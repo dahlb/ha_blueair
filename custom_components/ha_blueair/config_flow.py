@@ -7,7 +7,7 @@ from typing import Any
 from aiohttp import ClientError
 from blueair_api import AuthError, get_aws_devices
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -15,6 +15,7 @@ import probatio
 
 from .const import (
     CONF_NIGHT_PRESET,
+    CONFIG_FLOW_MINOR_VERSION,
     CONFIG_FLOW_VERSION,
     DEFAULT_NIGHT_PRESET,
     DEFAULT_SCAN_INTERVAL,
@@ -26,37 +27,62 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class OptionFlowHandler(config_entries.OptionsFlow):
-    """Display preferences UI."""
+def _unique_id(username: str) -> str:
+    """Return the config entry unique ID for a Blueair account.
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Display preferences UI."""
-        self.schema = probatio.Schema(
-            {
-                probatio.Required(
-                    CONF_SCAN_INTERVAL,
-                    default=config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-                ): probatio.All(probatio.Coerce(int), probatio.Range(min=1, max=30)),
-                probatio.Required(
-                    CONF_NIGHT_PRESET,
-                    default=config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET),
-                ): bool,
-            }
-        )
+    Email addresses are case-insensitive, so the same account typed with
+    different capitalization gets the same unique ID.
+
+    Args:
+        username: Blueair account username (an email address).
+
+    Returns:
+        str: The lowercase username.
+    """
+    return username.strip().lower()
+
+
+class OptionFlowHandler(OptionsFlowWithReload):
+    """Display preferences UI.
+
+    Saving the options reloads the entry, which applies the new polling
+    interval and rebuilds the fans' preset lists.
+    """
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Display preferences UI."""
+        """Display preferences UI.
+
+        Args:
+            user_input: Submitted options, or None to show the form.
+
+        Returns:
+            ConfigFlowResult: The form, or the saved options.
+        """
         if user_input is not None:
             _LOGGER.debug("user input in option flow : %s", user_input)
             return self.async_create_entry(title="", data=user_input)
 
-        return self.async_show_form(step_id="init", data_schema=self.schema)
+        options = self.config_entry.options
+        schema = probatio.Schema(
+            {
+                probatio.Required(
+                    CONF_SCAN_INTERVAL,
+                    default=options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=1, max=30)),
+                probatio.Required(
+                    CONF_NIGHT_PRESET,
+                    default=options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET),
+                ): bool,
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)
 
 
 class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a Blueair config flow."""
 
     VERSION = CONFIG_FLOW_VERSION
+    MINOR_VERSION = CONFIG_FLOW_MINOR_VERSION
 
     @staticmethod
     @callback
@@ -64,7 +90,7 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> OptionFlowHandler:
         """Return preferences handler."""
-        return OptionFlowHandler(config_entry)
+        return OptionFlowHandler()
 
     def __init__(self) -> None:
         """Initialize the config flow handler."""
@@ -117,13 +143,14 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             username = user_input[CONF_USERNAME]
+            # Checked before logging in, so a duplicate needs no network call.
+            await self.async_set_unique_id(_unique_id(username))
+            self._abort_if_unique_id_configured()
             error = await self._async_validate_login(
                 username, user_input[CONF_PASSWORD], user_input[CONF_REGION]
             )
             if error is None:
                 self.data.update(user_input)
-                await self.async_set_unique_id(username)
-                self._abort_if_unique_id_configured()
                 return self.async_create_entry(title=username, data=self.data)
             errors["base"] = error
 

@@ -99,20 +99,48 @@ async def test_user_flow_aborts_for_an_account_already_configured(
 
 
 @pytest.mark.asyncio
+async def test_user_flow_treats_the_username_case_insensitively(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
+) -> None:
+    """Abort, without logging in, for the same account typed in another case."""
+    MockConfigEntry(domain=DOMAIN, unique_id=USERNAME, data=entry_data(), version=2).add_to_hass(
+        hass
+    )
+
+    form = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"], entry_data(f" {USERNAME.upper()} ")
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert blueair_cloud.aws_calls == []
+
+
+@pytest.mark.asyncio
 async def test_options_flow_updates_the_options(
     hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
 ) -> None:
-    """Save the polling interval and night preset options."""
+    """Save the polling interval and night preset options, and reload to apply them."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id=USERNAME, data=entry_data(), version=2)
     entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    first_runtime_data = entry.runtime_data
 
     form = await hass.config_entries.options.async_init(entry.entry_id)
+    assert form["data_schema"]({}) == {"scan_interval": 5, "night_preset": True}
     result = await hass.config_entries.options.async_configure(
         form["flow_id"], {"scan_interval": 10, "night_preset": False}
     )
+    await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options == {"scan_interval": 10, "night_preset": False}
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data is not first_runtime_data
+    assert await hass.config_entries.async_unload(entry.entry_id)
 
 
 @pytest.mark.parametrize("file_name", ["strings.json", "translations/en.json"])
@@ -283,4 +311,5 @@ def test_reauth_and_exception_strings_exist(file_name: str) -> None:
         "command_failed",
         "cannot_connect",
         "invalid_mode",
+        "invalid_temperature",
     }

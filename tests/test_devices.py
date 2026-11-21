@@ -162,3 +162,23 @@ async def test_only_devices_gone_from_the_account_can_be_deleted(
     assert current is not None
     assert not await async_remove_config_entry_device(hass, entry, current)
     assert await async_remove_config_entry_device(hass, entry, gone)
+
+
+@pytest.mark.asyncio
+async def test_unreachable_devices_are_kept(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any], blueair_cloud: FakeBlueairCloud
+) -> None:
+    """Keep a device that was unreachable at setup: it is still on the account."""
+    entry = await setup_blueair(aws=[make_purifier(), make_humidifier()])
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    blueair_cloud.aws_devices[1].refresh_error = ClientConnectionError("device offline")
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    unreachable = _device(hass, "humidifier-1")
+
+    assert unreachable is not None
+    assert not await async_remove_config_entry_device(hass, entry, unreachable)
+    # The device list check doesn't count it as a newly added device.
+    await _check_device_list(hass)
+    assert entry.runtime_data.unreachable[0].id == "humidifier-1"

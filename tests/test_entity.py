@@ -61,57 +61,29 @@ def load_entity() -> type[Any]:
 
 
 class AvailabilityTest(unittest.TestCase):
-    """Check Sense+ fallback and unchanged behavior for other models."""
+    """Check that availability follows the poll result and the coordinator's online.
+
+    Model-specific quirks (e.g. Sense+) live in the coordinator's online; see
+    test_coordinator.py.
+    """
 
     @classmethod
     def setUpClass(cls) -> None:
         """Load the entity class under test."""
         cls.entity_class = load_entity()
 
-    def available(
-        self,
-        model: str = "sense+",
-        speed: object = 0,
-        success: bool = True,
-        online: bool = False,
-    ) -> bool:
+    def available(self, success: bool, online: object) -> bool:
         """Return the entity's availability for a stubbed coordinator state."""
         entity = object.__new__(self.entity_class)
-        entity.coordinator = SimpleNamespace(
-            model=model,
-            last_update_success=success,
-            online=online,
-            blueair_api_device=SimpleNamespace(fan_speed=speed),
-        )
+        entity.coordinator = SimpleNamespace(last_update_success=success, online=online)
         return entity.available
 
-    def test_sense_plus_valid_states_without_wifi_flag(self) -> None:
-        """Sense+ is available for every valid fan speed, even with wifi_working False."""
-        for speed in (0, 1, 2, 3, "0", "1", "2", "3"):
-            with self.subTest(speed=speed):
-                assert self.available(speed=speed)
-
-    def test_sense_plus_invalid_states(self) -> None:
-        """Sense+ is unavailable when the fan speed is not a valid state."""
-        for speed in (None, NotImplemented, -1, 4, "4", "", "bad", 2.5, "2.5", True, False, [], {}):
-            with self.subTest(speed=speed):
-                assert not self.available(speed=speed, online=True)
-
-    def test_failed_refresh_stays_unavailable(self) -> None:
-        """A failed refresh makes the entity unavailable regardless of online."""
-        for online in (False, True):
-            with self.subTest(online=online):
-                assert not self.available(success=False, online=online)
-
-    def test_other_models_keep_online_requirement(self) -> None:
-        """Other models require both a successful refresh and online."""
-        for model in ("classic_680i", "Blue Pure 211i Max", "unknown"):
-            for success in (False, True):
-                for online in (False, True):
-                    with self.subTest(model=model, success=success, online=online):
-                        assert self.available(model=model, success=success, online=online) == (
-                            success and online
-                        )
+    def test_requires_a_successful_poll_and_online(self) -> None:
+        """Entities are available only after a successful poll of an online device."""
+        for success in (False, True):
+            for online in (False, True, None):
+                with self.subTest(success=success, online=online):
+                    assert self.available(success, online) == (success and bool(online))
 
 
 if __name__ == "__main__":

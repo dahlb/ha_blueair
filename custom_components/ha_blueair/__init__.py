@@ -1,6 +1,8 @@
 """The Blueair integration."""
 
-from dataclasses import dataclass
+import asyncio
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
 from typing import Any
@@ -33,11 +35,11 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
-    CONF_NIGHT_PRESET,
-    DEFAULT_NIGHT_PRESET,
+    CONFIG_FLOW_MINOR_VERSION,
     DEFAULT_SCAN_INTERVAL,
     DEVICE_LIST_INTERVAL,
     DOMAIN,
+    MQTT_SCAN_INTERVAL,
     PLATFORMS,
     REGION_USA,
 )
@@ -68,6 +70,8 @@ class BlueairRuntimeData:
         aws_api: Logged-in AWS client, used to list the account's devices.
         legacy_api: Logged-in legacy client, or None when the account has no
             legacy login or the legacy API was unreachable at setup.
+        unreachable: Coordinators of devices whose first poll failed. They get
+            no entities until a retry succeeds and the entry reloads.
     """
 
     devices: list[BlueairUpdateCoordinatorDevice]
@@ -75,14 +79,89 @@ class BlueairRuntimeData:
     mqtt_client: MqttAwsBlueair | None = None
     aws_api: HttpAwsBlueair | None = None
     legacy_api: HttpBlueair | None = None
+    unreachable: list[BlueairUpdateCoordinator] = field(default_factory=list)
 
     @property
     def coordinators(self) -> list[BlueairUpdateCoordinator]:
-        """Return every device coordinator for the entry, legacy first."""
+        """Return every set-up device coordinator for the entry, legacy first."""
         return [*self.devices, *self.aws_devices]
 
 
 type BlueairConfigEntry = ConfigEntry[BlueairRuntimeData]
+
+
+class _MqttPolling:
+    """Poll AWS devices less often while MQTT pushes their updates.
+
+    MQTT delivers changes within seconds, so polling is only a fallback for
+    missed messages while it is connected. When the connection drops, the
+    devices go back to the configured interval and poll right away.
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        coordinators: Sequence[BlueairUpdateCoordinatorDeviceAws],
+        interval: int,
+    ) -> None:
+        """Initialize the polling adjuster.
+
+        Args:
+            hass: Home Assistant instance.
+            config_entry: The account's config entry, which owns the refresh tasks.
+            coordinators: Coordinators of the devices MQTT updates.
+            interval: Configured polling interval in minutes.
+        """
+        self._hass = hass
+        self._config_entry = config_entry
+        self._coordinators = coordinators
+        self._poll_interval = timedelta(minutes=interval)
+        self._mqtt_interval = timedelta(minutes=max(interval, MQTT_SCAN_INTERVAL))
+        self._connected = False
+        self._has_connected = False
+
+    def on_connect(self) -> None:
+        """Lengthen the polling interval (called on the event loop)."""
+        reconnected = self._has_connected and not self._connected
+        self._connected = self._has_connected = True
+        _LOGGER.debug("MQTT connected; polling AWS devices every %s", self._mqtt_interval)
+        self._set_interval(self._mqtt_interval)
+        if reconnected:
+            # Updates pushed while disconnected were missed.
+            self._request_refresh()
+
+    def on_disconnect(self) -> None:
+        """Restore the configured polling interval (called on the event loop).
+
+        The client calls this after every failed reconnect attempt too; only
+        the first call after a connection changes anything.
+        """
+        if not self._connected:
+            return
+        self._connected = False
+        _LOGGER.debug("MQTT disconnected; polling AWS devices every %s", self._poll_interval)
+        self._set_interval(self._poll_interval)
+        # The next scheduled poll may still be a full MQTT interval away.
+        self._request_refresh()
+
+    def _set_interval(self, interval: timedelta) -> None:
+        """Set every coordinator's polling interval.
+
+        Args:
+            interval: The new polling interval.
+        """
+        for coordinator in self._coordinators:
+            coordinator.update_interval = interval
+
+    def _request_refresh(self) -> None:
+        """Ask every coordinator for a (debounced) refresh."""
+        for coordinator in self._coordinators:
+            self._config_entry.async_create_task(
+                self._hass,
+                coordinator.async_request_refresh(),
+                f"Blueair refresh {coordinator.device_name}",
+            )
 
 
 async def _async_start_mqtt(
@@ -90,15 +169,24 @@ async def _async_start_mqtt(
     config_entry: ConfigEntry,
     region: str,
     aws_http_client: HttpAwsBlueair,
-    aws_devices: list[DeviceAws],
     aws_coordinators: list[BlueairUpdateCoordinatorDeviceAws],
+    interval: int,
 ) -> MqttAwsBlueair | None:
     """Start MQTT real-time updates for AWS devices.
+
+    Args:
+        hass: Home Assistant instance.
+        config_entry: The account's config entry.
+        region: Blueair cloud region.
+        aws_http_client: Logged-in AWS client holding the MQTT credentials.
+        aws_coordinators: Coordinators of the AWS devices to subscribe to.
+        interval: Configured polling interval in minutes.
 
     Returns:
         The connected MQTT client, or None when MQTT is unavailable and the
         integration falls back to polling only.
     """
+    aws_devices: list[DeviceAws] = [c.blueair_api_device for c in aws_coordinators]
     # Start MQTT for real-time updates on AWS devices.
     mqtt_client = None
     if (
@@ -186,6 +274,12 @@ async def _async_start_mqtt(
 
             mqtt_client.credential_refresher = refresh_mqtt_credentials
 
+            # Set before connect(): the client calls on_connect_callback for the
+            # first connection too.
+            polling = _MqttPolling(hass, config_entry, aws_coordinators, interval)
+            mqtt_client.on_connect_callback = polling.on_connect
+            mqtt_client.on_disconnect_callback = polling.on_disconnect
+
             for device in aws_devices:
                 mqtt_client.register_device(device.uuid)
 
@@ -212,6 +306,8 @@ async def _async_start_mqtt(
             if mqtt_client is not None:
                 await mqtt_client.disconnect()
             mqtt_client = None
+            for coordinator in aws_coordinators:
+                coordinator.update_interval = timedelta(minutes=interval)
     else:
         _LOGGER.debug("MQTT credentials not available, using polling only")
     return mqtt_client
@@ -308,24 +404,145 @@ def _async_watch_device_list(
     )
 
 
+async def _async_first_refresh(
+    coordinators: Sequence[BlueairUpdateCoordinator],
+) -> list[BlueairUpdateCoordinator]:
+    """Poll every device once, in parallel, before its entities are created.
+
+    One unreachable device doesn't hold back the rest of the account: its
+    coordinator is returned so setup can skip it and retry it later.
+
+    Args:
+        coordinators: Coordinators of the account's devices.
+
+    Returns:
+        list[BlueairUpdateCoordinator]: Coordinators whose first poll failed.
+
+    Raises:
+        ConfigEntryAuthFailed: Blueair rejected the stored credentials.
+        ConfigEntryNotReady: No device could be polled.
+    """
+    results = await asyncio.gather(
+        *(coordinator.async_config_entry_first_refresh() for coordinator in coordinators),
+        return_exceptions=True,
+    )
+    unreachable: list[BlueairUpdateCoordinator] = []
+    first_error: ConfigEntryNotReady | None = None
+    for coordinator, result in zip(coordinators, results, strict=True):
+        if isinstance(result, ConfigEntryNotReady):
+            _LOGGER.warning(
+                "Blueair device %s is unreachable; setting up the account without it: %s",
+                coordinator.device_name,
+                result.__cause__ or result,
+            )
+            unreachable.append(coordinator)
+            first_error = first_error or result
+        elif isinstance(result, BaseException):
+            # ConfigEntryAuthFailed and anything unexpected fail the whole setup.
+            raise result
+    if first_error is not None and len(unreachable) == len(coordinators):
+        raise first_error
+    return unreachable
+
+
+def _async_retry_unreachable_devices(
+    hass: HomeAssistant,
+    config_entry: BlueairConfigEntry,
+    unreachable: Sequence[BlueairUpdateCoordinator],
+    interval: int,
+) -> None:
+    """Poll devices that were unreachable at setup, and reload once one answers.
+
+    Their capabilities, and so their entities, are only known after a
+    successful poll, so the reload is what creates their entities.
+
+    Args:
+        hass: Home Assistant instance.
+        config_entry: The account's config entry.
+        unreachable: Coordinators whose first poll failed.
+        interval: Polling interval in minutes.
+    """
+    if not unreachable:
+        return
+
+    async def retry(_now: datetime) -> None:
+        """Poll the unreachable devices and reload when one succeeds.
+
+        Args:
+            _now: Time of the retry (unused).
+        """
+        for coordinator in unreachable:
+            # The coordinator turns failures into last_update_success = False
+            # and starts reauthentication on a rejected login.
+            await coordinator.async_refresh()
+            if coordinator.last_update_success:
+                _LOGGER.info(
+                    "Blueair device %s is reachable again; reloading", coordinator.device_name
+                )
+                hass.config_entries.async_schedule_reload(config_entry.entry_id)
+                return
+
+    config_entry.async_on_unload(
+        async_track_time_interval(
+            hass, retry, timedelta(minutes=interval), name="Blueair unreachable devices"
+        )
+    )
+
+
 async def async_remove_config_entry_device(
     hass: HomeAssistant, config_entry: BlueairConfigEntry, device_entry: dr.DeviceEntry
 ) -> bool:
     """Let the user delete a device that is no longer on the Blueair account."""
-    device_ids = {coordinator.id for coordinator in config_entry.runtime_data.coordinators}
+    runtime_data = config_entry.runtime_data
+    device_ids = {
+        coordinator.id for coordinator in [*runtime_data.coordinators, *runtime_data.unreachable]
+    }
     return not _is_current_device(device_entry, device_ids)
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Migrate an old config entry to the current version."""
-    _LOGGER.debug("Migrating from version %s", config_entry.version)
+    """Migrate an old config entry to the current version.
+
+    Args:
+        hass: Home Assistant instance.
+        config_entry: The entry to migrate.
+
+    Home Assistant refuses entries from a newer version (a downgrade) before
+    calling this.
+
+    Returns:
+        bool: True once the entry is migrated.
+    """
+    _LOGGER.debug("Migrating from version %s.%s", config_entry.version, config_entry.minor_version)
 
     if config_entry.version == 1:
         new_data = {**config_entry.data, CONF_REGION: REGION_USA}
         # Home Assistant rejects assigning config_entry.version directly.
-        hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
+        hass.config_entries.async_update_entry(
+            config_entry, data=new_data, version=2, minor_version=1
+        )
 
-    _LOGGER.info("Migration to version %s successful", config_entry.version)
+    if config_entry.version == 2 and config_entry.minor_version < 2:
+        # Unique IDs are lowercase usernames from 2.2, so the same account typed
+        # with different capitalization is recognized as already configured.
+        unique_id = config_entry.unique_id
+        if unique_id is not None and unique_id.lower() != unique_id:
+            new_unique_id = unique_id.lower()
+            taken = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, new_unique_id)
+            if taken is None:
+                hass.config_entries.async_update_entry(config_entry, unique_id=new_unique_id)
+            else:
+                _LOGGER.warning(
+                    "Blueair account %s is configured twice; keeping this entry's unique ID",
+                    new_unique_id,
+                )
+        hass.config_entries.async_update_entry(
+            config_entry, minor_version=CONFIG_FLOW_MINOR_VERSION
+        )
+
+    _LOGGER.info(
+        "Migration to version %s.%s successful", config_entry.version, config_entry.minor_version
+    )
 
     return True
 
@@ -391,11 +608,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
 
         coordinators = [*device_coordinators, *aws_coordinators]
 
-        for coordinator in coordinators:
-            await coordinator.async_config_entry_first_refresh()
+        unreachable = await _async_first_refresh(coordinators)
+        device_coordinators = [c for c in device_coordinators if c not in unreachable]
+        aws_coordinators = [c for c in aws_coordinators if c not in unreachable]
 
         mqtt_client = await _async_start_mqtt(
-            hass, config_entry, region, aws_http_client, aws_devices, aws_coordinators
+            hass, config_entry, region, aws_http_client, aws_coordinators, interval
         )
 
         config_entry.runtime_data = BlueairRuntimeData(
@@ -404,8 +622,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
             mqtt_client=mqtt_client,
             aws_api=aws_http_client,
             legacy_api=legacy_api,
+            unreachable=unreachable,
         )
 
+        # Unreachable devices are still on the account: keep them in the
+        # registry, and don't treat them as added by the device list check.
         device_ids = {coordinator.id for coordinator in coordinators}
         if legacy_listed and device_ids:
             # Skipped for an empty account: that is more likely a Blueair glitch.
@@ -414,26 +635,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
         _LOGGER.debug("integration setup completed")
 
-        night_preset = config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET)
-
-        async def update_listener(hass: HomeAssistant, updated_config_entry: ConfigEntry) -> None:
-            """Handle options update."""
-            if (
-                updated_config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET)
-                != night_preset
-            ):
-                # Fans build their preset list once, when they're created.
-                hass.config_entries.async_schedule_reload(updated_config_entry.entry_id)
-                return
-            new_interval = updated_config_entry.options.get(
-                CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
-            )
-            _LOGGER.debug("changing scan interval: %s", new_interval)
-            for coordinator_to_update in coordinators:
-                coordinator_to_update.update_interval = timedelta(minutes=new_interval)
-
-        config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+        # Options changes reload the entry (OptionsFlowWithReload), so the
+        # polling interval and the fans' preset lists are only read here.
         _async_watch_device_list(hass, config_entry, aws_http_client, legacy_api, device_ids)
+        _async_retry_unreachable_devices(hass, config_entry, unreachable, interval)
     except LoginError as error:
         # Blueair rejected the stored credentials: ask the user to log in again.
         raise ConfigEntryAuthFailed(
