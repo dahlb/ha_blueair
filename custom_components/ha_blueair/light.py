@@ -81,7 +81,7 @@ class BlueairLightEntity(BlueairRestoredBrightnessEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the blueair light entity."""
-        super().__init__("LED Light", coordinator)
+        super().__init__("LED Light", coordinator, "led_light")
         self._last_brightness = self.coordinator.brightness or 255
 
     @property
@@ -124,7 +124,7 @@ class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the blueair mood light entity."""
-        super().__init__("Mood Light", coordinator)
+        super().__init__("Mood Light", coordinator, "mood_light")
         self._last_brightness = self.coordinator.mood_brightness or 255
 
     @property
@@ -167,7 +167,7 @@ class BlueairNightLightEntity(BlueairRestoredBrightnessEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the blueair night light entity."""
-        super().__init__("Night Light", coordinator)
+        super().__init__("Night Light", coordinator, "night_light")
         self._last_brightness = self.coordinator.night_light_brightness or 255
 
     @property

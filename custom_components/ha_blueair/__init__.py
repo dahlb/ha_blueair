@@ -2,7 +2,7 @@
 
 import contextlib
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 from aiohttp import ClientError
@@ -10,6 +10,7 @@ from blueair_api import (
     Device,
     DeviceAws,
     HttpAwsBlueair,
+    HttpBlueair,
     LoginError,
     MqttAwsBlueair,
     get_aws_devices,
@@ -25,14 +26,17 @@ from homeassistant.const import (
 )
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_NIGHT_PRESET,
     DEFAULT_NIGHT_PRESET,
     DEFAULT_SCAN_INTERVAL,
+    DEVICE_LIST_INTERVAL,
     DOMAIN,
     PLATFORMS,
     REGION_USA,
@@ -61,11 +65,16 @@ class BlueairRuntimeData:
         aws_devices: Coordinators for AWS devices.
         mqtt_client: Connected MQTT client for AWS push updates, or None when
             the entry only polls.
+        aws_api: Logged-in AWS client, used to list the account's devices.
+        legacy_api: Logged-in legacy client, or None when the account has no
+            legacy login or the legacy API was unreachable at setup.
     """
 
     devices: list[BlueairUpdateCoordinatorDevice]
     aws_devices: list[BlueairUpdateCoordinatorDeviceAws]
     mqtt_client: MqttAwsBlueair | None = None
+    aws_api: HttpAwsBlueair | None = None
+    legacy_api: HttpBlueair | None = None
 
     @property
     def coordinators(self) -> list[BlueairUpdateCoordinator]:
@@ -222,6 +231,105 @@ async def _async_start_mqtt(
     return mqtt_client
 
 
+async def _async_list_device_ids(
+    aws_api: HttpAwsBlueair, legacy_api: HttpBlueair | None
+) -> set[str]:
+    """Return the IDs of every device on the account.
+
+    Args:
+        aws_api: Logged-in AWS client.
+        legacy_api: Logged-in legacy client, or None to skip legacy devices.
+
+    Returns:
+        set[str]: Device UUIDs from both APIs.
+    """
+    device_ids = {device["uuid"] for device in await aws_api.devices()}
+    if legacy_api is not None:
+        device_ids |= {device["uuid"] for device in await legacy_api.get_devices()}
+    return device_ids
+
+
+def _async_remove_stale_devices(
+    hass: HomeAssistant, config_entry: ConfigEntry, device_ids: set[str]
+) -> None:
+    """Remove registry devices that are no longer on the Blueair account.
+
+    Removing a device also removes its entities.
+
+    Args:
+        hass: Home Assistant instance.
+        config_entry: The account's config entry.
+        device_ids: UUIDs of the devices the account reports.
+    """
+    device_registry = dr.async_get(hass)
+    for device_entry in dr.async_entries_for_config_entry(device_registry, config_entry.entry_id):
+        if not _is_current_device(device_entry, device_ids):
+            _LOGGER.info("Removing %s: it is no longer on the Blueair account", device_entry.name)
+            device_registry.async_remove_device(device_entry.id)
+
+
+def _is_current_device(device_entry: dr.DeviceEntry, device_ids: set[str]) -> bool:
+    """Return whether a registry device is one of the account's devices."""
+    return any(
+        domain == DOMAIN and identifier in device_ids
+        for domain, identifier in device_entry.identifiers
+    )
+
+
+def _async_watch_device_list(
+    hass: HomeAssistant,
+    config_entry: BlueairConfigEntry,
+    aws_api: HttpAwsBlueair,
+    legacy_api: HttpBlueair | None,
+    known_ids: set[str],
+) -> None:
+    """Reload the entry when devices are added to or removed from the account.
+
+    Setup creates the new devices' entities and removes the gone devices.
+
+    Args:
+        hass: Home Assistant instance.
+        config_entry: The account's config entry.
+        aws_api: Logged-in AWS client.
+        legacy_api: Logged-in legacy client, or None to skip legacy devices.
+        known_ids: UUIDs of the devices set up now.
+    """
+
+    async def check_device_list(_now: datetime) -> None:
+        try:
+            device_ids = await _async_list_device_ids(aws_api, legacy_api)
+        except (LoginError, ClientError, TimeoutError) as error:
+            # The device coordinators report outages and rejected logins.
+            _LOGGER.debug("Unable to list Blueair devices: %s", error)
+            return
+        if not device_ids or device_ids == known_ids:
+            # An empty list is more likely a Blueair glitch than an empty account.
+            return
+        _LOGGER.info(
+            "Blueair devices changed (added: %s, removed: %s); reloading",
+            sorted(device_ids - known_ids),
+            sorted(known_ids - device_ids),
+        )
+        hass.config_entries.async_schedule_reload(config_entry.entry_id)
+
+    config_entry.async_on_unload(
+        async_track_time_interval(
+            hass,
+            check_device_list,
+            timedelta(minutes=DEVICE_LIST_INTERVAL),
+            name="Blueair device list",
+        )
+    )
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, config_entry: BlueairConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Let the user delete a device that is no longer on the Blueair account."""
+    device_ids = {coordinator.id for coordinator in config_entry.runtime_data.coordinators}
+    return not _is_current_device(device_entry, device_ids)
+
+
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Migrate an old config entry to the current version."""
     _LOGGER.debug("Migrating from version %s", config_entry.version)
@@ -253,16 +361,21 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
 
     client_session = async_get_clientsession(hass)
     try:
+        legacy_api: HttpBlueair | None = None
+        # Whether the legacy device list is known, so gone devices can be removed.
+        legacy_listed = True
         try:
-            _, devices = await get_devices(
+            legacy_api, devices = await get_devices(
                 username=username, password=password, client_session=client_session
             )
         except LoginError as ex:
+            # Accounts without legacy devices have no legacy login.
             _LOGGER.debug("Legacy Login error: %s", ex)
             devices = []
         except (ClientError, TimeoutError) as ex:
             _LOGGER.warning("Legacy Blueair API unavailable, skipping legacy devices: %s", ex)
             devices = []
+            legacy_listed = False
         aws_http_client, aws_devices = await get_aws_devices(
             username=username,
             password=password,
@@ -303,7 +416,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
             devices=device_coordinators,
             aws_devices=aws_coordinators,
             mqtt_client=mqtt_client,
+            aws_api=aws_http_client,
+            legacy_api=legacy_api,
         )
+
+        device_ids = {coordinator.id for coordinator in coordinators}
+        if legacy_listed and device_ids:
+            # Skipped for an empty account: that is more likely a Blueair glitch.
+            _async_remove_stale_devices(hass, config_entry, device_ids)
 
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
         _LOGGER.debug("integration setup completed")
@@ -327,6 +447,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
                 coordinator_to_update.update_interval = timedelta(minutes=new_interval)
 
         config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+        _async_watch_device_list(hass, config_entry, aws_http_client, legacy_api, device_ids)
     except LoginError as error:
         # Blueair rejected the stored credentials: ask the user to log in again.
         raise ConfigEntryAuthFailed(
@@ -334,7 +455,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
         ) from error
     except (ClientError, TimeoutError) as error:
         _LOGGER.debug("blueair cloud unreachable, ha should retry")
-        raise ConfigEntryNotReady("Blueair cloud unreachable") from error
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="cannot_connect",
+            translation_placeholders={"error": str(error) or type(error).__name__},
+        ) from error
     else:
         return True
 

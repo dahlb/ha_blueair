@@ -98,6 +98,9 @@ async def async_setup_entry(
 class BlueairSensor(BlueairEntity, SensorEntity):
     """Generic Blueair Sensor, configured through EntityDescription."""
 
+    # The original English name; see BlueairEntity.__init__.
+    _unique_id_suffix: str
+
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Return whether the coordinator supports this entity."""
@@ -113,7 +116,7 @@ class BlueairSensor(BlueairEntity, SensorEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the temperature sensor."""
-        super().__init__(self.entity_description.name, coordinator)
+        super().__init__(self._unique_id_suffix, coordinator)
 
     @property
     def native_value(self) -> float | None:
@@ -134,9 +137,10 @@ class BlueairSensor(BlueairEntity, SensorEntity):
 class BlueairTemperatureSensor(BlueairSensor):
     """Generic Blueair Sensor, configured through EntityDescription."""
 
+    _unique_id_suffix = "Temperature"
     entity_description = SensorEntityDescription(
         key="temperature",
-        name="Temperature",
+        translation_key="temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         suggested_display_precision=1,
@@ -146,9 +150,10 @@ class BlueairTemperatureSensor(BlueairSensor):
 class BlueairHumiditySensor(BlueairSensor):
     """Monitors the humidity."""
 
+    _unique_id_suffix = "Humidity"
     entity_description = SensorEntityDescription(
         key="humidity",
-        name="Humidity",
+        translation_key="humidity",
         device_class=SensorDeviceClass.HUMIDITY,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
@@ -158,9 +163,10 @@ class BlueairHumiditySensor(BlueairSensor):
 class BlueairVOCSensor(BlueairSensor):
     """Monitors the VOC."""
 
+    _unique_id_suffix = "VOC"
     entity_description = SensorEntityDescription(
         key="voc",
-        name="VOC",
+        translation_key="voc",
         device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS,
         native_unit_of_measurement=UnitOfRatio.PARTS_PER_BILLION,
         suggested_display_precision=0,
@@ -170,9 +176,10 @@ class BlueairVOCSensor(BlueairSensor):
 class BlueairPM1Sensor(BlueairSensor):
     """Monitors the pm1."""
 
+    _unique_id_suffix = "PM 1"
     entity_description = SensorEntityDescription(
         key="pm1",
-        name="PM 1",
+        translation_key="pm1",
         device_class=SensorDeviceClass.PM1,
         native_unit_of_measurement=UnitOfDensity.MICROGRAMS_PER_CUBIC_METER,
     )
@@ -181,9 +188,10 @@ class BlueairPM1Sensor(BlueairSensor):
 class BlueairPM10Sensor(BlueairSensor):
     """Monitors the pm10."""
 
+    _unique_id_suffix = "PM 10"
     entity_description = SensorEntityDescription(
         key="pm10",
-        name="PM 10",
+        translation_key="pm10",
         device_class=SensorDeviceClass.PM10,
         native_unit_of_measurement=UnitOfDensity.MICROGRAMS_PER_CUBIC_METER,
     )
@@ -192,9 +200,10 @@ class BlueairPM10Sensor(BlueairSensor):
 class BlueairPM25Sensor(BlueairSensor):
     """Monitors the pm2.5."""
 
+    _unique_id_suffix = "PM 2.5"
     entity_description = SensorEntityDescription(
         key="pm25",
-        name="PM 2.5",
+        translation_key="pm25",
         device_class=SensorDeviceClass.PM25,
         native_unit_of_measurement=UnitOfDensity.MICROGRAMS_PER_CUBIC_METER,
     )
@@ -203,9 +212,10 @@ class BlueairPM25Sensor(BlueairSensor):
 class BlueairCO2Sensor(BlueairSensor):
     """Monitors the Co2."""
 
+    _unique_id_suffix = "CO2"
     entity_description = SensorEntityDescription(
         key="co2",
-        name="CO2",
+        translation_key="co2",
         device_class=SensorDeviceClass.CO2,
         native_unit_of_measurement=UnitOfRatio.PARTS_PER_MILLION,
         suggested_display_precision=0,
@@ -215,48 +225,48 @@ class BlueairCO2Sensor(BlueairSensor):
 class BlueairFilterLifeSensor(BlueairSensor):
     """Monitors the filter remaining life."""
 
+    _unique_id_suffix = "Filter Life"
     entity_description = SensorEntityDescription(
         key="filter_life",
-        name="Filter Life",
+        translation_key="filter_life",
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
-        icon="mdi:air-filter",
     )
 
 
 class BlueairWickLifeSensor(BlueairSensor):
     """Monitors the wick remaining life."""
 
+    _unique_id_suffix = "Wick Life"
     entity_description = SensorEntityDescription(
         key="wick_life",
-        name="Wick Life",
+        translation_key="wick_life",
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
-        icon="mdi:air-filter",
     )
 
 
 class BlueairWaterRefresherLifeSensor(BlueairSensor):
     """Monitors the water refresher remaining life."""
 
+    _unique_id_suffix = "Water Refresher Life"
     entity_description = SensorEntityDescription(
         key="water_refresher_life",
-        name="Water Refresher Life",
+        translation_key="water_refresher_life",
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
-        icon="mdi:air-filter",
     )
 
 
 class BlueairWaterLevelSensor(BlueairSensor):
     """Monitors the water level."""
 
+    _unique_id_suffix = "Water Level"
     entity_description = SensorEntityDescription(
         key="water_level",
-        name="Water Level",
+        translation_key="water_level",
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
-        icon="mdi:waves",
     )
 
 
@@ -271,9 +281,10 @@ class BlueairRssiSensor(BlueairSensor):
     first MQTT publish.
     """
 
+    _unique_id_suffix = "Signal Strength"
     entity_description = SensorEntityDescription(
         key="rssi",
-        name="Signal Strength",
+        translation_key="rssi",
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
         entity_registry_enabled_default=False,
@@ -299,14 +310,14 @@ class BlueairTimerDurationSensor(BlueairSensor):
     (mirrors :class:`BlueairRssiSensor`).
     """
 
+    _unique_id_suffix = "Timer Duration"
     entity_description = SensorEntityDescription(
         key="timer_duration",
-        name="Timer Duration",
+        translation_key="timer_duration",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         entity_registry_enabled_default=False,
         suggested_display_precision=0,
-        icon="mdi:timer-outline",
     )
 
     @classmethod
@@ -331,12 +342,12 @@ class BlueairOverallFirmwareSensor(BlueairSensor):
     no device class, unit, or state class.
     """
 
+    _unique_id_suffix = "Overall Firmware"
     entity_description = SensorEntityDescription(
         key="overall_firmware",
-        name="Overall Firmware",
+        translation_key="overall_firmware",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        icon="mdi:chip",
     )
 
     @classmethod

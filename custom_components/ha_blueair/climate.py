@@ -101,7 +101,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
         """Initialize the blueair thermostat."""
-        super().__init__("Climate", coordinator)
+        super().__init__("Climate", coordinator, "climate")
 
         self._attr_hvac_modes = [
             HVACMode.OFF,

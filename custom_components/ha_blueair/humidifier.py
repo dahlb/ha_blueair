@@ -8,10 +8,11 @@ from typing import Any
 from homeassistant.components.humidifier import HumidifierDeviceClass, HumidifierEntity
 from homeassistant.components.humidifier.const import MODE_AUTO, MODE_SLEEP, HumidifierEntityFeature
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import BlueairConfigEntry
-from .const import MODE_FAN_SPEED
+from .const import DOMAIN, MODE_FAN_SPEED
 from .coordinator_device_aws import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
@@ -61,7 +62,7 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
             MODE_SLEEP,
             MODE_FAN_SPEED,
         ]
-        super().__init__("Humidifier", coordinator)
+        super().__init__("Humidifier", coordinator, "humidifier")
 
     @property
     def mode(self) -> str | None:
@@ -125,7 +126,11 @@ class BlueairAwsHumidifier(BlueairEntity, HumidifierEntity):
 
             self.async_write_ha_state()
         else:
-            raise ValueError(f"Invalid mode: {mode}")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_mode",
+                translation_placeholders={"mode": mode},
+            )
 
     async def async_set_humidity(self, humidity: int) -> None:
         """Set the humidity level.
@@ -157,7 +162,7 @@ class BlueairAwsComboHumidifier(BlueairEntity, HumidifierEntity):
         """Initialize the combo humidifier."""
         self._attr_device_class = HumidifierDeviceClass.HUMIDIFIER
         self._attr_supported_features = HumidifierEntityFeature(0)
-        super().__init__("Humidifier", coordinator)
+        super().__init__("Humidifier", coordinator, "humidifier")
 
     @property
     def is_on(self) -> bool | None:

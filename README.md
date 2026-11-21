@@ -34,6 +34,25 @@ A custom integration for Blueair Filters.  If your model isn't reported correctl
 - climate (T10i/T20i only)
 - humidifier (H35i/H76i only)
 
+## Supported Devices ##
+Wi-Fi ("i") Blueair devices on a Blueair app account are supported. Devices are listed from the account, so there is nothing to pair; what each device offers depends on what its model reports.
+
+- **Current (AWS) models**, which update in real time:
+  - **Purifiers**: Blue Pure 211i/311i/311i+/411i/511i Max (including 3250i, 3350i, 3450i, 3650i), Blue Signature SP1i/SP3i/SP4i, Classic Pro CP7i/CP9i, DustMagnet 5210i–5475i, PetAir Pro P3i, Protect 7310i–7775i and Protect+ 8440i–8880i.
+  - **Humidifiers**: H35i, DreamWell H38i and H76i, and the 2-in-1 Purify + Humidify models (purifier fan plus a humidifier switch).
+  - **Heater/cooler fans**: ComfortPure 3-in-1 T10i and T20i (climate entity).
+  - **Other**: Dehumidifier+ Purifier D26i, Mini Restful, Pedestal Fan 1.0 and SleepAir Fan Circulator.
+- **Legacy models**, which are polled: Classic 280i, 290i, 480i and 680i, and Sense+.
+
+If a model shows the wrong entities, or Blueair releases a new one, open an issue with the model name and the diagnostics file.
+
+## Use Cases ##
+- **Clean air on a schedule** — run purifiers on Auto while you're home and turn them off when everyone leaves.
+- **React to air quality** — raise the fan speed when PM 2.5 or VOC climbs, for example while cooking.
+- **Quiet nights** — switch bedroom purifiers to Night (or humidifiers to Sleep) at bedtime and dim their lights.
+- **Maintenance reminders** — get a notification when the Filter Expiration sensor turns on or Filter Life drops low, or when a humidifier reports Water Shortage.
+- **Comfort** — hold a room's temperature with a T10i/T20i, or its humidity with a humidifier.
+
 ## Installation ##
 You can install this either manually copying files or using HACS. Then add the integration from **Settings → Devices & Services → Add Integration → Blueair** and enter:
 
@@ -43,11 +62,89 @@ You can install this either manually copying files or using HACS. Then add the i
 
 If Blueair later rejects the saved password (for example after you change it in the app), Home Assistant shows a **Re-authenticate** prompt for the integration; enter the new password there instead of removing and re-adding it.
 
+To change the region or password yourself, choose **Reconfigure** from the integration's three-dot menu. To use a different Blueair account, add the integration again.
+
+Devices you add to the Blueair account later appear in Home Assistant automatically, and devices you remove from the account are removed from Home Assistant, within 30 minutes. A device that is no longer on the account can also be deleted from its device page.
+
 ## Options ##
 Click **Configure** on the integration to change:
 
 - **Polling Interval in Minutes** (default 5, range 1-30) — how often every device is polled. Devices with real-time MQTT updates (most current models) still poll at this interval as a fallback.
 - **Offer the Night preset on fans** (default on) — turn off to leave Night out of fans' preset list, e.g. so HomeKit Bridge doesn't add a Night switch. Changing it reloads the integration.
+
+## How Data Updates ##
+- **Current (AWS) models** push changes over MQTT, so states and sensors update within seconds. They are also polled at the polling interval (default 5 minutes) in case a message is missed.
+- **Legacy models** are polled at the polling interval only.
+- Commands go to Blueair's cloud; the entity shows the new state straight away and the next update confirms it.
+- The account's device list is checked every 30 minutes for added or removed devices.
+- If Blueair can't be reached, the entities become unavailable and the outage is logged once; they recover on the next successful update.
+
+## Automation Examples ##
+Raise the fan speed when PM 2.5 is high, and go back to Auto once the air is clean:
+
+```yaml
+automation:
+  - alias: "Purifier boost on high PM 2.5"
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.bedroom_pm_2_5
+        above: 35
+        for: "00:05:00"
+    actions:
+      - action: fan.set_percentage
+        target:
+          entity_id: fan.bedroom_fan
+        data:
+          percentage: 100
+  - alias: "Purifier back to auto"
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.bedroom_pm_2_5
+        below: 12
+        for: "00:10:00"
+    actions:
+      - action: fan.set_preset_mode
+        target:
+          entity_id: fan.bedroom_fan
+        data:
+          preset_mode: auto
+```
+
+Switch to Night mode and turn off the light at bedtime:
+
+```yaml
+automation:
+  - alias: "Purifier night mode"
+    triggers:
+      - trigger: time
+        at: "22:30:00"
+    actions:
+      - action: fan.set_preset_mode
+        target:
+          entity_id: fan.bedroom_fan
+        data:
+          preset_mode: night
+      - action: light.turn_off
+        target:
+          entity_id: light.bedroom_led_light
+```
+
+Get a reminder when the filter needs replacing:
+
+```yaml
+automation:
+  - alias: "Blueair filter reminder"
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.bedroom_filter_expiration
+        to: "on"
+    actions:
+      - action: notify.notify
+        data:
+          message: "The bedroom Blueair filter needs replacing."
+```
+
+Entity IDs follow your device names; check yours under **Settings → Devices & Services → Blueair**.
 
 ## Filter, Wick and Water sensors no longer report as batteries ##
 

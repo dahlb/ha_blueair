@@ -74,56 +74,51 @@ rules:
   diagnostics:
     status: done
     comment: >-
-      Diagnostics are implemented, but the device section is not redacted (serial number
-      and MAC address are included).
+      Credentials, the account email, and each device's MAC address and serial number are
+      redacted, wherever they appear.
   discovery:
     status: exempt
     comment: Cloud account integration; devices are found through the Blueair account.
   discovery-update-info:
     status: exempt
     comment: Cloud account integration; devices are found through the Blueair account.
-  docs-data-update:
-    status: todo
-    comment: README does not describe MQTT push versus polling.
-  docs-examples:
-    status: todo
-    comment: README has no automation examples.
+  docs-data-update: done
+  docs-examples: done
   docs-known-limitations: done
-  docs-supported-devices:
-    status: todo
-    comment: >-
-      README names the models for climate and humidifier only; it needs a list of
-      supported devices.
+  docs-supported-devices: done
   docs-supported-functions: done
   docs-troubleshooting: done
-  docs-use-cases:
-    status: todo
-    comment: README has no use case section.
+  docs-use-cases: done
   dynamic-devices:
-    status: todo
-    comment: Devices added to the account after setup need a reload to appear.
+    status: done
+    comment: >-
+      The account's device list is checked every 30 minutes; a change reloads the entry,
+      which sets up the new devices' entities.
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default: done
   entity-translations:
-    status: todo
-    comment: Entity names are hard-coded English strings rather than translation keys.
-  exception-translations:
-    status: todo
-    comment: The integration raises no translated exceptions.
+    status: done
+    comment: >-
+      Every entity has a translation key; unique IDs still use the original English
+      names so existing entities keep their IDs.
+  exception-translations: done
   icon-translations: done
   reconfiguration-flow:
-    status: todo
-    comment: There is no reconfigure step to change the region or credentials.
+    status: done
+    comment: >-
+      Changes the region and password; the username is the entry's unique ID, so another
+      account gets its own entry.
   repair-issues:
     status: done
     comment: >-
       Raises a repair issue for life sensors that no longer use the battery device class.
   stale-devices:
-    status: todo
+    status: done
     comment: >-
-      Devices removed from the account stay in the device registry; remove them or
-      implement async_remove_config_entry_device.
+      Setup removes devices the account no longer reports (skipped when the legacy API
+      was unreachable or the account reports no devices), and
+      async_remove_config_entry_device lets users delete a gone device.
 
   # Platinum
   async-dependency:

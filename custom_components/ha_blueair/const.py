@@ -11,6 +11,8 @@ VERSION: str = "1.59.0"
 # Integration Setting Constants
 CONFIG_FLOW_VERSION: int = 2
 DEFAULT_SCAN_INTERVAL: int = 5
+# How often to check the account for added or removed devices, in minutes.
+DEVICE_LIST_INTERVAL: int = 30
 # Whether fans offer the Night preset. Off leaves Night out of their
 # preset list, e.g. so HomeKit Bridge doesn't show a Night switch.
 CONF_NIGHT_PRESET: str = "night_preset"

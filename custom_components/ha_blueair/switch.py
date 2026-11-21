@@ -39,6 +39,9 @@ async def async_setup_entry(
 class BlueairSwitchEntity(BlueairEntity, SwitchEntity):
     """Blueair switch entity."""
 
+    # The original English name; see BlueairEntity.__init__.
+    _unique_id_suffix: str
+
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Return whether the coordinator supports this entity."""
@@ -46,7 +49,7 @@ class BlueairSwitchEntity(BlueairEntity, SwitchEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the blueair switch entity."""
-        super().__init__(self.entity_description.name, coordinator)
+        super().__init__(self._unique_id_suffix, coordinator)
 
     @property
     def is_on(self) -> bool | None:
@@ -67,20 +70,21 @@ class BlueairSwitchEntity(BlueairEntity, SwitchEntity):
 class BlueairChildLockSwitchEntity(BlueairSwitchEntity):
     """Blueair child lock switch entity."""
 
+    _unique_id_suffix = "Child Lock"
     entity_description = SwitchEntityDescription(
         key="child_lock",
-        name="Child Lock",
+        translation_key="child_lock",
         device_class=SwitchDeviceClass.SWITCH,
     )
-    _attr_translation_key = "child_lock"
 
 
 class BlueairGermShieldSwitchEntity(BlueairSwitchEntity):
     """Blueair germ shield switch entity."""
 
+    _unique_id_suffix = "Germ Shield"
     entity_description = SwitchEntityDescription(
         key="germ_shield",
-        name="Germ Shield",
+        translation_key="germ_shield",
         device_class=SwitchDeviceClass.SWITCH,
     )
 
@@ -88,8 +92,9 @@ class BlueairGermShieldSwitchEntity(BlueairSwitchEntity):
 class BlueairWickDryModeSwitchEntity(BlueairSwitchEntity):
     """Blueair wick dry mode switch entity."""
 
+    _unique_id_suffix = "Wick Dry Mode"
     entity_description = SwitchEntityDescription(
         key="wick_dry_mode",
-        name="Wick Dry Mode",
+        translation_key="wick_dry_mode",
         device_class=SwitchDeviceClass.SWITCH,
     )

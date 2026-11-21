@@ -370,6 +370,28 @@ class FakeBlueairCloud:
         self.legacy_devices: list[Any] = []
         self.mqtt_credentials = False
         self.token_refreshes = 0
+        self.list_error: BaseException | None = None
+
+    async def list_aws_devices(self) -> list[dict[str, str]]:
+        """List the AWS devices the way HttpAwsBlueair.devices does.
+
+        Returns:
+            list[dict[str, str]]: One entry per device in ``aws_devices``.
+
+        Raises:
+            BaseException: The configured ``list_error``.
+        """
+        if self.list_error is not None:
+            raise self.list_error
+        return [{"uuid": device.uuid, "name": device.name} for device in self.aws_devices]
+
+    async def list_legacy_devices(self) -> list[dict[str, str]]:
+        """List the legacy devices the way HttpBlueair.get_devices does.
+
+        Returns:
+            list[dict[str, str]]: One entry per device in ``legacy_devices``.
+        """
+        return [{"uuid": device.uuid, "name": device.name} for device in self.legacy_devices]
 
     async def refresh_access_token(self) -> None:
         """Record an AWS token refresh for MQTT reconnects."""
@@ -402,6 +424,7 @@ class FakeBlueairCloud:
             user_id="user-id" if has_mqtt else None,
             cleanup_client_session=self.cleanup_client_session,
             refresh_access_token=self.refresh_access_token,
+            devices=self.list_aws_devices,
         )
         return client, list(self.aws_devices)
 
@@ -420,7 +443,7 @@ class FakeBlueairCloud:
         self.legacy_calls.append(kwargs)
         if self.legacy_error is not None:
             raise self.legacy_error
-        return None, list(self.legacy_devices)
+        return SimpleNamespace(get_devices=self.list_legacy_devices), list(self.legacy_devices)
 
 
 def entry_data(username: str = USERNAME) -> dict[str, str]:

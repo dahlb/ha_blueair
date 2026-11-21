@@ -1,7 +1,21 @@
 {
   "entity": {
+    "binary_sensor": {
+      "filter_expired": {
+        "default": "mdi:air-filter"
+      },
+      "online": {
+        "default": "mdi:wifi-check",
+        "state": {
+          "off": "mdi:wifi-strength-outline"
+        }
+      },
+      "water_shortage": {
+        "default": "mdi:water-alert-outline"
+      }
+    },
     "fan": {
-      "ha_blueair": {
+      "fan": {
         "state_attributes": {
           "preset_mode": {
             "state": {
@@ -12,6 +26,26 @@
             }
           }
         }
+      }
+    },
+    "sensor": {
+      "filter_life": {
+        "default": "mdi:air-filter"
+      },
+      "wick_life": {
+        "default": "mdi:air-filter"
+      },
+      "water_refresher_life": {
+        "default": "mdi:air-filter"
+      },
+      "water_level": {
+        "default": "mdi:waves"
+      },
+      "timer_duration": {
+        "default": "mdi:timer-outline"
+      },
+      "overall_firmware": {
+        "default": "mdi:chip"
       }
     },
     "switch": {
