@@ -22,7 +22,7 @@ version = { attr = "custom_components.ha_blueair.const.VERSION" }
 
 [dependency-groups]
 ha = [
-    "blueair-api==1.56.10",
+    "blueair-api==2.0.0",
     "homeassistant==2026.11.0",
 ]
 lint = [

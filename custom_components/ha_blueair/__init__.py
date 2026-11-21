@@ -1,6 +1,5 @@
 """The Blueair integration."""
 
-import contextlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
@@ -86,22 +85,6 @@ class BlueairRuntimeData:
 type BlueairConfigEntry = ConfigEntry[BlueairRuntimeData]
 
 
-def _schedule_update(
-    hass: HomeAssistant, coordinator: BlueairUpdateCoordinator, device: DeviceAws
-) -> None:
-    """Hand an MQTT update to the event loop (called from the MQTT thread).
-
-    paho's network thread can deliver a message after Home Assistant has
-    closed its loop. There is nothing left to update by then, so the message
-    is dropped rather than raising from the MQTT thread.
-    """
-    if hass.loop.is_closed():
-        return
-    # The loop can still close between the check and the call.
-    with contextlib.suppress(RuntimeError):
-        hass.loop.call_soon_threadsafe(coordinator.async_set_updated_data, str(device))
-
-
 async def _async_start_mqtt(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -137,7 +120,7 @@ async def _async_start_mqtt(
             aws_coordinator_map = {c.id: c for c in aws_coordinators}
 
             def on_sensor_data(device_id: str, sensors: dict[str, float]) -> None:
-                """Handle MQTT sensor data (called from MQTT thread)."""
+                """Handle MQTT sensor data (called on the event loop)."""
                 _LOGGER.debug("processing sensor update %s for %s", sensors, device_id)
                 coordinator = aws_coordinator_map.get(device_id)
                 if coordinator is None:
@@ -154,10 +137,10 @@ async def _async_start_mqtt(
                     )
                     return
                 device.publish_updates()
-                _schedule_update(hass, coordinator, device)
+                coordinator.async_set_updated_data(str(device))
 
             def on_state_change(device_id: str, state: dict[str, Any]) -> None:
-                """Handle MQTT shadow state change (called from MQTT thread)."""
+                """Handle MQTT shadow state change (called on the event loop)."""
                 _LOGGER.debug("processing state change %s for %s", state, device_id)
                 coordinator = aws_coordinator_map.get(device_id)
                 if coordinator is None:
@@ -174,10 +157,10 @@ async def _async_start_mqtt(
                     )
                     return
                 device.publish_updates()
-                _schedule_update(hass, coordinator, device)
+                coordinator.async_set_updated_data(str(device))
 
             def on_event(device_id: str, event: dict[str, Any]) -> None:
-                """Handle MQTT connectivity event (called from MQTT thread)."""
+                """Handle MQTT connectivity event (called on the event loop)."""
                 _LOGGER.debug("processing event update %s for %s", event, device_id)
                 coordinator = aws_coordinator_map.get(device_id)
                 if coordinator is None:
@@ -185,7 +168,7 @@ async def _async_start_mqtt(
                     return
                 device = coordinator.blueair_api_device
                 map_and_publish_event(event, device)
-                _schedule_update(hass, coordinator, device)
+                coordinator.async_set_updated_data(str(device))
 
             mqtt_client.on_sensor_data = on_sensor_data
             mqtt_client.on_state_change = on_state_change
@@ -206,20 +189,20 @@ async def _async_start_mqtt(
             for device in aws_devices:
                 mqtt_client.register_device(device.uuid)
 
-            # Run connect in executor to avoid blocking the event loop
-            # (TLS handshake is a blocking operation)
-            await hass.async_add_executor_job(mqtt_client.connect, hass.loop)
+            # blueair_api's MQTT client runs on the event loop (aiomqtt); it
+            # keeps reconnecting on its own until disconnect().
+            await mqtt_client.connect()
             _LOGGER.info("MQTT real-time updates started for %d device(s)", len(aws_devices))
 
             # Home Assistant does not unload config entries when it stops,
-            # so async_unload_entry never runs at shutdown. Without this
-            # the paho thread outlives the event loop and logs an error
-            # for every message it receives until the process exits.
+            # so async_unload_entry never runs at shutdown. Disconnect here
+            # so the client leaves the broker cleanly instead of trying to
+            # reconnect while Home Assistant shuts down.
             connected_client = mqtt_client
 
             async def stop_mqtt(_event: Event) -> None:
                 """Disconnect MQTT when Home Assistant stops."""
-                await hass.async_add_executor_job(connected_client.disconnect)
+                await connected_client.disconnect()
 
             config_entry.async_on_unload(
                 hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop_mqtt)
@@ -227,7 +210,7 @@ async def _async_start_mqtt(
         except Exception:
             _LOGGER.exception("Failed to start MQTT, falling back to polling only")
             if mqtt_client is not None:
-                mqtt_client.disconnect()
+                await mqtt_client.disconnect()
             mqtt_client = None
     else:
         _LOGGER.debug("MQTT credentials not available, using polling only")
@@ -473,8 +456,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: BlueairConfigEnt
     # Disconnect MQTT before unloading platforms
     mqtt_client = config_entry.runtime_data.mqtt_client
     if mqtt_client is not None:
-        # disconnect() joins paho's network thread, so keep it off the loop.
-        await hass.async_add_executor_job(mqtt_client.disconnect)
+        await mqtt_client.disconnect()
         _LOGGER.info("MQTT disconnected")
 
     return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
