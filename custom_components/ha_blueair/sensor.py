@@ -121,7 +121,8 @@ class BlueairSensor(BlueairEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         """Return the current temperature."""
-        return getattr(self.coordinator, self.entity_description.key)
+        value: float | None = getattr(self.coordinator, self.entity_description.key)
+        return value
 
     @property
     def available(self) -> bool:
@@ -129,7 +130,7 @@ class BlueairSensor(BlueairEntity, SensorEntity):
         return super().available and self.native_value is not None
 
     @property
-    def state_class(self) -> SensorStateClass:
+    def state_class(self) -> SensorStateClass | None:
         """Return the state class of this entity, from STATE_CLASSES, if any."""
         return SensorStateClass.MEASUREMENT
 

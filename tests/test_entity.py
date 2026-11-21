@@ -46,7 +46,7 @@ def load_entity() -> type[Any]:
         f"{package}.const": {
             "DOMAIN": "ha_blueair",
         },
-        f"{package}.coordinator_device": {"BlueairUpdateCoordinator": object},
+        f"{package}.coordinator": {"BlueairUpdateCoordinator": object},
     }
     for name, values in attributes.items():
         module = ModuleType(name)

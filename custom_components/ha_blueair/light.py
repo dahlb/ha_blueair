@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar
+from typing import Any
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, LightEntity
 from homeassistant.components.light.const import ColorMode
@@ -13,6 +13,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import BlueairConfigEntry
 from .coordinator import BlueairUpdateCoordinator
+from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,7 +41,9 @@ async def async_setup_entry(
     )
 
 
-class BlueairRestoredBrightnessEntity(BlueairEntity, LightEntity, RestoreEntity):
+class BlueairRestoredBrightnessEntity[CoordinatorT: BlueairUpdateCoordinator](
+    BlueairEntity[CoordinatorT], LightEntity, RestoreEntity
+):
     """Base light entity that retains brightness while the light is off."""
 
     @property
@@ -68,11 +71,10 @@ class BlueairRestoredBrightnessEntity(BlueairEntity, LightEntity, RestoreEntity)
         self._last_brightness = 255
 
 
-class BlueairLightEntity(BlueairRestoredBrightnessEntity):
+class BlueairLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoordinator]):
     """Blueair light entity."""
 
     _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes: ClassVar[set[ColorMode]] = {ColorMode.BRIGHTNESS}
 
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
@@ -82,6 +84,7 @@ class BlueairLightEntity(BlueairRestoredBrightnessEntity):
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the blueair light entity."""
         super().__init__("LED Light", coordinator, "led_light")
+        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
         self._last_brightness = self.coordinator.brightness or 255
 
     @property
@@ -97,7 +100,7 @@ class BlueairLightEntity(BlueairRestoredBrightnessEntity):
         """Return True if the entity is on."""
         return self.coordinator.brightness != 0
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         desired_brightness = kwargs.get(ATTR_BRIGHTNESS, self._last_brightness)
         if ATTR_BRIGHTNESS in kwargs:
@@ -105,26 +108,29 @@ class BlueairLightEntity(BlueairRestoredBrightnessEntity):
         await self.coordinator.set_brightness(desired_brightness)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.set_brightness(0)
         self.async_write_ha_state()
 
 
-class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity):
+class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoordinatorDeviceAws]):
     """Blueair mood light entity."""
 
     _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes: ClassVar[set[ColorMode]] = {ColorMode.BRIGHTNESS}
 
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Return whether the coordinator supports this entity."""
-        return coordinator.mood_brightness is not NotImplemented
+        return (
+            isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws)
+            and coordinator.mood_brightness is not NotImplemented
+        )
 
-    def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
+    def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
         """Initialize the blueair mood light entity."""
         super().__init__("Mood Light", coordinator, "mood_light")
+        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
         self._last_brightness = self.coordinator.mood_brightness or 255
 
     @property
@@ -140,7 +146,7 @@ class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity):
         """Return True if the entity is on."""
         return self.coordinator.mood_brightness_is_on
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         desired_brightness = kwargs.get(ATTR_BRIGHTNESS, self._last_brightness)
         if ATTR_BRIGHTNESS in kwargs:
@@ -148,26 +154,29 @@ class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity):
         await self.coordinator.set_mood_brightness(desired_brightness)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.turn_off_mood_brightness()
         self.async_write_ha_state()
 
 
-class BlueairNightLightEntity(BlueairRestoredBrightnessEntity):
+class BlueairNightLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoordinatorDeviceAws]):
     """Blueair night light entity."""
 
     _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes: ClassVar[set[ColorMode]] = {ColorMode.BRIGHTNESS}
 
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Return whether the coordinator supports this entity."""
-        return coordinator.night_light_brightness is not NotImplemented
+        return (
+            isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws)
+            and coordinator.night_light_brightness is not NotImplemented
+        )
 
-    def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
+    def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
         """Initialize the blueair night light entity."""
         super().__init__("Night Light", coordinator, "night_light")
+        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
         self._last_brightness = self.coordinator.night_light_brightness or 255
 
     @property
@@ -183,7 +192,7 @@ class BlueairNightLightEntity(BlueairRestoredBrightnessEntity):
         """Return True if the entity is on."""
         return self.coordinator.night_light_brightness_is_on
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         desired_brightness = kwargs.get(ATTR_BRIGHTNESS, self._last_brightness)
         if ATTR_BRIGHTNESS in kwargs:
@@ -191,7 +200,7 @@ class BlueairNightLightEntity(BlueairRestoredBrightnessEntity):
         await self.coordinator.set_night_light_brightness(desired_brightness)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.turn_off_night_light_brightness()
         self.async_write_ha_state()

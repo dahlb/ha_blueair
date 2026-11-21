@@ -124,13 +124,18 @@ rules:
   async-dependency:
     status: todo
     comment: >-
-      blueair_api's HTTP client is async, but its MQTT client wraps paho, which runs its own
-      network thread and needs connect/disconnect in the executor.
+      blueair_api's HTTP client is asyncio, but its MQTT client (MqttAwsBlueair) wraps
+      paho, which runs its own network thread; the integration connects and disconnects
+      it in the executor and hands messages to the event loop. Needs an asyncio MQTT
+      client in blueair_api.
   inject-websession:
-    status: todo
+    status: done
     comment: >-
-      Setup passes Home Assistant's shared session to blueair_api, but the config flow's
-      credential check lets blueair_api open (and then close) its own session.
+      Setup and the config flow's login checks pass Home Assistant's shared aiohttp
+      session to blueair_api, which leaves a caller's session open.
   strict-typing:
-    status: todo
-    comment: mypy reports about 190 errors without strict mode.
+    status: done
+    comment: >-
+      pyproject.toml sets strict = true, which type-checks cleanly; the Lint workflow runs
+      mypy on every push and pull request. warn_return_any is off for the two device
+      coordinators only, because typeshed derives NotImplementedType from Any.

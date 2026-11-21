@@ -10,6 +10,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import probatio
 
 from .const import (
@@ -72,7 +73,8 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     async def _async_validate_login(self, username: str, password: str, region: str) -> str | None:
         """Log in to Blueair once to check the credentials.
 
-        The login opens its own aiohttp session, which is closed afterwards.
+        The login uses Home Assistant's shared aiohttp session, which
+        blueair_api leaves open.
 
         Args:
             username: Blueair account username.
@@ -82,10 +84,12 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         Returns:
             str | None: The form error key, or None when the login succeeded.
         """
-        api_cloud = None
         try:
-            api_cloud, _devices = await get_aws_devices(
-                username=username, password=password, region=region
+            await get_aws_devices(
+                username=username,
+                password=password,
+                region=region,
+                client_session=async_get_clientsession(self.hass),
             )
         except AuthError:
             return "auth"
@@ -97,9 +101,6 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         except KeyError, TypeError, ValueError:
             _LOGGER.exception("Unexpected response from Blueair during login check")
             return "unknown"
-        finally:
-            if api_cloud is not None:
-                await api_cloud.cleanup_client_session()
         return None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity, SwitchEntityDescription
 from homeassistant.core import HomeAssistant
@@ -54,14 +55,15 @@ class BlueairSwitchEntity(BlueairEntity, SwitchEntity):
     @property
     def is_on(self) -> bool | None:
         """Return whether the device is on."""
-        return getattr(self.coordinator, self.entity_description.key)
+        value: bool | None = getattr(self.coordinator, self.entity_description.key)
+        return value
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         await getattr(self.coordinator, f"set_{self.entity_description.key}")(True)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await getattr(self.coordinator, f"set_{self.entity_description.key}")(False)
         self.async_write_ha_state()

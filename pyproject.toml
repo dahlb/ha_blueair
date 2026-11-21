@@ -52,10 +52,17 @@ namespace_packages = true
 pretty = true
 show_error_codes = true
 warn_unused_configs = true
+strict = true
 
 [[tool.mypy.overrides]]
-module = ["blueair_api.*"]
-ignore_missing_imports = true
+# Coordinators return NotImplemented for features a model lacks. typeshed
+# derives NotImplementedType from Any, so every such return would be
+# reported as returning Any.
+module = [
+    "custom_components.ha_blueair.coordinator_device",
+    "custom_components.ha_blueair.coordinator_device_aws",
+]
+warn_return_any = false
 
 [tool.ruff]
 line-length = 100
