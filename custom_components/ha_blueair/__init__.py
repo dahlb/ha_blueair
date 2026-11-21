@@ -1,6 +1,7 @@
 """The Blueair integration."""
 
 import contextlib
+from dataclasses import dataclass
 from datetime import timedelta
 import logging
 
@@ -27,38 +28,52 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
-import voluptuous as vol
 
-from .blueair_update_coordinator import BlueairUpdateCoordinator
-from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
-from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .const import (
     CONF_NIGHT_PRESET,
-    DATA_AWS_DEVICES,
-    DATA_DEVICES,
-    DATA_MQTT_CLIENT,
     DEFAULT_NIGHT_PRESET,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     PLATFORMS,
     REGION_USA,
 )
+from .coordinator import BlueairUpdateCoordinator
+from .coordinator_device import BlueairUpdateCoordinatorDevice
+from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .mqtt_mapping import map_and_publish_event
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_USERNAME): cv.string,
-                vol.Required(CONF_PASSWORD): cv.string,
-                vol.Required(CONF_REGION): cv.string,
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
+# The integration is configured through config entries only; the YAML schema
+# that used to live here was never read by async_setup.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+@dataclass
+class BlueairRuntimeData:
+    """Per-config-entry state, stored on ConfigEntry.runtime_data.
+
+    Each Blueair account has its own entry, so keeping this on the entry (not in
+    a shared hass.data dict) lets several accounts load and unload independently.
+
+    Attributes:
+        devices: Coordinators for legacy (non-AWS) devices.
+        aws_devices: Coordinators for AWS devices.
+        mqtt_client: Connected MQTT client for AWS push updates, or None when
+            the entry only polls.
+    """
+
+    devices: list[BlueairUpdateCoordinatorDevice]
+    aws_devices: list[BlueairUpdateCoordinatorDeviceAws]
+    mqtt_client: MqttAwsBlueair | None = None
+
+    @property
+    def coordinators(self) -> list[BlueairUpdateCoordinator]:
+        """Return every device coordinator for the entry, legacy first."""
+        return [*self.devices, *self.aws_devices]
+
+
+type BlueairConfigEntry = ConfigEntry[BlueairRuntimeData]
 
 
 def _schedule_update(
@@ -222,14 +237,13 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
-async def async_setup(hass: HomeAssistant, config_entry: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Blueair integration."""
-    hass.data.setdefault(DOMAIN, {})
     _LOGGER.debug("async setup")
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntry) -> bool:
     """Set up the platform from a config entry."""
     _LOGGER.debug("async setup entry: %s", config_entry)
     username = config_entry.data[CONF_USERNAME]
@@ -237,8 +251,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     region = config_entry.data[CONF_REGION]
     interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     _LOGGER.debug("setting up scan interval: %s", interval)
-
-    data = {}
 
     client_session = async_get_clientsession(hass)
     try:
@@ -266,7 +278,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
                 interval=interval,
             )
 
-        data[DATA_DEVICES] = list(map(create_coordinators, devices))
+        device_coordinators = list(map(create_coordinators, devices))
 
         def create_aws_coordinators(device: DeviceAws) -> BlueairUpdateCoordinatorDeviceAws:
             return BlueairUpdateCoordinatorDeviceAws(
@@ -275,19 +287,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
                 interval=interval,
             )
 
-        data[DATA_AWS_DEVICES] = list(map(create_aws_coordinators, aws_devices))
+        aws_coordinators = list(map(create_aws_coordinators, aws_devices))
 
-        coordinators = data[DATA_DEVICES] + data[DATA_AWS_DEVICES]
+        coordinators = [*device_coordinators, *aws_coordinators]
 
         for coordinator in coordinators:
             await coordinator.async_config_entry_first_refresh()
 
         mqtt_client = await _async_start_mqtt(
-            hass, config_entry, region, aws_http_client, aws_devices, data[DATA_AWS_DEVICES]
+            hass, config_entry, region, aws_http_client, aws_devices, aws_coordinators
         )
 
-        data[DATA_MQTT_CLIENT] = mqtt_client
-        hass.data[DOMAIN] = data
+        config_entry.runtime_data = BlueairRuntimeData(
+            devices=device_coordinators,
+            aws_devices=aws_coordinators,
+            mqtt_client=mqtt_client,
+        )
 
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
         _LOGGER.debug("integration setup completed")
@@ -321,18 +336,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         return True
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: BlueairConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("unload entry")
     # Disconnect MQTT before unloading platforms
-    data = hass.data.get(DOMAIN)
-    if data and data.get(DATA_MQTT_CLIENT):
+    mqtt_client = config_entry.runtime_data.mqtt_client
+    if mqtt_client is not None:
         # disconnect() joins paho's network thread, so keep it off the loop.
-        await hass.async_add_executor_job(data[DATA_MQTT_CLIENT].disconnect)
+        await hass.async_add_executor_job(mqtt_client.disconnect)
         _LOGGER.info("MQTT disconnected")
 
-    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN] = None
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)

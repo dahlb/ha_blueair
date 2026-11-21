@@ -7,12 +7,12 @@ from typing import ClassVar
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, LightEntity
 from homeassistant.components.light.const import ColorMode
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .blueair_update_coordinator import BlueairUpdateCoordinator
+from . import BlueairConfigEntry
+from .coordinator import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ _ATTR_LAST_BRIGHTNESS = "last_brightness"
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: BlueairConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the Blueair sensors from config entry."""

@@ -2,15 +2,15 @@
 
 import logging
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from propcache import cached_property
 
-from .blueair_update_coordinator_device import BlueairUpdateCoordinator
-from .const import DATA_AWS_DEVICES, DATA_DEVICES, DOMAIN
+from . import BlueairConfigEntry
+from .const import DOMAIN
+from .coordinator_device import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,14 +22,12 @@ _MAC_MISSING_WARNED: set[str] = set()
 
 def async_setup_entry_helper(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: BlueairConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
     entity_classes: list[type[BlueairEntity]],
 ) -> None:
     """Add entities of the given classes for every coordinator that supports them."""
-    coordinators: list[BlueairUpdateCoordinator] = []
-    coordinators.extend(hass.data[DOMAIN][DATA_DEVICES])
-    coordinators.extend(hass.data[DOMAIN][DATA_AWS_DEVICES])
+    coordinators: list[BlueairUpdateCoordinator] = config_entry.runtime_data.coordinators
 
     entities = [
         kls(coordinator)
@@ -44,6 +42,7 @@ def async_setup_entry_helper(
 class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     """A base class for Blueair entities."""
 
+    _attr_has_entity_name = True
     _attr_translation_key = DOMAIN
 
     @classmethod
@@ -57,9 +56,13 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
         coordinator: BlueairUpdateCoordinator,
         **kwargs,
     ) -> None:
-        """Initialize the blueair entity."""
+        """Initialize the blueair entity.
+
+        Home Assistant prefixes the device name, so the friendly name stays
+        "{device name} {entity type}" and new entity IDs are unchanged.
+        """
         super().__init__(coordinator)
-        self._attr_name = f"{coordinator.device_name} {entity_type}"
+        self._attr_name = entity_type
         self._attr_unique_id = f"{coordinator.id}_{entity_type}"
 
     @cached_property[DeviceInfo | None]

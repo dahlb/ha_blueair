@@ -7,13 +7,10 @@ import logging
 
 from blueair_api import AP_SUB_MODE_LABELS
 from homeassistant.components.fan import FanEntity, FanEntityFeature
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .blueair_update_coordinator import BlueairUpdateCoordinator
-from .blueair_update_coordinator_device import BlueairUpdateCoordinatorDevice
-from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
+from . import BlueairConfigEntry
 from .const import (
     CONF_NIGHT_PRESET,
     DEFAULT_FAN_SPEED_PERCENTAGE,
@@ -22,6 +19,9 @@ from .const import (
     MODE_MANUAL_FAN,
     MODE_NIGHT,
 )
+from .coordinator import BlueairUpdateCoordinator
+from .coordinator_device import BlueairUpdateCoordinatorDevice
+from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ def _drop_night_if_disabled(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: BlueairConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the Blueair fans from config entry."""

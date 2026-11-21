@@ -6,14 +6,13 @@ from logging import Logger, getLogger
 import time
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import BlueairUpdateCoordinatorDeviceAws
-from .blueair_update_coordinator import BlueairUpdateCoordinator
+from . import BlueairConfigEntry, BlueairUpdateCoordinatorDeviceAws
 from .const import FanMode
+from .coordinator import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER: Logger = getLogger(__package__)
@@ -52,7 +51,7 @@ def _safe_int(value: object, default: int = 0) -> int:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: BlueairConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the platform from a config entry."""

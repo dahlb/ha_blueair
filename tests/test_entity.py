@@ -34,7 +34,7 @@ def load_entity() -> type[Any]:
     package = "_blueair_entity_test"
     modules = {}
     attributes = {
-        package: {"__path__": []},
+        package: {"__path__": [], "BlueairConfigEntry": object},
         "propcache": {"cached_property": CachedProperty},
         "homeassistant.helpers.device_registry": {
             "CONNECTION_NETWORK_MAC": "mac",
@@ -43,10 +43,8 @@ def load_entity() -> type[Any]:
         "homeassistant.helpers.update_coordinator": {"CoordinatorEntity": CoordinatorEntity},
         f"{package}.const": {
             "DOMAIN": "ha_blueair",
-            "DATA_DEVICES": "devices",
-            "DATA_AWS_DEVICES": "aws_devices",
         },
-        f"{package}.blueair_update_coordinator_device": {"BlueairUpdateCoordinator": object},
+        f"{package}.coordinator_device": {"BlueairUpdateCoordinator": object},
     }
     for name, values in attributes.items():
         module = ModuleType(name)

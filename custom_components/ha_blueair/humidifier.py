@@ -7,12 +7,12 @@ from typing import Any
 
 from homeassistant.components.humidifier import HumidifierDeviceClass, HumidifierEntity
 from homeassistant.components.humidifier.const import MODE_AUTO, MODE_SLEEP, HumidifierEntityFeature
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .blueair_update_coordinator_device_aws import BlueairUpdateCoordinator
+from . import BlueairConfigEntry
 from .const import MODE_FAN_SPEED
+from .coordinator_device_aws import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: BlueairConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the Blueair humidifier from config entry."""
