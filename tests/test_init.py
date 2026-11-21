@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Any
 
 from aiohttp import ClientConnectionError
+from aiomqtt import MqttError
 from blueair_api import LoginError
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
@@ -149,7 +150,7 @@ async def test_mqtt_starts_for_aws_devices_and_stops_on_unload(
 async def test_mqtt_disconnects_when_home_assistant_stops(
     hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
 ) -> None:
-    """Stop paho's thread at shutdown, since entries are not unloaded then."""
+    """Disconnect MQTT at shutdown, since entries are not unloaded then."""
     await setup_blueair(aws=[make_purifier()])
 
     hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
@@ -163,7 +164,7 @@ async def test_mqtt_connect_failure_falls_back_to_polling(
     hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
 ) -> None:
     """Keep the entry working by polling when MQTT cannot connect."""
-    fake_mqtt.connect_error = OSError("TLS handshake failed")
+    fake_mqtt.connect_error = MqttError("TLS handshake failed")
 
     entry = await setup_blueair(aws=[make_purifier()])
 
@@ -205,7 +206,7 @@ async def test_mqtt_payloads_that_fail_to_apply_are_skipped(
     fake_mqtt: type[FakeMqtt],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Log and skip a payload the device cannot apply, without killing the MQTT thread."""
+    """Log and skip a payload the device cannot apply, without breaking MQTT updates."""
     device = make_purifier()
     await setup_blueair(aws=[device])
     client = fake_mqtt.instances[0]

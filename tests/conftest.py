@@ -534,7 +534,7 @@ class FakeMqtt:
     """Stand-in for blueair_api's MqttAwsBlueair; the integration sets its callbacks.
 
     ``instances`` collects every client the integration created, so a test can
-    drive the callbacks the way paho's network thread would.
+    drive the callbacks the way the client does on the event loop.
     """
 
     instances: ClassVar[list[FakeMqtt]] = []
@@ -564,11 +564,8 @@ class FakeMqtt:
         """
         self.registered.append(uuid)
 
-    def connect(self, loop: Any) -> None:
+    async def connect(self) -> None:
         """Connect, or raise the configured error.
-
-        Args:
-            loop: Event loop callbacks are scheduled on.
 
         Raises:
             BaseException: The configured ``connect_error``.
@@ -577,7 +574,7 @@ class FakeMqtt:
             raise FakeMqtt.connect_error
         self.connected = True
 
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         """Record a disconnect."""
         self.disconnects += 1
 

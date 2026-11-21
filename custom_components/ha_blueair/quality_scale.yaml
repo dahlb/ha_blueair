@@ -122,12 +122,10 @@ rules:
 
   # Platinum
   async-dependency:
-    status: todo
+    status: done
     comment: >-
-      blueair_api's HTTP client is asyncio, but its MQTT client (MqttAwsBlueair) wraps
-      paho, which runs its own network thread; the integration connects and disconnects
-      it in the executor and hands messages to the event loop. Needs an asyncio MQTT
-      client in blueair_api.
+      blueair_api is asyncio throughout: its HTTP client uses aiohttp, and since 2.0.0 its
+      MQTT client runs on the event loop through aiomqtt instead of a paho network thread.
   inject-websession:
     status: done
     comment: >-
