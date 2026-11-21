@@ -113,7 +113,9 @@ async def test_options_flow_updates_the_options(
 
 
 @pytest.mark.parametrize("file_name", ["strings.json", "translations/en.json"])
-@pytest.mark.parametrize(("section", "step"), [("config", "user"), ("options", "init")])
+@pytest.mark.parametrize(
+    ("section", "step"), [("config", "user"), ("config", "reconfigure"), ("options", "init")]
+)
 def test_every_flow_field_has_a_data_description(file_name: str, section: str, step: str) -> None:
     """Describe every config and options flow field, as the config-flow rule requires."""
     strings = json.loads((INTEGRATION_DIR / file_name).read_text(encoding="utf-8"))
@@ -200,6 +202,55 @@ async def test_reauth_flow_keeps_the_form_open_on_errors(
     assert entry.data[CONF_PASSWORD] == "old-password"
 
 
+@pytest.mark.asyncio
+async def test_reconfigure_flow_updates_the_region_and_password(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
+) -> None:
+    """Store the new region and password after Blueair accepts them."""
+    entry = _reauth_entry(hass)
+
+    form = await entry.start_reconfigure_flow(hass)
+    assert form["type"] is FlowResultType.FORM
+    assert form["step_id"] == "reconfigure"
+    assert form["description_placeholders"]["username"] == USERNAME
+
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"], {CONF_REGION: "eu", CONF_PASSWORD: "new-password"}
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data == {
+        CONF_USERNAME: USERNAME,
+        CONF_PASSWORD: "new-password",
+        CONF_REGION: "eu",
+    }
+    assert {"username": USERNAME, "password": "new-password", "region": "eu"} in (
+        blueair_cloud.aws_calls
+    )
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_flow_keeps_the_form_open_on_errors(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
+) -> None:
+    """Keep the stored settings and show an error when Blueair rejects the login."""
+    entry = _reauth_entry(hass)
+    blueair_cloud.aws_error = LoginError("wrong region")
+    form = await entry.start_reconfigure_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"], {CONF_REGION: "eu", CONF_PASSWORD: "new-password"}
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "auth"}
+    assert entry.data[CONF_PASSWORD] == "old-password"
+    assert entry.data[CONF_REGION] == entry_data()[CONF_REGION]
+
+
 @pytest.mark.parametrize("file_name", ["strings.json", "translations/en.json"])
 def test_reauth_and_exception_strings_exist(file_name: str) -> None:
     """Translate the reauth form and every raised exception."""
@@ -208,4 +259,10 @@ def test_reauth_and_exception_strings_exist(file_name: str) -> None:
 
     assert set(reauth["data"]) == set(reauth["data_description"]) == {CONF_PASSWORD}
     assert "reauth_successful" in strings["config"]["abort"]
-    assert set(strings["exceptions"]) == {"auth_failed", "update_failed", "command_failed"}
+    assert set(strings["exceptions"]) == {
+        "auth_failed",
+        "update_failed",
+        "command_failed",
+        "cannot_connect",
+        "invalid_mode",
+    }

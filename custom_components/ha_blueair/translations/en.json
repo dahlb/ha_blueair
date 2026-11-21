@@ -24,6 +24,18 @@
         "data_description": {
           "password": "The current password for your Blueair account."
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Blueair",
+        "description": "Change the region or password for {username}. To use another Blueair account, add it as a new entry.",
+        "data": {
+          "region": "Region",
+          "password": "Password"
+        },
+        "data_description": {
+          "region": "The Blueair cloud region your account was created in (the region you picked in the Blueair app).",
+          "password": "The current password for your Blueair account."
+        }
       }
     },
     "error": {
@@ -33,7 +45,8 @@
     },
     "abort": {
       "reauth_successful": "Re-authentication was successful.",
-      "already_configured": "This Blueair account is already configured."
+      "already_configured": "This Blueair account is already configured.",
+      "reconfigure_successful": "Blueair was reconfigured."
     }
   },
   "options": {
@@ -52,19 +65,25 @@
     }
   },
   "entity": {
-    "humidifier": {
-      "ha_blueair": {
-        "state_attributes": {
-          "mode": {
-            "state": {
-              "fan_speed": "Fan Speed"
-            }
-          }
-        }
+    "binary_sensor": {
+      "filter_expired": {
+        "name": "Filter Expiration"
+      },
+      "online": {
+        "name": "Online"
+      },
+      "water_shortage": {
+        "name": "Water Shortage"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Climate"
       }
     },
     "fan": {
-      "ha_blueair": {
+      "fan": {
+        "name": "Fan",
         "state_attributes": {
           "preset_mode": {
             "state": {
@@ -75,6 +94,84 @@
             }
           }
         }
+      }
+    },
+    "humidifier": {
+      "humidifier": {
+        "name": "Humidifier",
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "fan_speed": "Fan Speed"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "led_light": {
+        "name": "LED Light"
+      },
+      "mood_light": {
+        "name": "Mood Light"
+      },
+      "night_light": {
+        "name": "Night Light"
+      }
+    },
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "voc": {
+        "name": "VOC"
+      },
+      "pm1": {
+        "name": "PM 1"
+      },
+      "pm10": {
+        "name": "PM 10"
+      },
+      "pm25": {
+        "name": "PM 2.5"
+      },
+      "co2": {
+        "name": "CO2"
+      },
+      "filter_life": {
+        "name": "Filter Life"
+      },
+      "wick_life": {
+        "name": "Wick Life"
+      },
+      "water_refresher_life": {
+        "name": "Water Refresher Life"
+      },
+      "water_level": {
+        "name": "Water Level"
+      },
+      "rssi": {
+        "name": "Signal Strength"
+      },
+      "timer_duration": {
+        "name": "Timer Duration"
+      },
+      "overall_firmware": {
+        "name": "Overall Firmware"
+      }
+    },
+    "switch": {
+      "child_lock": {
+        "name": "Child Lock"
+      },
+      "germ_shield": {
+        "name": "Germ Shield"
+      },
+      "wick_dry_mode": {
+        "name": "Wick Dry Mode"
       }
     }
   },
@@ -93,6 +190,12 @@
     },
     "command_failed": {
       "message": "Unable to send the command to {device}: {error}"
+    },
+    "cannot_connect": {
+      "message": "Unable to reach Blueair: {error}"
+    },
+    "invalid_mode": {
+      "message": "{mode} is not a mode this humidifier supports."
     }
   }
 }

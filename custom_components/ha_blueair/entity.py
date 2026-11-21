@@ -43,7 +43,6 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     """A base class for Blueair entities."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = DOMAIN
 
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
@@ -52,18 +51,25 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
 
     def __init__(
         self,
-        entity_type: str,
+        unique_id_suffix: str,
         coordinator: BlueairUpdateCoordinator,
-        **kwargs,
+        translation_key: str | None = None,
     ) -> None:
         """Initialize the blueair entity.
 
-        Home Assistant prefixes the device name, so the friendly name stays
-        "{device name} {entity type}" and new entity IDs are unchanged.
+        Args:
+            unique_id_suffix: The entity's original English name. Unique IDs
+                were built from it before names were translated, so it stays
+                to keep existing entities.
+            coordinator: The device's coordinator.
+            translation_key: Key for the entity's name (and state and icon
+                translations) in strings.json. Entities with an
+                entity_description take it from there instead.
         """
         super().__init__(coordinator)
-        self._attr_name = entity_type
-        self._attr_unique_id = f"{coordinator.id}_{entity_type}"
+        self._attr_unique_id = f"{coordinator.id}_{unique_id_suffix}"
+        if translation_key is not None:
+            self._attr_translation_key = translation_key
 
     @cached_property[DeviceInfo | None]
     def device_info(self) -> DeviceInfo:

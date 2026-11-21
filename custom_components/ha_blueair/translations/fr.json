@@ -21,7 +21,7 @@
   },
   "entity": {
     "humidifier": {
-      "ha_blueair": {
+      "humidifier": {
         "state_attributes": {
           "mode": {
             "state": {

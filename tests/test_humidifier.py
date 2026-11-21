@@ -14,9 +14,10 @@ from homeassistant.components.humidifier import (
 )
 from homeassistant.const import ATTR_ENTITY_ID, SERVICE_TURN_OFF, SERVICE_TURN_ON
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 import pytest
 
-from .conftest import make_combo, make_humidifier
+from .conftest import entity_object, make_combo, make_humidifier
 
 HUMIDIFIER = "humidifier.nursery_humidifier"
 COMBO = "humidifier.living_room_humidifier"
@@ -74,6 +75,20 @@ async def test_humidifier_set_mode(
 
     for attribute, value in expected.items():
         assert getattr(device, attribute) is value
+
+
+@pytest.mark.asyncio
+async def test_humidifier_rejects_an_unknown_mode(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Raise a translated validation error for a mode the humidifier lacks."""
+    await setup_blueair(aws=[make_humidifier()])
+
+    with pytest.raises(ServiceValidationError) as raised:
+        await entity_object(hass, HUMIDIFIER).async_set_mode("turbo")
+
+    assert raised.value.translation_key == "invalid_mode"
+    assert raised.value.translation_placeholders == {"mode": "turbo"}
 
 
 @pytest.mark.asyncio

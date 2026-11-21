@@ -172,3 +172,44 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             description_placeholders={"username": username},
             errors=errors,
         )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change the account's region or password.
+
+        The username is the entry's unique ID, so another account needs its own
+        entry.
+
+        Args:
+            user_input: Submitted region and password, or None to show the form.
+
+        Returns:
+            ConfigFlowResult: The form (with any error) or the reconfigure abort.
+        """
+        entry = self._get_reconfigure_entry()
+        username = entry.data[CONF_USERNAME]
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            region = user_input[CONF_REGION]
+            password = user_input[CONF_PASSWORD]
+            error = await self._async_validate_login(username, password, region)
+            if error is None:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates={CONF_REGION: region, CONF_PASSWORD: password}
+                )
+            errors["base"] = error
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(CONF_REGION, default=entry.data[CONF_REGION]): probatio.In(
+                        REGIONS
+                    ),
+                    probatio.Required(probatio.Secret(CONF_PASSWORD)): str,
+                }
+            ),
+            description_placeholders={"username": username},
+            errors=errors,
+        )

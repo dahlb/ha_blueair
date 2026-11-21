@@ -38,6 +38,9 @@ async def async_setup_entry(
 class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
     """Blueair binary sensor."""
 
+    # The original English name; see BlueairEntity.__init__.
+    _unique_id_suffix: str
+
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Return whether the coordinator supports this entity."""
@@ -50,7 +53,7 @@ class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the temperature sensor."""
-        super().__init__(self.entity_description.name, coordinator)
+        super().__init__(self._unique_id_suffix, coordinator)
 
     @property
     def is_on(self) -> bool | None:
@@ -61,30 +64,23 @@ class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
 class BlueairFilterExpiredSensor(BlueairBinarySensor):
     """Blueair filter expired sensor."""
 
+    _unique_id_suffix = "Filter Expiration"
     entity_description = BinarySensorEntityDescription(
         key="filter_expired",
-        name="Filter Expiration",
+        translation_key="filter_expired",
         device_class=BinarySensorDeviceClass.PROBLEM,
-        icon="mdi:air-filter",
     )
 
 
 class BlueairOnlineSensor(BlueairBinarySensor):
     """Blueair online sensor."""
 
+    _unique_id_suffix = "Online"
     entity_description = BinarySensorEntityDescription(
         key="online",
-        name="Online",
+        translation_key="online",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        icon="mdi:wifi-check",
     )
-
-    @property
-    def icon(self) -> str | None:
-        """Return the icon to use in the frontend."""
-        if self.is_on:
-            return self.entity_description.icon
-        return "mdi:wifi-strength-outline"
 
     @property
     def available(self) -> bool:
@@ -95,9 +91,9 @@ class BlueairOnlineSensor(BlueairBinarySensor):
 class BlueairWaterShortageSensor(BlueairBinarySensor):
     """Blueair water shortage sensor."""
 
+    _unique_id_suffix = "Water Shortage"
     entity_description = BinarySensorEntityDescription(
         key="water_shortage",
-        name="Water Shortage",
+        translation_key="water_shortage",
         device_class=BinarySensorDeviceClass.PROBLEM,
-        icon="mdi:water-alert-outline",
     )

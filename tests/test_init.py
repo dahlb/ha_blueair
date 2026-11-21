@@ -93,6 +93,8 @@ async def test_setup_retries_when_blueair_is_unreachable(
     await hass.config_entries.async_setup(entry.entry_id)
 
     assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.error_reason_translation_key == "cannot_connect"
+    assert entry.error_reason_translation_placeholders == {"error": "offline"}
 
 
 @pytest.mark.asyncio

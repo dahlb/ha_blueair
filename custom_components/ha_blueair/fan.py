@@ -110,7 +110,7 @@ class BlueairFan(BlueairEntity, FanEntity):
         if len(self._attr_preset_modes) > 0:
             self._attr_supported_features |= FanEntityFeature.PRESET_MODE
 
-        super().__init__("Fan", coordinator)
+        super().__init__("Fan", coordinator, "fan")
 
     @property
     def is_on(self) -> int:
@@ -272,7 +272,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         if len(self._attr_preset_modes) > 0:
             self._attr_supported_features |= FanEntityFeature.PRESET_MODE
 
-        super().__init__("Fan", coordinator)
+        super().__init__("Fan", coordinator, "fan")
 
     @property
     def is_on(self) -> int:
