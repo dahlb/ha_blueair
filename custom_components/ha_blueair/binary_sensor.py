@@ -58,7 +58,8 @@ class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        return getattr(self.coordinator, self.entity_description.key)
+        value: bool | None = getattr(self.coordinator, self.entity_description.key)
+        return value
 
 
 class BlueairFilterExpiredSensor(BlueairBinarySensor):

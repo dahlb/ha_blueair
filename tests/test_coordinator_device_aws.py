@@ -27,6 +27,7 @@ def load_coordinator_device_aws() -> type[Any]:
         "blueair_api": {"DeviceAws": object},
         f"{package}.coordinator": {
             "BlueairUpdateCoordinator": object,
+            "Capability": object,
         },
     }
     for name, values in attributes.items():

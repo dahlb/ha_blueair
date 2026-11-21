@@ -1,6 +1,7 @@
 """Base entity class for Blueair entities."""
 
 import logging
+from typing import Any, Protocol
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
@@ -10,7 +11,7 @@ from propcache import cached_property
 
 from . import BlueairConfigEntry
 from .const import DOMAIN
-from .coordinator_device import BlueairUpdateCoordinator
+from .coordinator import BlueairUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,11 +21,21 @@ _LOGGER = logging.getLogger(__name__)
 _MAC_MISSING_WARNED: set[str] = set()
 
 
+class BlueairEntityClass(Protocol):
+    """An entity class the platforms create for every device that supports it."""
+
+    def __call__(self, coordinator: Any) -> BlueairEntity[Any]:
+        """Create the entity for a coordinator is_implemented accepted."""
+
+    def is_implemented(self, coordinator: BlueairUpdateCoordinator) -> bool:
+        """Return whether the coordinator supports this entity."""
+
+
 def async_setup_entry_helper(
     hass: HomeAssistant,
     config_entry: BlueairConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
-    entity_classes: list[type[BlueairEntity]],
+    entity_classes: list[BlueairEntityClass],
 ) -> None:
     """Add entities of the given classes for every coordinator that supports them."""
     coordinators: list[BlueairUpdateCoordinator] = config_entry.runtime_data.coordinators
@@ -39,8 +50,14 @@ def async_setup_entry_helper(
     async_add_entities(entities)
 
 
-class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
-    """A base class for Blueair entities."""
+class BlueairEntity[CoordinatorT: BlueairUpdateCoordinator = BlueairUpdateCoordinator](
+    CoordinatorEntity[CoordinatorT]
+):
+    """A base class for Blueair entities.
+
+    Entities that only AWS devices have use BlueairEntity with the AWS
+    coordinator type; their is_implemented only accepts AWS coordinators.
+    """
 
     _attr_has_entity_name = True
 
@@ -52,7 +69,7 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
     def __init__(
         self,
         unique_id_suffix: str,
-        coordinator: BlueairUpdateCoordinator,
+        coordinator: CoordinatorT,
         translation_key: str | None = None,
     ) -> None:
         """Initialize the blueair entity.
@@ -115,4 +132,4 @@ class BlueairEntity(CoordinatorEntity[BlueairUpdateCoordinator]):
             # Sense+ can report wifi_working=False while refreshes and commands
             # still succeed. Require a usable legacy fan state instead.
             return str(self.coordinator.blueair_api_device.fan_speed) in ("0", "1", "2", "3")
-        return self.coordinator.online
+        return bool(self.coordinator.online)

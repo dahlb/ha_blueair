@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Coroutine
 from datetime import timedelta
 import logging
+from types import NotImplementedType
 from typing import Any
 
 from aiohttp import ClientError
@@ -13,10 +14,10 @@ from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevic
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import (
     REQUEST_REFRESH_DEFAULT_COOLDOWN,
     DataUpdateCoordinator,
-    Debouncer,
     UpdateFailed,
 )
 
@@ -24,9 +25,17 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# A device capability's value: NotImplemented when the model lacks the
+# feature, None when the device hasn't reported it yet.
+type Capability[T] = T | NotImplementedType | None
 
-class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
-    """Blueair device object."""
+
+class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
+    """Blueair device object.
+
+    The coordinator's data is the device's string form, so an update that
+    changes nothing doesn't write entity states (always_update=False).
+    """
 
     def __init__(
         self,
@@ -46,7 +55,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         """
         self.hass: HomeAssistant = hass
         self.blueair_api_device = blueair_api_device
-        request_refresh_debouncer = Debouncer(
+        request_refresh_debouncer: Debouncer[Coroutine[Any, Any, None]] = Debouncer(
             hass,
             _LOGGER,
             cooldown=REQUEST_REFRESH_DEFAULT_COOLDOWN,
@@ -122,37 +131,38 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     @property
     def id(self) -> str:
         """Return Blueair device id."""
-        return self.blueair_api_device.uuid
+        # blueair_api always sets it; the legacy Device types it optional.
+        return self.blueair_api_device.uuid or ""
 
     @property
     def device_name(self) -> str:
         """Return device name."""
-        return self.blueair_api_device.name
+        return self.blueair_api_device.name or ""
 
     @property
     @abstractmethod
-    def model(self) -> str:
+    def model(self) -> str | None:
         """Return model for device, or the UUID if it's not known."""
 
     @property
     @abstractmethod
-    def hw_version(self) -> str:
+    def hw_version(self) -> str | None:
         """Return the hardware version."""
 
     @property
     @abstractmethod
-    def sw_version(self) -> str:
+    def sw_version(self) -> str | None:
         """Return the software version."""
 
     @property
     @abstractmethod
-    def serial_number(self) -> str:
+    def serial_number(self) -> str | None:
         """Return the serial number."""
 
     @property
-    def fan_speed(self) -> int:
+    @abstractmethod
+    def fan_speed(self) -> Capability[int]:
         """Return the current fan speed."""
-        return int(self.blueair_api_device.fan_speed)
 
     @property
     @abstractmethod
@@ -161,170 +171,170 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @property
     @abstractmethod
-    def is_on(self) -> bool:
+    def is_on(self) -> Capability[bool]:
         """Return whether the device is on."""
 
     @property
-    def online(self) -> bool:
+    def online(self) -> Capability[bool]:
         """Return whether the device is online."""
         return self.blueair_api_device.wifi_working
 
     @property
     @abstractmethod
-    def brightness(self) -> int:
+    def brightness(self) -> Capability[int]:
         """Return the brightness."""
 
     @property
-    def child_lock(self) -> bool:
+    def child_lock(self) -> Capability[bool]:
         """Return whether the child lock is enabled."""
         return self.blueair_api_device.child_lock
 
     @property
     @abstractmethod
-    def germ_shield(self) -> bool:
+    def germ_shield(self) -> Capability[bool]:
         """Return whether germ shield is enabled."""
 
     @property
-    def night_mode(self) -> bool:
+    def night_mode(self) -> Capability[bool]:
         """Return whether night mode is enabled."""
         return self.blueair_api_device.night_mode
 
     @property
     @abstractmethod
-    def temperature(self) -> int:
+    def temperature(self) -> Capability[float]:
         """Return the temperature."""
 
     @property
     @abstractmethod
-    def humidity(self) -> int:
+    def humidity(self) -> Capability[int]:
         """Return the humidity."""
 
     @property
     @abstractmethod
-    def voc(self) -> int:
+    def voc(self) -> Capability[int]:
         """Return the VOC level."""
 
     @property
     @abstractmethod
-    def pm1(self) -> int:
+    def pm1(self) -> Capability[int]:
         """Return the PM1 concentration."""
 
     @property
     @abstractmethod
-    def pm10(self) -> int:
+    def pm10(self) -> Capability[int]:
         """Return the PM10 concentration."""
 
     @property
     @abstractmethod
-    def pm25(self) -> int:
+    def pm25(self) -> Capability[int]:
         """Return the PM2.5 concentration."""
 
     @property
     @abstractmethod
-    def co2(self) -> int:
+    def co2(self) -> Capability[int]:
         """Return the CO2 level."""
 
     @property
     @abstractmethod
-    def fan_auto_mode(self) -> bool | NotImplemented | None:
+    def fan_auto_mode(self) -> Capability[bool]:
         """Return whether automatic fan mode is enabled."""
 
     @property
     @abstractmethod
-    def wick_dry_mode(self) -> bool | NotImplemented | None:
+    def wick_dry_mode(self) -> Capability[bool]:
         """Return whether wick dry mode is enabled."""
 
     @property
     @abstractmethod
-    def water_shortage(self) -> bool | NotImplemented | None:
+    def water_shortage(self) -> Capability[bool]:
         """Return whether the water tank is low."""
 
     @property
     @abstractmethod
-    def filter_expired(self) -> bool | NotImplemented | None:
+    def filter_expired(self) -> Capability[bool]:
         """Return the current filter status."""
 
     @property
     @abstractmethod
-    def filter_life(self) -> int | NotImplemented | None:
+    def filter_life(self) -> Capability[int]:
         """Return the filter life."""
 
     @property
     @abstractmethod
-    def wick_life(self) -> int | NotImplemented | None:
+    def wick_life(self) -> Capability[int]:
         """Return the wick life."""
 
     @property
     @abstractmethod
-    def main_mode(self) -> int | NotImplemented | None:
+    def main_mode(self) -> Capability[int]:
         """Return the main mode."""
 
     @property
     @abstractmethod
-    def heat_temp(self) -> int | NotImplemented | None:
+    def heat_temp(self) -> Capability[float]:
         """Return the heat temp."""
 
     @property
     @abstractmethod
-    def heat_sub_mode(self) -> int | NotImplemented | None:
+    def heat_sub_mode(self) -> Capability[int]:
         """Return the heat sub mode."""
 
     @property
     @abstractmethod
-    def heat_fan_speed(self) -> int | NotImplemented | None:
+    def heat_fan_speed(self) -> Capability[int]:
         """Return the heat fan speed."""
 
     @property
     @abstractmethod
-    def cool_sub_mode(self) -> int | NotImplemented | None:
+    def cool_sub_mode(self) -> Capability[int]:
         """Return the cool sub mode."""
 
     @property
     @abstractmethod
-    def cool_fan_speed(self) -> int | NotImplemented | None:
+    def cool_fan_speed(self) -> Capability[int]:
         """Return the cool fan speed."""
 
     @property
     @abstractmethod
-    def ap_sub_mode(self) -> int | NotImplemented | None:
+    def ap_sub_mode(self) -> Capability[int]:
         """Return the air purifier sub mode."""
 
     @property
     @abstractmethod
-    def fan_speed_0(self) -> int | NotImplemented | None:
+    def fan_speed_0(self) -> Capability[int]:
         """Return the fan speed 0 value."""
 
     @property
     @abstractmethod
-    def temperature_unit(self) -> int | NotImplemented | None:
+    def temperature_unit(self) -> Capability[int]:
         """Return the temperature unit."""
 
     @property
     @abstractmethod
-    def water_refresher_life(self) -> int | NotImplemented | None:
+    def water_refresher_life(self) -> Capability[int]:
         """Return the water refresher life."""
 
     @property
     @abstractmethod
-    def water_level(self) -> int | NotImplemented | None:
+    def water_level(self) -> Capability[int]:
         """Return the water level."""
 
     @property
     @abstractmethod
-    def mood_brightness(self) -> int | NotImplemented | None:
+    def mood_brightness(self) -> Capability[int]:
         """Return the mood brightness."""
 
     @property
     @abstractmethod
-    def auto_regulated_humidity(self) -> bool | NotImplemented | None:
-        """Return whether automatic humidity regulation is enabled."""
+    def auto_regulated_humidity(self) -> Capability[int]:
+        """Return the target humidity the device regulates to, in percent."""
 
     @property
-    def humidifier_mode(self) -> bool | NotImplemented | None:
+    def humidifier_mode(self) -> Capability[bool]:
         """Return the humidifier mode."""
 
     @property
-    def combo_mode(self) -> int | NotImplemented | None:
+    def combo_mode(self) -> Capability[int]:
         """Return the combo mode."""
 
     # ----- AWS-only sensor attributes (issue #356) -----
@@ -335,33 +345,32 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     @property
     @abstractmethod
-    def timer_duration(self) -> int | NotImplemented | None:
+    def timer_duration(self) -> Capability[int]:
         """Return the timer duration."""
 
     @property
     @abstractmethod
-    def timer_state(self) -> int | NotImplemented | None:
+    def timer_state(self) -> Capability[int]:
         """Return the timer state."""
 
     @property
     @abstractmethod
-    def rssi(self) -> int | NotImplemented | None:
+    def rssi(self) -> Capability[int]:
         """Return the Wi-Fi signal strength (RSSI)."""
 
     @property
     @abstractmethod
-    def night_light_brightness(self) -> int | NotImplemented | None:
+    def night_light_brightness(self) -> Capability[int]:
         """Return the night light brightness."""
 
     @property
     @abstractmethod
-    def hour_format(self) -> bool | NotImplemented | None:
+    def hour_format(self) -> Capability[bool]:
         """Return the clock hour format setting."""
 
+    @abstractmethod
     async def set_fan_speed(self, new_speed: int) -> None:
         """Set the fan speed."""
-        await self._async_device_command(self.blueair_api_device.set_fan_speed(new_speed))
-        await self.async_request_refresh()
 
     @abstractmethod
     async def set_brightness(self, brightness: int) -> None:
@@ -409,15 +418,15 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         """Set the wick dry mode."""
 
     @abstractmethod
-    async def set_auto_regulated_humidity(self, value: bool) -> None:
-        """Set the auto regulated humidity."""
+    async def set_auto_regulated_humidity(self, value: int) -> None:
+        """Set the target humidity, in percent."""
 
     @abstractmethod
     async def set_main_mode(self, value: int) -> None:
         """Set the main mode."""
 
     @abstractmethod
-    async def set_heat_temp(self, value: int) -> None:
+    async def set_heat_temp(self, value: float) -> None:
         """Set the heat temp."""
 
     @abstractmethod

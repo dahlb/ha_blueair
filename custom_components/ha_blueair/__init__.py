@@ -4,6 +4,7 @@ import contextlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
+from typing import Any
 
 from aiohttp import ClientError
 from blueair_api import (
@@ -129,13 +130,13 @@ async def _async_start_mqtt(
                 mqtt_auth_name=aws_http_client.mqtt_auth_name,
                 mqtt_auth_signature=aws_http_client.mqtt_auth_signature,
                 mqtt_auth_token=aws_http_client.mqtt_auth_token,
-                user_id=aws_http_client.user_id,
+                user_id=aws_http_client.user_id or "",
             )
 
             # Build a lookup from device UUID to coordinator
             aws_coordinator_map = {c.id: c for c in aws_coordinators}
 
-            def on_sensor_data(device_id: str, sensors: dict) -> None:
+            def on_sensor_data(device_id: str, sensors: dict[str, float]) -> None:
                 """Handle MQTT sensor data (called from MQTT thread)."""
                 _LOGGER.debug("processing sensor update %s for %s", sensors, device_id)
                 coordinator = aws_coordinator_map.get(device_id)
@@ -155,7 +156,7 @@ async def _async_start_mqtt(
                 device.publish_updates()
                 _schedule_update(hass, coordinator, device)
 
-            def on_state_change(device_id: str, state: dict) -> None:
+            def on_state_change(device_id: str, state: dict[str, Any]) -> None:
                 """Handle MQTT shadow state change (called from MQTT thread)."""
                 _LOGGER.debug("processing state change %s for %s", state, device_id)
                 coordinator = aws_coordinator_map.get(device_id)
@@ -175,7 +176,7 @@ async def _async_start_mqtt(
                 device.publish_updates()
                 _schedule_update(hass, coordinator, device)
 
-            def on_event(device_id: str, event: dict) -> None:
+            def on_event(device_id: str, event: dict[str, Any]) -> None:
                 """Handle MQTT connectivity event (called from MQTT thread)."""
                 _LOGGER.debug("processing event update %s for %s", event, device_id)
                 coordinator = aws_coordinator_map.get(device_id)
@@ -195,9 +196,9 @@ async def _async_start_mqtt(
                 """Refresh the AWS token and return new MQTT credentials."""
                 await aws_http_client.refresh_access_token()
                 return (
-                    aws_http_client.mqtt_auth_name,
-                    aws_http_client.mqtt_auth_signature,
-                    aws_http_client.mqtt_auth_token,
+                    aws_http_client.mqtt_auth_name or "",
+                    aws_http_client.mqtt_auth_signature or "",
+                    aws_http_client.mqtt_auth_token or "",
                 )
 
             mqtt_client.credential_refresher = refresh_mqtt_credentials
@@ -214,9 +215,11 @@ async def _async_start_mqtt(
             # so async_unload_entry never runs at shutdown. Without this
             # the paho thread outlives the event loop and logs an error
             # for every message it receives until the process exits.
+            connected_client = mqtt_client
+
             async def stop_mqtt(_event: Event) -> None:
                 """Disconnect MQTT when Home Assistant stops."""
-                await hass.async_add_executor_job(mqtt_client.disconnect)
+                await hass.async_add_executor_job(connected_client.disconnect)
 
             config_entry.async_on_unload(
                 hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop_mqtt)

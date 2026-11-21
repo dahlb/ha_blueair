@@ -4,15 +4,18 @@ from __future__ import annotations
 
 from logging import Logger, getLogger
 import time
+from types import NotImplementedType
+from typing import Any
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import BlueairConfigEntry, BlueairUpdateCoordinatorDeviceAws
+from . import BlueairConfigEntry
 from .const import FanMode
 from .coordinator import BlueairUpdateCoordinator
+from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER: Logger = getLogger(__package__)
@@ -32,7 +35,7 @@ FAN_SPEED_BY_STEP: dict[str, int] = {
 }
 
 
-def _safe_int(value: object, default: int = 0) -> int:
+def _safe_int(value: float | str | NotImplementedType | None, default: int = 0) -> int:
     """Coerce a value to int, treating None / NotImplemented / unparsable as ``default``.
 
     Coordinator properties on BlueairUpdateCoordinatorDeviceAws return
@@ -66,7 +69,7 @@ async def async_setup_entry(
     )
 
 
-def _fan_mode_from_speed(speed: float | NotImplemented | None) -> str | None:
+def _fan_mode_from_speed(speed: float | NotImplementedType | None) -> str | None:
     if speed in (None, NotImplemented):
         return None
     try:
@@ -83,14 +86,15 @@ def _fan_mode_from_speed(speed: float | NotImplemented | None) -> str | None:
     return FanMode.STEP4.value
 
 
-class BlueairThermostat(BlueairEntity, ClimateEntity):
+class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], ClimateEntity):
     """Blueair climate entity for heater/cooler devices."""
 
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Return whether the coordinator supports this entity."""
         return (
-            coordinator.main_mode is not NotImplemented
+            isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws)
+            and coordinator.main_mode is not NotImplemented
             and coordinator.temperature is not NotImplemented
         )
 
@@ -404,7 +408,7 @@ class BlueairThermostat(BlueairEntity, ClimateEntity):
         self._optimistic_fan_mode = fan_mode
         self.async_write_ha_state()
 
-    async def async_set_temperature(self, **kwargs) -> None:
+    async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:

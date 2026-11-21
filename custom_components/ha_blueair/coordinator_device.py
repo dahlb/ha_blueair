@@ -5,32 +5,37 @@ from __future__ import annotations
 import logging
 from types import NotImplementedType
 
-from .coordinator import BlueairUpdateCoordinator
+from blueair_api import Device
+
+from .coordinator import BlueairUpdateCoordinator, Capability
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _cast[T](type_: type(T), value: T | NotImplemented | None) -> T:
-    if value in (None, NotImplemented):
+def _as_int(value: Capability[float]) -> Capability[int]:
+    """Return a reported number as an int, keeping None and NotImplemented."""
+    if value is None or value is NotImplemented:
         return value
-    return type_(value)
+    return int(value)
 
 
 class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     """Blueair device object."""
 
+    blueair_api_device: Device
+
     @property
-    def model(self) -> str:
+    def model(self) -> str | None:
         """Return model for device."""
         return self.blueair_api_device.compatibility
 
     @property
-    def hw_version(self) -> str:
+    def hw_version(self) -> str | None:
         """Return the hardware version."""
         return self.blueair_api_device.mcu_firmware
 
     @property
-    def sw_version(self) -> str:
+    def sw_version(self) -> str | None:
         """Return the software version."""
         return self.blueair_api_device.firmware
 
@@ -40,24 +45,24 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return None
 
     @property
-    def filter_expired(self) -> bool | NotImplemented | None:
+    def filter_expired(self) -> Capability[bool]:
         """Return the current filter status."""
         return self.blueair_api_device.filter_expired
 
     @property
-    def filter_life(self) -> int | NotImplemented | None:
+    def filter_life(self) -> Capability[int]:
         """Return the filter life."""
         return NotImplemented
 
     @property
-    def wick_life(self) -> int | NotImplemented | None:
+    def wick_life(self) -> Capability[int]:
         """Return the wick life."""
         return NotImplemented
 
     @property
-    def fan_speed(self) -> int:
+    def fan_speed(self) -> Capability[int]:
         """Return the current fan speed."""
-        return _cast(int, self.blueair_api_device.fan_speed)
+        return _as_int(self.blueair_api_device.fan_speed)
 
     @property
     def speed_count(self) -> int:
@@ -72,71 +77,71 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return True
 
     @property
-    def brightness(self) -> int | NotImplemented | None:
+    def brightness(self) -> Capability[int]:
         """Return the brightness."""
         if (
             self.blueair_api_device.brightness is None
             or self.blueair_api_device.brightness is NotImplemented
         ):
             return self.blueair_api_device.brightness
-        return round(self.blueair_api_device.brightness / 4 * 255.0, 0)
+        return round(self.blueair_api_device.brightness / 4 * 255)
 
     @property
-    def temperature(self) -> int | NotImplemented | None:
+    def temperature(self) -> Capability[int]:
         """Return the temperature."""
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return _cast(int, self.blueair_api_device.temperature)
+        return _as_int(self.blueair_api_device.temperature)
 
     @property
-    def humidity(self) -> int | NotImplemented | None:
+    def humidity(self) -> Capability[int]:
         """Return the humidity."""
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return _cast(int, self.blueair_api_device.humidity)
+        return _as_int(self.blueair_api_device.humidity)
 
     @property
-    def voc(self) -> int | NotImplemented | None:
+    def voc(self) -> Capability[int]:
         """Return the VOC level."""
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return _cast(int, self.blueair_api_device.voc)
+        return _as_int(self.blueair_api_device.voc)
 
     @property
-    def pm1(self) -> int | NotImplemented | None:
+    def pm1(self) -> Capability[int]:
         """Return the PM1 concentration."""
         if self.model not in ["classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return _cast(int, self.blueair_api_device.pm1)
+        return _as_int(self.blueair_api_device.pm1)
 
     @property
-    def pm10(self) -> int | NotImplemented | None:
+    def pm10(self) -> Capability[int]:
         """Return the PM10 concentration."""
         if self.model not in ["classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return _cast(int, self.blueair_api_device.pm10)
+        return _as_int(self.blueair_api_device.pm10)
 
     @property
-    def pm25(self) -> int | NotImplemented | None:
+    def pm25(self) -> Capability[int]:
         """Return the PM2.5 concentration."""
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
-        return _cast(int, self.blueair_api_device.pm25)
+        return _as_int(self.blueair_api_device.pm25)
 
     @property
-    def co2(self) -> int | NotImplemented | None:
+    def co2(self) -> Capability[int]:
         """Return the CO2 level."""
         if self.model not in ["classic_280i", "classic_290i", "classic_480i", "classic_680i"]:
             return NotImplemented
         return self.blueair_api_device.co2
 
     @property
-    def germ_shield(self) -> bool:
+    def germ_shield(self) -> Capability[bool]:
         """Return whether germ shield is enabled."""
         return NotImplemented
 
     @property
-    def fan_auto_mode(self) -> bool | NotImplemented | None:
+    def fan_auto_mode(self) -> Capability[bool]:
         """Return whether automatic fan mode is enabled."""
         if self.model != "classic_680i":
             return NotImplemented
@@ -157,112 +162,112 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
     # entity is_implemented() checks can safely call getattr().
 
     @property
-    def timer_duration(self) -> int | NotImplemented | None:
+    def timer_duration(self) -> Capability[int]:
         """Return the timer duration."""
         return NotImplemented
 
     @property
-    def timer_state(self) -> int | NotImplemented | None:
+    def timer_state(self) -> Capability[int]:
         """Return the timer state."""
         return NotImplemented
 
     @property
-    def rssi(self) -> int | NotImplemented | None:
+    def rssi(self) -> Capability[int]:
         """Return the Wi-Fi signal strength (RSSI)."""
         return NotImplemented
 
     @property
-    def night_light_brightness(self) -> int | NotImplemented | None:
+    def night_light_brightness(self) -> Capability[int]:
         """Return the night light brightness."""
         return NotImplemented
 
     @property
-    def hour_format(self) -> bool | NotImplemented | None:
+    def hour_format(self) -> Capability[bool]:
         """Return the clock hour format setting."""
         return NotImplemented
 
     @property
-    def wick_dry_mode(self) -> bool | NotImplemented | None:
+    def wick_dry_mode(self) -> Capability[bool]:
         """Return whether wick dry mode is enabled."""
         return NotImplemented
 
     @property
-    def water_shortage(self) -> bool | NotImplemented | None:
+    def water_shortage(self) -> Capability[bool]:
         """Return whether the water tank is low."""
         return NotImplemented
 
     @property
-    def auto_regulated_humidity(self) -> bool | NotImplemented | None:
-        """Return whether automatic humidity regulation is enabled."""
+    def auto_regulated_humidity(self) -> Capability[int]:
+        """Return the target humidity the device regulates to, in percent."""
         return NotImplemented
 
     @property
-    def humidifier_mode(self) -> bool | NotImplemented | None:
+    def humidifier_mode(self) -> Capability[bool]:
         """Return the humidifier mode."""
         return NotImplemented
 
     @property
-    def combo_mode(self) -> int | NotImplemented | None:
+    def combo_mode(self) -> Capability[int]:
         """Return the combo mode."""
         return NotImplemented
 
     @property
-    def main_mode(self) -> int | NotImplemented | None:
+    def main_mode(self) -> Capability[int]:
         """Return the main mode."""
         return NotImplemented
 
     @property
-    def heat_temp(self) -> int | NotImplemented | None:
+    def heat_temp(self) -> Capability[float]:
         """Return the heat temp."""
         return NotImplemented
 
     @property
-    def heat_sub_mode(self) -> int | NotImplemented | None:
+    def heat_sub_mode(self) -> Capability[int]:
         """Return the heat sub mode."""
         return NotImplemented
 
     @property
-    def heat_fan_speed(self) -> int | NotImplemented | None:
+    def heat_fan_speed(self) -> Capability[int]:
         """Return the heat fan speed."""
         return NotImplemented
 
     @property
-    def cool_sub_mode(self) -> int | NotImplemented | None:
+    def cool_sub_mode(self) -> Capability[int]:
         """Return the cool sub mode."""
         return NotImplemented
 
     @property
-    def cool_fan_speed(self) -> int | NotImplemented | None:
+    def cool_fan_speed(self) -> Capability[int]:
         """Return the cool fan speed."""
         return NotImplemented
 
     @property
-    def ap_sub_mode(self) -> int | NotImplemented | None:
+    def ap_sub_mode(self) -> Capability[int]:
         """Return the air purifier sub mode."""
         return NotImplemented
 
     @property
-    def fan_speed_0(self) -> int | NotImplemented | None:
+    def fan_speed_0(self) -> Capability[int]:
         """Return the fan speed 0 value."""
         return NotImplemented
 
     @property
-    def temperature_unit(self) -> int | NotImplemented | None:
+    def temperature_unit(self) -> Capability[int]:
         """Return the temperature unit."""
         return NotImplemented
 
     @property
-    def water_refresher_life(self) -> int | NotImplemented | None:
+    def water_refresher_life(self) -> Capability[int]:
         """Return the water refresher life."""
         return NotImplemented
 
     @property
-    def water_level(self) -> int | NotImplemented | None:
+    def water_level(self) -> Capability[int]:
         """Return the water level."""
         return NotImplemented
 
     @property
-    def mood_brightness(self) -> int | NotImplemented | None:
+    def mood_brightness(self) -> Capability[int]:
         """Return the mood brightness."""
         return NotImplemented
 
@@ -302,6 +307,12 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         """Set the night mode."""
         raise NotImplementedError
 
+    async def set_fan_speed(self, new_speed: int) -> None:
+        """Set the fan speed (0-3)."""
+        # The legacy API takes the speed as a string.
+        await self._async_device_command(self.blueair_api_device.set_fan_speed(str(new_speed)))
+        await self.async_request_refresh()
+
     async def set_fan_auto_mode(self, value: bool) -> None:
         """Set the fan auto mode."""
         await self._async_device_command(self.blueair_api_device.set_fan_auto_mode(value))
@@ -310,15 +321,15 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         """Set the wick dry mode."""
         raise NotImplementedError
 
-    async def set_auto_regulated_humidity(self, value: bool) -> None:
-        """Set the auto regulated humidity."""
+    async def set_auto_regulated_humidity(self, value: int) -> None:
+        """Set the target humidity, in percent."""
         raise NotImplementedError
 
     async def set_main_mode(self, value: int) -> None:
         """Set the main mode."""
         raise NotImplementedError
 
-    async def set_heat_temp(self, value: int) -> None:
+    async def set_heat_temp(self, value: float) -> None:
         """Set the heat temp."""
         raise NotImplementedError
 

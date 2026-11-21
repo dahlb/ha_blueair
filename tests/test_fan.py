@@ -345,3 +345,28 @@ async def test_aws_fan_turns_on_into_night_mode(
     assert device.standby is False
     assert device.night_mode is True
     assert hass.states.get(PURIFIER).attributes[ATTR_PERCENTAGE] is None
+
+
+@pytest.mark.asyncio
+async def test_aws_fan_before_the_device_reports_power_and_speed(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Report an unknown state and no percentage until the device reports them."""
+    await setup_blueair(aws=[make_purifier(standby=None, fan_speed=None)])
+
+    fan = entity_object(hass, PURIFIER)
+
+    assert fan.is_on is None
+    assert fan.percentage is None
+
+
+@pytest.mark.asyncio
+async def test_legacy_fan_without_a_reported_speed_has_no_percentage(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Leave the legacy fan's percentage empty when it reports no speed."""
+    device = make_legacy_device()
+    await setup_blueair(legacy=[device])
+    device.fan_speed = None
+
+    assert entity_object(hass, "fan.hallway_fan").percentage is None

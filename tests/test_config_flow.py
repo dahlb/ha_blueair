@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from aiohttp import ClientConnectionError
 from blueair_api import LoginError, ServerError
@@ -12,6 +13,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -40,8 +42,9 @@ async def test_user_flow_creates_an_entry(
     assert result["data"] == entry_data()
     assert result["result"].unique_id == USERNAME
     assert blueair_cloud.aws_calls[-1]["region"] == entry_data()[CONF_REGION]
-    # The flow's login opens its own session, so it closes it again.
-    assert blueair_cloud.cleanup_calls == 1
+    # The login uses Home Assistant's shared session and leaves it open.
+    assert blueair_cloud.aws_calls[-1]["client_session"] is async_get_clientsession(hass)
+    assert blueair_cloud.cleanup_calls == 0
 
 
 @pytest.mark.asyncio
@@ -127,6 +130,21 @@ def test_every_flow_field_has_a_data_description(file_name: str, section: str, s
     )
 
 
+def _logins(blueair_cloud: FakeBlueairCloud) -> list[dict[str, Any]]:
+    """Return the AWS logins' credentials and regions, without the session.
+
+    Args:
+        blueair_cloud: The fake cloud.
+
+    Returns:
+        list[dict[str, Any]]: One entry per login.
+    """
+    return [
+        {key: value for key, value in call.items() if key != "client_session"}
+        for call in blueair_cloud.aws_calls
+    ]
+
+
 def _reauth_entry(hass: HomeAssistant) -> MockConfigEntry:
     """Add a Blueair entry whose stored password is out of date.
 
@@ -172,7 +190,7 @@ async def test_reauth_flow_updates_the_password(
         "username": USERNAME,
         "password": "new-password",
         "region": entry_data()[CONF_REGION],
-    } in blueair_cloud.aws_calls
+    } in _logins(blueair_cloud)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
 
@@ -226,7 +244,7 @@ async def test_reconfigure_flow_updates_the_region_and_password(
         CONF_REGION: "eu",
     }
     assert {"username": USERNAME, "password": "new-password", "region": "eu"} in (
-        blueair_cloud.aws_calls
+        _logins(blueair_cloud)
     )
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED

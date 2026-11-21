@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from asyncio import sleep
 import logging
+from typing import Any
 
 from blueair_api import AP_SUB_MODE_LABELS
 from homeassistant.components.fan import FanEntity, FanEntityFeature
@@ -65,9 +66,24 @@ def _drop_night_if_disabled(
     coordinator: BlueairUpdateCoordinator, preset_modes: list[str]
 ) -> list[str]:
     """Leave Night out of a fan's presets when the options turn it off."""
-    if coordinator.config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET):
+    entry = coordinator.config_entry
+    if entry is None or entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET):
         return preset_modes
     return [mode for mode in preset_modes if mode != MODE_NIGHT]
+
+
+def _speed_percentage(coordinator: BlueairUpdateCoordinator) -> int | None:
+    """Return the fan speed as a percentage, or None before it's reported."""
+    speed = coordinator.fan_speed
+    if speed is None or speed is NotImplemented:
+        return None
+    return int((speed * 100) // coordinator.speed_count)
+
+
+def _is_on(coordinator: BlueairUpdateCoordinator) -> bool | None:
+    """Return whether the device is on, or None while it's unknown."""
+    is_on = coordinator.is_on
+    return is_on if isinstance(is_on, bool) else None
 
 
 async def async_setup_entry(
@@ -87,7 +103,7 @@ async def async_setup_entry(
     )
 
 
-class BlueairFan(BlueairEntity, FanEntity):
+class BlueairFan(BlueairEntity[BlueairUpdateCoordinatorDevice], FanEntity):
     """Controls Fan."""
 
     @classmethod
@@ -95,7 +111,7 @@ class BlueairFan(BlueairEntity, FanEntity):
         """Return whether the coordinator supports this entity."""
         return isinstance(coordinator, BlueairUpdateCoordinatorDevice)
 
-    def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
+    def __init__(self, coordinator: BlueairUpdateCoordinatorDevice) -> None:
         """Initialize the fan entity."""
         # The legacy API can set auto mode but not night mode (the legacy
         # coordinator reports night_mode as NotImplemented), so Auto is the only
@@ -113,27 +129,28 @@ class BlueairFan(BlueairEntity, FanEntity):
         super().__init__("Fan", coordinator, "fan")
 
     @property
-    def is_on(self) -> int:
+    def is_on(self) -> bool | None:
         """Return whether the device is on."""
-        return self.coordinator.is_on
+        return _is_on(self.coordinator)
 
     @property
     def percentage(self) -> int | None:
         """Return the current speed percentage."""
-        if self.preset_mode is None:
-            return int(round(self.coordinator.fan_speed * 33.33, 0))
+        speed = self.coordinator.fan_speed
+        if self.preset_mode is None and speed is not None and speed is not NotImplemented:
+            return int(round(speed * 33.33, 0))
         return None
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Sets fan speed percentage."""
         if percentage == 100:
-            new_speed = "3"
+            new_speed = 3
         elif percentage > 50:
-            new_speed = "2"
+            new_speed = 2
         elif percentage > 20:
-            new_speed = "1"
+            new_speed = 1
         else:
-            new_speed = "0"
+            new_speed = 0
 
         if self.coordinator.fan_auto_mode is True:
             await self.coordinator.set_fan_auto_mode(False)
@@ -146,16 +163,16 @@ class BlueairFan(BlueairEntity, FanEntity):
             await self.coordinator.set_fan_auto_mode(True)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs: any) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        await self.coordinator.set_fan_speed("0")
+        await self.coordinator.set_fan_speed(0)
         self.async_write_ha_state()
 
     async def async_turn_on(
         self,
         percentage: int | None = None,
         preset_mode: str | None = None,
-        **kwargs: any,
+        **kwargs: Any,
     ) -> None:
         """Turn the entity on."""
         if percentage is not None:
@@ -167,7 +184,7 @@ class BlueairFan(BlueairEntity, FanEntity):
             # speed and mode (issue #390).
             self.async_write_ha_state()
         else:
-            await self.coordinator.set_fan_speed("1")
+            await self.coordinator.set_fan_speed(1)
             self.async_write_ha_state()
 
     @property
@@ -183,7 +200,7 @@ class BlueairFan(BlueairEntity, FanEntity):
         return None
 
 
-class BlueairAwsFan(BlueairEntity, FanEntity):
+class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity):
     """Controls Fan."""
 
     @classmethod
@@ -275,9 +292,9 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         super().__init__("Fan", coordinator, "fan")
 
     @property
-    def is_on(self) -> int:
+    def is_on(self) -> bool | None:
         """Return whether the device is on."""
-        return self.coordinator.is_on
+        return _is_on(self.coordinator)
 
     @property
     def percentage(self) -> int | None:
@@ -297,9 +314,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                     manual = True
             if not manual:
                 return None
-            if self.coordinator.fan_speed in (None, NotImplemented):
-                return None
-            return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
+            return _speed_percentage(self.coordinator)
 
         if self._combo_presets:
             # The speed slider is only meaningful in Manual; in
@@ -315,12 +330,10 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
                 manual = True
             if not manual:
                 return None
-            if self.coordinator.fan_speed in (None, NotImplemented):
-                return None
-            return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
+            return _speed_percentage(self.coordinator)
 
         if self.preset_mode is None:
-            return int((self.coordinator.fan_speed * 100) // self.coordinator.speed_count)
+            return _speed_percentage(self.coordinator)
         return None
 
     async def async_set_percentage(self, percentage: int) -> None:
@@ -424,7 +437,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
             await self.coordinator.set_night_mode(True)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs: any) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.set_running(False)
         self.async_write_ha_state()
@@ -433,7 +446,7 @@ class BlueairAwsFan(BlueairEntity, FanEntity):
         self,
         percentage: int | None = None,
         preset_mode: str | None = None,
-        **kwargs: any,
+        **kwargs: Any,
     ) -> None:
         """Turn the entity on."""
         was_off = self.is_on is False
