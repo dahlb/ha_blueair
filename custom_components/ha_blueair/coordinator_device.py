@@ -70,6 +70,18 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         return 3
 
     @property
+    def online(self) -> Capability[bool]:
+        """Return whether the device is online.
+
+        Sense+ can report wifi_working=False while refreshes and commands
+        still succeed, so it counts as online whenever it reports a usable
+        legacy fan state instead.
+        """
+        if self.model == "sense+":
+            return str(self.blueair_api_device.fan_speed) in ("0", "1", "2", "3")
+        return super().online
+
+    @property
     def is_on(self) -> bool:
         """Return the current fan state."""
         if self.fan_speed == 0:

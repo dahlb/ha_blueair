@@ -6,8 +6,10 @@ import logging
 from math import ceil
 
 from blueair_api import DeviceAws
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util.color import brightness_to_value, value_to_brightness
 
+from .const import DOMAIN
 from .coordinator import BlueairUpdateCoordinator, Capability
 
 _LOGGER = logging.getLogger(__name__)
@@ -398,13 +400,22 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         await self.async_request_refresh()
 
     async def set_heat_temp(self, value: float) -> None:
-        """Set the heat temp."""
-        if value in (None, NotImplemented):
-            return
+        """Set the heat temp.
+
+        Args:
+            value: Target temperature in degrees Celsius.
+
+        Raises:
+            ServiceValidationError: The value is not a number.
+        """
         try:
             v = float(value)
         except TypeError, ValueError:
-            return
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_temperature",
+                translation_placeholders={"temperature": str(value)},
+            ) from None
         payload = round(v * 10)
         await self._async_device_command(self.blueair_api_device.set_heat_temp(payload))
         await self.async_request_refresh()

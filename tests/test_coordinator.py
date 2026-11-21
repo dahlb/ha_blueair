@@ -9,7 +9,11 @@ from typing import Any
 from aiohttp import ClientConnectionError
 from blueair_api import LoginError
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    HomeAssistantError,
+    ServiceValidationError,
+)
 from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 
@@ -149,6 +153,45 @@ async def test_legacy_coordinator_reports_aws_only_features_as_unsupported(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("fan_speed", "wifi_status", "online"),
+    [
+        *[(speed, "0", True) for speed in ("0", "1", "2", "3")],
+        *[(speed, "1", False) for speed in ("4", "9")],
+    ],
+)
+async def test_sense_plus_online_follows_its_fan_state(
+    hass: HomeAssistant,
+    setup_blueair: Callable[..., Any],
+    fan_speed: str,
+    wifi_status: str,
+    online: bool,
+) -> None:
+    """Report Sense+ online for any valid fan speed, even while wifi_working is False."""
+    device = make_legacy_device(compatibility="sense+")
+    entry = await setup_blueair(legacy=[device])
+    coordinator = entry.runtime_data.devices[0]
+
+    device.api.attributes.update(fan_speed=fan_speed, wifi_status=wifi_status)
+    await coordinator.async_refresh()
+
+    assert coordinator.online is online
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("wifi_status", ["0", "1"])
+async def test_other_legacy_models_report_wifi_working_as_online(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any], wifi_status: str
+) -> None:
+    """Keep wifi_working as online for every legacy model but Sense+."""
+    device = make_legacy_device()
+    device.api.attributes["wifi_status"] = wifi_status
+    entry = await setup_blueair(legacy=[device])
+
+    assert entry.runtime_data.devices[0].online is (wifi_status == "1")
+
+
+@pytest.mark.asyncio
 async def test_legacy_brightness_passes_through_unknown_values(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
@@ -194,7 +237,7 @@ async def test_aws_coordinator_tolerates_malformed_values(
 async def test_aws_coordinator_timer_hour_format_and_heat_temp_writes(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
-    """Write the timer and clock format, and skip heat targets that are not numbers."""
+    """Write the timer and clock format, and reject heat targets that are not numbers."""
     device = make_climate_device()
     entry = await setup_blueair(aws=[device])
     coordinator = entry.runtime_data.aws_devices[0]
@@ -206,5 +249,7 @@ async def test_aws_coordinator_timer_hour_format_and_heat_temp_writes(
 
     writes = len(device.api.writes)
     for value in (None, NotImplemented, "hot"):
-        await coordinator.set_heat_temp(value)
+        with pytest.raises(ServiceValidationError) as err:
+            await coordinator.set_heat_temp(value)
+        assert err.value.translation_key == "invalid_temperature"
     assert len(device.api.writes) == writes

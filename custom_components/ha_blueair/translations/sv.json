@@ -2,20 +2,203 @@
   "config": {
     "step": {
       "user": {
-        "title": "BlueAir Autensiering",
-        "description": "Konfigurera dina användaruppgifter.",
+        "title": "Blueair-inloggning",
+        "description": "Ange dina inloggningsuppgifter.",
         "data": {
+          "region": "Region",
           "username": "Användarnamn",
           "password": "Lösenord"
+        },
+        "data_description": {
+          "region": "Den Blueair-molnregion där ditt konto skapades (regionen du valde i Blueair-appen).",
+          "username": "E-postadressen du loggar in i Blueair-appen med.",
+          "password": "Lösenordet för det Blueair-kontot."
         }
       },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
-        "description": "BlueAir integrationen behöver återautentisera ditt konto."
+        "description": "Blueair avvisade det sparade lösenordet för {username}. Ange kontots nuvarande lösenord.",
+        "data": {
+          "password": "Lösenord"
+        },
+        "data_description": {
+          "password": "Det nuvarande lösenordet för ditt Blueair-konto."
+        }
+      },
+      "reconfigure": {
+        "title": "Konfigurera om Blueair",
+        "description": "Ändra region eller lösenord för {username}. Lägg till ett annat Blueair-konto som en ny post.",
+        "data": {
+          "region": "Region",
+          "password": "Lösenord"
+        },
+        "data_description": {
+          "region": "Den Blueair-molnregion där ditt konto skapades (regionen du valde i Blueair-appen).",
+          "password": "Det nuvarande lösenordet för ditt Blueair-konto."
+        }
       }
     },
     "error": {
-      "auth": "Inloggingen misslyckades. Använd den officiella appen för att logga ut och in samt försök igen."
+      "auth": "Inloggningen misslyckades. Logga ut och in igen i den officiella appen och försök sedan igen.",
+      "cannot_connect": "Det går inte att nå Blueair. Försök igen om en stund.",
+      "unknown": "Oväntat fel vid kontakt med Blueair."
+    },
+    "abort": {
+      "reauth_successful": "Återautentiseringen lyckades.",
+      "already_configured": "Det här Blueair-kontot är redan konfigurerat.",
+      "reconfigure_successful": "Blueair har konfigurerats om."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Blueair: konfiguration",
+        "data": {
+          "scan_interval": "Uppdateringsintervall i minuter",
+          "night_preset": "Erbjud förinställningen Natt på fläktar"
+        },
+        "data_description": {
+          "scan_interval": "Hur ofta Blueair efterfrågas för varje enhet, i minuter (1-30). Enheter med MQTT-uppdateringar i realtid efterfrågas mer sällan medan MQTT är anslutet.",
+          "night_preset": "Stäng av för att ta bort Natt från fläktarnas förinställningar, till exempel så att HomeKit Bridge inte lägger till en Natt-brytare för varje renare. En fläkt som satts i Natt på annat sätt visar det fortfarande. Om du använder HomeKit Bridge, ladda om den efter ändringen: den skapar ett tillbehörs förinställningsbrytare bara en gång."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "filter_expired": {
+        "name": "Filterbyte"
+      },
+      "online": {
+        "name": "Ansluten"
+      },
+      "water_shortage": {
+        "name": "Vattenbrist"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Klimat"
+      }
+    },
+    "fan": {
+      "fan": {
+        "name": "Fläkt",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual_fan": "Manuell",
+              "auto": "Auto",
+              "night": "Natt",
+              "eco": "Eco"
+            }
+          }
+        }
+      }
+    },
+    "humidifier": {
+      "humidifier": {
+        "name": "Luftfuktare",
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "fan_speed": "Fläkthastighet"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "led_light": {
+        "name": "LED-ljus"
+      },
+      "mood_light": {
+        "name": "Stämningsljus"
+      },
+      "night_light": {
+        "name": "Nattljus"
+      }
+    },
+    "sensor": {
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "humidity": {
+        "name": "Luftfuktighet"
+      },
+      "voc": {
+        "name": "VOC"
+      },
+      "pm1": {
+        "name": "PM 1"
+      },
+      "pm10": {
+        "name": "PM 10"
+      },
+      "pm25": {
+        "name": "PM 2.5"
+      },
+      "co2": {
+        "name": "CO2"
+      },
+      "filter_life": {
+        "name": "Filterlivslängd"
+      },
+      "wick_life": {
+        "name": "Vekens livslängd"
+      },
+      "water_refresher_life": {
+        "name": "Vattenrenarens livslängd"
+      },
+      "water_level": {
+        "name": "Vattennivå"
+      },
+      "rssi": {
+        "name": "Signalstyrka"
+      },
+      "timer_duration": {
+        "name": "Timerns längd"
+      },
+      "overall_firmware": {
+        "name": "Övergripande firmware"
+      }
+    },
+    "switch": {
+      "child_lock": {
+        "name": "Barnlås"
+      },
+      "germ_shield": {
+        "name": "Germ Shield"
+      },
+      "wick_dry_mode": {
+        "name": "Torkläge för veken"
+      }
+    }
+  },
+  "issues": {
+    "life_sensors_no_longer_battery": {
+      "title": "Filter-, vek- och vattensensorer rapporteras inte längre som batterier",
+      "description": "Sensorerna Filterlivslängd, Vekens livslängd, Vattenrenarens livslängd och Vattennivå använde tidigare enhetsklassen `battery`, vilket felaktigt tog med dem i batteripaneler, automationer för låg batterinivå och HomeKits batterirapportering. De är procentvärden, inte batterier, så enhetsklassen `battery` har tagits bort. Värden, enheter och historik är oförändrade.\n\nOm du förlitade dig på den gamla batteriklassningen kan du följa migreringsguiden (Läs mer) för att återskapa den med en mallsensor. Annars kan du avfärda det här meddelandet."
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Blueair avvisade de sparade inloggningsuppgifterna. Autentisera integrationen igen."
+    },
+    "update_failed": {
+      "message": "Det gick inte att uppdatera från Blueair: {error}"
+    },
+    "command_failed": {
+      "message": "Det gick inte att skicka kommandot till {device}: {error}"
+    },
+    "cannot_connect": {
+      "message": "Det går inte att nå Blueair: {error}"
+    },
+    "invalid_mode": {
+      "message": "{mode} är inte ett läge som den här luftfuktaren stöder."
+    },
+    "invalid_temperature": {
+      "message": "{temperature} är inte en giltig måltemperatur."
     }
   }
 }

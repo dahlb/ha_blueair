@@ -70,15 +70,18 @@ Devices you add to the Blueair account later appear in Home Assistant automatica
 ## Options ##
 Click **Configure** on the integration to change:
 
-- **Polling Interval in Minutes** (default 5, range 1-30) — how often every device is polled. Devices with real-time MQTT updates (most current models) still poll at this interval as a fallback.
-- **Offer the Night preset on fans** (default on) — turn off to leave Night out of fans' preset list, e.g. so HomeKit Bridge doesn't add a Night switch. Changing it reloads the integration.
+- **Polling Interval in Minutes** (default 5, range 1-30) — how often every device is polled. Devices with real-time MQTT updates (most current models) poll less often while MQTT is connected; see [How Data Updates](#how-data-updates).
+- **Offer the Night preset on fans** (default on) — turn off to leave Night out of fans' preset list, e.g. so HomeKit Bridge doesn't add a Night switch.
+
+Saving the options reloads the integration.
 
 ## How Data Updates ##
-- **Current (AWS) models** push changes over MQTT, so states and sensors update within seconds. They are also polled at the polling interval (default 5 minutes) in case a message is missed.
+- **Current (AWS) models** push changes over MQTT, so states and sensors update within seconds. While MQTT is connected they are polled only every 30 minutes (or at the polling interval, if that is longer) in case a message is missed; if MQTT disconnects they poll right away and go back to the polling interval until it reconnects.
 - **Legacy models** are polled at the polling interval only.
 - Commands go to Blueair's cloud; the entity shows the new state straight away and the next update confirms it.
 - The account's device list is checked every 30 minutes for added or removed devices.
 - If Blueair can't be reached, the entities become unavailable and the outage is logged once; they recover on the next successful update.
+- If one device can't be reached when Home Assistant starts, the other devices still load. The unreachable device is retried at the polling interval, and the integration reloads to add its entities once it answers. Setup is only retried as a whole when no device can be reached.
 
 ## Automation Examples ##
 Raise the fan speed when PM 2.5 is high, and go back to Auto once the air is clean:

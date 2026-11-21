@@ -10,7 +10,13 @@ VERSION: str = "1.62.0"
 
 # Integration Setting Constants
 CONFIG_FLOW_VERSION: int = 2
+# Minor version 2 lowercases the unique ID (the account username).
+CONFIG_FLOW_MINOR_VERSION: int = 2
 DEFAULT_SCAN_INTERVAL: int = 5
+# Polling interval, in minutes, for AWS devices while MQTT pushes their
+# updates; polling is then only a fallback for missed messages. A longer
+# configured interval is kept.
+MQTT_SCAN_INTERVAL: int = 30
 # How often to check the account for added or removed devices, in minutes.
 DEVICE_LIST_INTERVAL: int = 30
 # Whether fans offer the Night preset. Off leaves Night out of their

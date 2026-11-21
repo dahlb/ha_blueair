@@ -58,7 +58,7 @@
           "night_preset": "Offer the Night preset on fans"
         },
         "data_description": {
-          "scan_interval": "How often to poll Blueair for every device, in minutes (1-30). Devices with real-time MQTT updates still poll at this interval as a fallback.",
+          "scan_interval": "How often to poll Blueair for every device, in minutes (1-30). Devices with real-time MQTT updates poll less often (every 30 minutes, or this interval if longer) while MQTT is connected.",
           "night_preset": "Turn off to leave Night out of the fans' preset modes, for example so HomeKit Bridge doesn't give each purifier a Night switch. A fan put in Night some other way still reports it. If you use HomeKit Bridge, reload it after changing this: it only builds an accessory's preset switches once."
         }
       }
@@ -196,6 +196,9 @@
     },
     "invalid_mode": {
       "message": "{mode} is not a mode this humidifier supports."
+    },
+    "invalid_temperature": {
+      "message": "{temperature} is not a valid target temperature."
     }
   }
 }

@@ -2,26 +2,103 @@
   "config": {
     "step": {
       "user": {
-        "title": "Authentification BlueAir",
-        "description": "Connectez-vous",
+        "title": "Authentification Blueair",
+        "description": "Configurez vos identifiants.",
         "data": {
           "region": "Région",
           "username": "Identifiant",
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "region": "La région du cloud Blueair dans laquelle votre compte a été créé (celle choisie dans l'application Blueair).",
+          "username": "L'adresse e-mail que vous utilisez pour vous connecter à l'application Blueair.",
+          "password": "Le mot de passe de ce compte Blueair."
         }
       },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
-        "description": "L'intégration BlueAir nécessite la ré-authentification de votre compte."
+        "description": "Blueair a refusé le mot de passe enregistré pour {username}. Saisissez le mot de passe actuel du compte.",
+        "data": {
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Le mot de passe actuel de votre compte Blueair."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer Blueair",
+        "description": "Modifiez la région ou le mot de passe de {username}. Pour utiliser un autre compte Blueair, ajoutez-le comme nouvelle entrée.",
+        "data": {
+          "region": "Région",
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "region": "La région du cloud Blueair dans laquelle votre compte a été créé (celle choisie dans l'application Blueair).",
+          "password": "Le mot de passe actuel de votre compte Blueair."
+        }
       }
     },
     "error": {
-      "auth": "Échec de connexion. Veuillez utiliser l'application officielle pour vous déconnecter, puis reconnectez-vous et réessayez."
+      "auth": "Échec de connexion. Veuillez utiliser l'application officielle pour vous déconnecter, puis reconnectez-vous et réessayez.",
+      "cannot_connect": "Impossible de joindre Blueair. Réessayez dans un instant.",
+      "unknown": "Erreur inattendue lors de la communication avec Blueair."
+    },
+    "abort": {
+      "reauth_successful": "La ré-authentification a réussi.",
+      "already_configured": "Ce compte Blueair est déjà configuré.",
+      "reconfigure_successful": "Blueair a été reconfiguré."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Blueair : configuration",
+        "data": {
+          "scan_interval": "Intervalle d'interrogation en minutes",
+          "night_preset": "Proposer le préréglage Nuit sur les ventilateurs"
+        },
+        "data_description": {
+          "scan_interval": "Fréquence d'interrogation de Blueair pour chaque appareil, en minutes (1-30). Les appareils avec mises à jour MQTT en temps réel sont interrogés moins souvent tant que MQTT est connecté.",
+          "night_preset": "Désactivez pour retirer Nuit des préréglages des ventilateurs, par exemple pour que HomeKit Bridge n'ajoute pas d'interrupteur Nuit à chaque purificateur. Un ventilateur mis en Nuit autrement l'indique toujours. Si vous utilisez HomeKit Bridge, rechargez-le après ce changement : il ne crée les interrupteurs de préréglage d'un accessoire qu'une seule fois."
+        }
+      }
     }
   },
   "entity": {
+    "binary_sensor": {
+      "filter_expired": {
+        "name": "Expiration du filtre"
+      },
+      "online": {
+        "name": "En ligne"
+      },
+      "water_shortage": {
+        "name": "Manque d'eau"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Climatisation"
+      }
+    },
+    "fan": {
+      "fan": {
+        "name": "Ventilateur",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual_fan": "Manuel",
+              "auto": "Auto",
+              "night": "Nuit",
+              "eco": "Éco"
+            }
+          }
+        }
+      }
+    },
     "humidifier": {
       "humidifier": {
+        "name": "Humidificateur",
         "state_attributes": {
           "mode": {
             "state": {
@@ -30,6 +107,98 @@
           }
         }
       }
+    },
+    "light": {
+      "led_light": {
+        "name": "Lumière LED"
+      },
+      "mood_light": {
+        "name": "Lumière d'ambiance"
+      },
+      "night_light": {
+        "name": "Veilleuse"
+      }
+    },
+    "sensor": {
+      "temperature": {
+        "name": "Température"
+      },
+      "humidity": {
+        "name": "Humidité"
+      },
+      "voc": {
+        "name": "COV"
+      },
+      "pm1": {
+        "name": "PM 1"
+      },
+      "pm10": {
+        "name": "PM 10"
+      },
+      "pm25": {
+        "name": "PM 2.5"
+      },
+      "co2": {
+        "name": "CO2"
+      },
+      "filter_life": {
+        "name": "Durée de vie du filtre"
+      },
+      "wick_life": {
+        "name": "Durée de vie de la mèche"
+      },
+      "water_refresher_life": {
+        "name": "Durée de vie du purificateur d'eau"
+      },
+      "water_level": {
+        "name": "Niveau d'eau"
+      },
+      "rssi": {
+        "name": "Puissance du signal"
+      },
+      "timer_duration": {
+        "name": "Durée de la minuterie"
+      },
+      "overall_firmware": {
+        "name": "Micrologiciel global"
+      }
+    },
+    "switch": {
+      "child_lock": {
+        "name": "Sécurité enfant"
+      },
+      "germ_shield": {
+        "name": "Germ Shield"
+      },
+      "wick_dry_mode": {
+        "name": "Mode séchage de la mèche"
+      }
+    }
+  },
+  "issues": {
+    "life_sensors_no_longer_battery": {
+      "title": "Les capteurs de filtre, de mèche et d'eau ne sont plus signalés comme des batteries",
+      "description": "Les capteurs Durée de vie du filtre, Durée de vie de la mèche, Durée de vie du purificateur d'eau et Niveau d'eau utilisaient auparavant la classe d'appareil `battery`, ce qui les incluait à tort dans les tableaux de bord de batteries, les automatisations de batterie faible et les rapports de batterie HomeKit. Ce sont des pourcentages, pas des batteries : la classe `battery` a donc été retirée. Les valeurs, les unités et l'historique sont inchangés.\n\nSi vous dépendiez de l'ancienne classification en batterie, suivez le guide de migration (En savoir plus) pour la recréer avec un capteur modèle. Sinon, vous pouvez ignorer cet avis."
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Blueair a refusé les identifiants enregistrés. Ré-authentifiez l'intégration."
+    },
+    "update_failed": {
+      "message": "Impossible de mettre à jour depuis Blueair : {error}"
+    },
+    "command_failed": {
+      "message": "Impossible d'envoyer la commande à {device} : {error}"
+    },
+    "cannot_connect": {
+      "message": "Impossible de joindre Blueair : {error}"
+    },
+    "invalid_mode": {
+      "message": "{mode} n'est pas un mode pris en charge par cet humidificateur."
+    },
+    "invalid_temperature": {
+      "message": "{temperature} n'est pas une température cible valide."
     }
   }
 }
