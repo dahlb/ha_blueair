@@ -324,14 +324,16 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     async def set_running(self, running: bool) -> None:
         """Turn the device on or off."""
-        await self.blueair_api_device.set_standby(not running)
+        await self._async_device_command(self.blueair_api_device.set_standby(not running))
         await self.async_request_refresh()
 
     async def set_brightness(self, brightness: int) -> None:
         """Set the brightness."""
         # Convert Home Assistant brightness (0-255) to Abode brightness (0-99)
         # If 100 is sent to Abode, response is 99 causing an error
-        await self.blueair_api_device.set_brightness(round(brightness * 100 / 255.0))
+        await self._async_device_command(
+            self.blueair_api_device.set_brightness(round(brightness * 100 / 255.0))
+        )
         await self.async_request_refresh()
 
     async def set_mood_brightness(self, mood_brightness: int) -> None:
@@ -340,52 +342,54 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
             brightness_to_value(self.mood_brightness_scale, mood_brightness)
         )
 
-        await self.blueair_api_device.set_mood_brightness(desired_brightness_in_range)
+        await self._async_device_command(
+            self.blueair_api_device.set_mood_brightness(desired_brightness_in_range)
+        )
         await self.async_request_refresh()
 
     async def turn_off_mood_brightness(self) -> None:
         """Turn off the mood light."""
-        await self.blueair_api_device.set_mood_brightness(0)
+        await self._async_device_command(self.blueair_api_device.set_mood_brightness(0))
         await self.async_request_refresh()
 
     async def set_germ_shield(self, enabled: bool) -> None:
         """Set the germ shield."""
-        await self.blueair_api_device.set_germ_shield(enabled)
+        await self._async_device_command(self.blueair_api_device.set_germ_shield(enabled))
         await self.async_request_refresh()
 
     async def set_night_mode(self, mode: bool) -> None:
         """Set the night mode."""
-        await self.blueair_api_device.set_night_mode(mode)
+        await self._async_device_command(self.blueair_api_device.set_night_mode(mode))
         await self.async_request_refresh()
 
     async def set_fan_auto_mode(self, value: bool) -> None:
         """Set the fan auto mode."""
-        await self.blueair_api_device.set_fan_auto_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_fan_auto_mode(value))
         await self.async_request_refresh()
 
     async def set_wick_dry_mode(self, value: bool) -> None:
         """Set the wick dry mode."""
-        await self.blueair_api_device.set_wick_dry_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_wick_dry_mode(value))
         await self.async_request_refresh()
 
     async def set_auto_regulated_humidity(self, value: bool) -> None:
         """Set the auto regulated humidity."""
-        await self.blueair_api_device.set_auto_regulated_humidity(value)
+        await self._async_device_command(self.blueair_api_device.set_auto_regulated_humidity(value))
         await self.async_request_refresh()
 
     async def set_humidifier_mode(self, value: bool) -> None:
         """Set the humidifier mode."""
-        await self.blueair_api_device.set_humidifier_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_humidifier_mode(value))
         await self.async_request_refresh()
 
     async def set_combo_mode(self, value: int) -> None:
         """Set the combo mode."""
-        await self.blueair_api_device.set_combo_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_combo_mode(value))
         await self.async_request_refresh()
 
     async def set_main_mode(self, value: int) -> None:
         """Set the main mode."""
-        await self.blueair_api_device.set_main_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_main_mode(value))
         await self.async_request_refresh()
 
     async def set_heat_temp(self, value: float) -> None:
@@ -397,37 +401,37 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         except TypeError, ValueError:
             return
         payload = round(v * 10)
-        await self.blueair_api_device.set_heat_temp(payload)
+        await self._async_device_command(self.blueair_api_device.set_heat_temp(payload))
         await self.async_request_refresh()
 
     async def set_heat_sub_mode(self, value: int) -> None:
         """Set the heat sub mode."""
-        await self.blueair_api_device.set_heat_sub_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_heat_sub_mode(value))
         await self.async_request_refresh()
 
     async def set_heat_fan_speed(self, value: int) -> None:
         """Set the heat fan speed."""
-        await self.blueair_api_device.set_heat_fan_speed(value)
+        await self._async_device_command(self.blueair_api_device.set_heat_fan_speed(value))
         await self.async_request_refresh()
 
     async def set_cool_sub_mode(self, value: int) -> None:
         """Set the cool sub mode."""
-        await self.blueair_api_device.set_cool_sub_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_cool_sub_mode(value))
         await self.async_request_refresh()
 
     async def set_cool_fan_speed(self, value: int) -> None:
         """Set the cool fan speed."""
-        await self.blueair_api_device.set_cool_fan_speed(value)
+        await self._async_device_command(self.blueair_api_device.set_cool_fan_speed(value))
         await self.async_request_refresh()
 
     async def set_ap_sub_mode(self, value: int) -> None:
         """Set the air purifier sub mode."""
-        await self.blueair_api_device.set_ap_sub_mode(value)
+        await self._async_device_command(self.blueair_api_device.set_ap_sub_mode(value))
         await self.async_request_refresh()
 
     async def set_fan_speed_0(self, value: int) -> None:
         """Set the fan speed 0 value."""
-        await self.blueair_api_device.set_fan_speed_0(value)
+        await self._async_device_command(self.blueair_api_device.set_fan_speed_0(value))
         await self.async_request_refresh()
 
     async def set_night_light_brightness(self, night_light_brightness: int) -> None:
@@ -435,20 +439,22 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         desired_brightness_in_range = ceil(
             brightness_to_value(self.night_light_brightness_scale, night_light_brightness)
         )
-        await self.blueair_api_device.set_night_light_brightness(desired_brightness_in_range)
+        await self._async_device_command(
+            self.blueair_api_device.set_night_light_brightness(desired_brightness_in_range)
+        )
         await self.async_request_refresh()
 
     async def turn_off_night_light_brightness(self) -> None:
         """Turn off the night light."""
-        await self.blueair_api_device.set_night_light_brightness(0)
+        await self._async_device_command(self.blueair_api_device.set_night_light_brightness(0))
         await self.async_request_refresh()
 
     async def set_timer_duration(self, value: int) -> None:
         """Set the timer duration."""
-        await self.blueair_api_device.set_timer_duration(value)
+        await self._async_device_command(self.blueair_api_device.set_timer_duration(value))
         await self.async_request_refresh()
 
     async def set_hour_format(self, value: bool) -> None:
         """Set the hour format."""
-        await self.blueair_api_device.set_hour_format(value)
+        await self._async_device_command(self.blueair_api_device.set_hour_format(value))
         await self.async_request_refresh()

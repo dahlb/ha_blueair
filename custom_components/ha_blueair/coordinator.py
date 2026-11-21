@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
 from datetime import timedelta
 import logging
+from typing import Any
 
-from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevice
+from aiohttp import ClientError
+from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevice, LoginError
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.update_coordinator import (
     REQUEST_REFRESH_DEFAULT_COOLDOWN,
     DataUpdateCoordinator,
     Debouncer,
+    UpdateFailed,
 )
 
 from .const import DOMAIN
@@ -25,10 +31,19 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
+        config_entry: ConfigEntry,
         blueair_api_device: BlueAirApiDevice | BlueAirAwsDevice,
         interval: int,
     ) -> None:
-        """Initialize the device."""
+        """Initialize the device.
+
+        Args:
+            hass: Home Assistant instance.
+            config_entry: Config entry of the Blueair account the device belongs to;
+                passed explicitly so a rejected login can start reauthentication.
+            blueair_api_device: blueair_api device this coordinator polls.
+            interval: Polling interval in minutes.
+        """
         self.hass: HomeAssistant = hass
         self.blueair_api_device = blueair_api_device
         request_refresh_debouncer = Debouncer(
@@ -39,18 +54,70 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
         )
 
         async def refresh() -> str:
-            await self.blueair_api_device.refresh()
+            """Poll the device, translating failures for DataUpdateCoordinator.
+
+            A rejected login raises ConfigEntryAuthFailed, which starts
+            reauthentication. Any other API or transport failure raises
+            UpdateFailed, so the coordinator logs the outage once and its
+            recovery once instead of a stack trace on every failed poll.
+
+            Returns:
+                str: The device state, compared to skip no-op updates.
+
+            Raises:
+                ConfigEntryAuthFailed: Blueair rejected the stored credentials.
+                UpdateFailed: Blueair could not be reached or returned an error.
+            """
+            try:
+                await self.blueair_api_device.refresh()
+            except LoginError as error:
+                raise ConfigEntryAuthFailed(
+                    translation_domain=DOMAIN, translation_key="auth_failed"
+                ) from error
+            except (ClientError, TimeoutError) as error:
+                # blueair_api's errors are ClientError subclasses too.
+                raise UpdateFailed(
+                    translation_domain=DOMAIN,
+                    translation_key="update_failed",
+                    translation_placeholders={"error": str(error)},
+                ) from error
             return str(self.blueair_api_device)
 
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=f"{DOMAIN}-{self.blueair_api_device.name}",
             update_interval=timedelta(minutes=interval),
             update_method=refresh,
             request_refresh_debouncer=request_refresh_debouncer,
             always_update=False,
         )
+
+    async def _async_device_command(self, command: Awaitable[Any]) -> None:
+        """Await a device command, turning API failures into Home Assistant errors.
+
+        Args:
+            command: The pending blueair_api device call.
+
+        Raises:
+            HomeAssistantError: Blueair rejected the login (reauthentication is
+                started) or the command could not be delivered.
+        """
+        try:
+            await command
+        except LoginError as error:
+            if self.config_entry is not None:
+                self.config_entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="auth_failed"
+            ) from error
+        except (ClientError, TimeoutError) as error:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+                translation_placeholders={"device": self.device_name, "error": str(error)},
+            ) from error
 
     @property
     def id(self) -> str:
@@ -293,7 +360,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     async def set_fan_speed(self, new_speed: int) -> None:
         """Set the fan speed."""
-        await self.blueair_api_device.set_fan_speed(new_speed)
+        await self._async_device_command(self.blueair_api_device.set_fan_speed(new_speed))
         await self.async_request_refresh()
 
     @abstractmethod
@@ -310,7 +377,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator):
 
     async def set_child_lock(self, locked: bool) -> None:
         """Set the child lock."""
-        await self.blueair_api_device.set_child_lock(locked)
+        await self._async_device_command(self.blueair_api_device.set_child_lock(locked))
         await self.async_request_refresh()
 
     @abstractmethod

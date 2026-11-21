@@ -12,6 +12,10 @@ from . import BlueairConfigEntry
 from .coordinator import BlueairUpdateCoordinator
 from .entity import BlueairEntity, async_setup_entry_helper
 
+# Read-only platform: the coordinators fetch data centrally, so entity updates
+# never call Blueair and need no limit.
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

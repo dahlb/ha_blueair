@@ -12,6 +12,8 @@ from typing import Any
 import unittest
 from unittest.mock import patch
 
+import pytest
+
 
 class CoordinatorEntity:
     """Minimal base needed to import the entity under test."""
@@ -114,3 +116,32 @@ class AvailabilityTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.mark.asyncio
+async def test_devices_without_a_mac_register_by_identifier_and_warn_once(
+    hass: Any, setup_blueair: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Register a device Blueair reports without a MAC, warning once per device."""
+    from homeassistant.helpers import device_registry as dr  # noqa: PLC0415
+
+    from .conftest import make_purifier  # noqa: PLC0415
+
+    device = make_purifier(uuid="no-mac-1")
+    device.mac = None
+    entry = await setup_blueair(aws=[device])
+
+    registered = dr.async_get(hass).async_get_device_by_identifier(
+        ("ha_blueair", "no-mac-1"), entry.entry_id
+    )
+    assert registered is not None
+    assert registered.connections == set()
+    assert caplog.text.count("reported mac=None") == 1
+
+
+def test_base_entity_requires_is_implemented() -> None:
+    """Make every entity class say which coordinators support it."""
+    from custom_components.ha_blueair.entity import BlueairEntity  # noqa: PLC0415
+
+    with pytest.raises(NotImplementedError):
+        BlueairEntity.is_implemented(object())

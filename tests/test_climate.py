@@ -12,6 +12,8 @@ import pytest
 from custom_components.ha_blueair.climate import BlueairThermostat
 from custom_components.ha_blueair.config_flow import ConfigFlowHandler
 
+from .conftest import entity_object, make_climate_device
+
 
 def make_coordinator(**overrides: Any) -> SimpleNamespace:
     """Build a stub coordinator for a heater/cooler in heat mode.
@@ -112,3 +114,240 @@ async def test_set_temperature_updates_native_target() -> None:
     await entity.async_set_temperature(temperature=99)
     assert calls == [37.0]
     assert entity.native_target_temperature == 37.0
+
+
+# --- Home Assistant workflow tests against a fake T10i / T20i ------------------
+
+CLIMATE = "climate.office_climate"
+
+
+async def _climate_call(hass: Any, service: str, **data: Any) -> None:
+    """Call a climate service on the fake T10i and wait for it.
+
+    Args:
+        hass: Home Assistant instance.
+        service: Climate service name.
+        data: Service data.
+    """
+    await hass.services.async_call(
+        "climate", service, {"entity_id": CLIMATE, **data}, blocking=True
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("hvac_mode", "expected"),
+    [
+        ("heat", {"main_mode": 1, "heat_sub_mode": 2}),
+        # The fake's apsubmode is manual at step 2, so fan-only resumes that speed.
+        ("fan_only", {"main_mode": 0, "ap_sub_mode": 1, "fan_speed_0": 37}),
+        ("cool", {"main_mode": 2, "cool_sub_mode": 1, "cool_fan_speed": 11}),
+        ("off", {"standby": True}),
+    ],
+)
+async def test_climate_set_hvac_mode_writes_the_device_mode(
+    hass: Any, setup_blueair: Any, hvac_mode: str, expected: dict[str, Any]
+) -> None:
+    """Translate each HVAC mode into the T10i's main mode and sub mode."""
+    device = make_climate_device(main_mode=0)
+    await setup_blueair(aws=[device])
+
+    await _climate_call(hass, "set_hvac_mode", hvac_mode=hvac_mode)
+
+    for attribute, value in expected.items():
+        assert getattr(device, attribute) == value
+    assert hass.states.get(CLIMATE).state == hvac_mode
+
+
+@pytest.mark.asyncio
+async def test_climate_turns_the_device_on_before_changing_mode(
+    hass: Any, setup_blueair: Any
+) -> None:
+    """Leave standby before switching a T10i that was off into a mode."""
+    device = make_climate_device(standby=True)
+    await setup_blueair(aws=[device])
+    assert hass.states.get(CLIMATE).state == "off"
+
+    await _climate_call(hass, "set_hvac_mode", hvac_mode="heat")
+
+    assert device.standby is False
+    assert device.main_mode == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("main_mode", "fan_mode", "expected"),
+    [
+        (1, "step3", {"heat_sub_mode": 1, "heat_fan_speed": 64}),
+        (1, "auto", {"heat_sub_mode": 2}),
+        (0, "step2", {"ap_sub_mode": 1, "fan_speed_0": 37}),
+        (0, "auto", {"ap_sub_mode": 2}),
+        (2, "step4", {"cool_sub_mode": 1, "cool_fan_speed": 91}),
+    ],
+)
+async def test_climate_set_fan_mode_uses_the_active_modes_fields(
+    hass: Any,
+    setup_blueair: Any,
+    main_mode: int,
+    fan_mode: str,
+    expected: dict[str, Any],
+) -> None:
+    """Write the fan mode to the heat, fan-only or cool settings of the current mode."""
+    device = make_climate_device(main_mode=main_mode)
+    await setup_blueair(aws=[device])
+
+    await _climate_call(hass, "set_fan_mode", fan_mode=fan_mode)
+
+    for attribute, value in expected.items():
+        assert getattr(device, attribute) == value
+
+
+@pytest.mark.asyncio
+async def test_climate_set_temperature_in_heat_mode(hass: Any, setup_blueair: Any) -> None:
+    """Send the heating target in tenths of a degree."""
+    device = make_climate_device()
+    await setup_blueair(aws=[device])
+    assert hass.states.get(CLIMATE).attributes["temperature"] == 22.0
+
+    await _climate_call(hass, "set_temperature", temperature=25)
+
+    assert device.heat_temp == 250
+    assert hass.states.get(CLIMATE).attributes["temperature"] == 25.0
+
+
+@pytest.mark.asyncio
+async def test_climate_turn_off_and_on(hass: Any, setup_blueair: Any) -> None:
+    """Put the T10i in standby and bring it back."""
+    device = make_climate_device()
+    await setup_blueair(aws=[device])
+
+    await _climate_call(hass, "turn_off")
+    assert device.standby is True
+    await _climate_call(hass, "turn_on")
+    assert device.standby is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("overrides", "hvac", "fan"),
+    [
+        ({"main_mode": 1, "heat_sub_mode": 1, "heat_fan_speed": 10}, "heat", "step1"),
+        ({"main_mode": 1, "heat_sub_mode": 1, "heat_fan_speed": 64}, "heat", "step3"),
+        ({"main_mode": 1, "heat_sub_mode": 1, "heat_fan_speed": 91}, "heat", "step4"),
+        ({"main_mode": 0, "ap_sub_mode": 2}, "fan_only", "auto"),
+        ({"main_mode": 2, "cool_fan_speed": None}, "cool", None),
+        ({"main_mode": 2, "cool_fan_speed": "fast"}, "cool", None),
+        ({"main_mode": 7}, None, None),
+    ],
+)
+async def test_climate_reads_mode_and_fan_from_the_device(
+    hass: Any,
+    setup_blueair: Any,
+    overrides: dict[str, Any],
+    hvac: str | None,
+    fan: str | None,
+) -> None:
+    """Bucket fan speeds into steps and tolerate values the T10i should not send."""
+    await setup_blueair(aws=[make_climate_device(**overrides)])
+
+    entity = entity_object(hass, CLIMATE)
+
+    assert entity.hvac_mode == hvac
+    assert entity.fan_mode == fan
+
+
+@pytest.mark.asyncio
+async def test_climate_ignores_requests_it_cannot_apply(hass: Any, setup_blueair: Any) -> None:
+    """Skip unsupported HVAC modes, unknown fan modes and temperatures outside heat mode."""
+    device = make_climate_device(main_mode=2)
+    await setup_blueair(aws=[device])
+    entity = entity_object(hass, CLIMATE)
+    writes = len(device.api.writes)
+
+    await entity.async_set_hvac_mode(HVACMode.DRY)
+    await entity.async_set_fan_mode("auto")  # cool mode has no auto fan
+    await entity.async_set_fan_mode("turbo")
+    await entity.async_set_temperature(temperature=24)  # not in heat mode
+    await entity.async_set_temperature()
+
+    assert len(device.api.writes) == writes
+
+
+@pytest.mark.asyncio
+async def test_climate_hands_back_to_the_device_after_the_optimistic_window(
+    hass: Any, setup_blueair: Any
+) -> None:
+    """Show the requested mode right away, then follow the device once it reports back."""
+    device = make_climate_device(main_mode=0, ap_sub_mode=2)
+    entry = await setup_blueair(aws=[device])
+    entity = entity_object(hass, CLIMATE)
+
+    await entity.async_set_hvac_mode(HVACMode.HEAT)
+    assert entity.hvac_mode == HVACMode.HEAT
+
+    # The device reports the change while the optimistic window is still open.
+    entry.runtime_data.aws_devices[0].async_update_listeners()
+    assert entity.hvac_mode == HVACMode.HEAT
+    assert entity.fan_mode == "auto"
+
+    # Once the window has passed, a later device change wins.
+    entity._optimistic_until = 0
+    device.main_mode = 2
+    entry.runtime_data.aws_devices[0].async_update_listeners()
+    assert entity.hvac_mode == HVACMode.COOL
+
+
+@pytest.mark.asyncio
+async def test_climate_resumes_remembered_fan_modes(hass: Any, setup_blueair: Any) -> None:
+    """Resume the last fan mode per HVAC mode, falling back when it cannot be used."""
+    device = make_climate_device(main_mode=1)
+    await setup_blueair(aws=[device])
+    entity = entity_object(hass, CLIMATE)
+
+    entity._last_fan_mode_cool = "auto"
+    await entity.async_set_hvac_mode(HVACMode.COOL)
+    assert device.cool_fan_speed == 11
+
+    entity._last_fan_mode_fan_only = "turbo"
+    writes = len(device.api.writes)
+    await entity.async_set_hvac_mode(HVACMode.FAN_ONLY)
+    assert device.main_mode == 0
+    assert [write[1] for write in device.api.writes[writes:]] == ["mainmode"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("overrides", "target"),
+    [
+        ({"heat_temp": None}, None),
+        ({"heat_temp": "hot"}, None),
+        ({"main_mode": None}, None),
+        ({"main_mode": "x"}, None),
+    ],
+)
+async def test_climate_target_temperature_tolerates_unreadable_values(
+    hass: Any, setup_blueair: Any, overrides: dict[str, Any], target: float | None
+) -> None:
+    """Show no heating target when the device's value cannot be read."""
+    await setup_blueair(aws=[make_climate_device(**overrides)])
+
+    assert entity_object(hass, CLIMATE).target_temperature == target
+
+
+@pytest.mark.asyncio
+async def test_climate_fan_only_resumes_auto_and_follows_new_targets(
+    hass: Any, setup_blueair: Any
+) -> None:
+    """Resume auto in fan-only mode, and pick up a heating target set on the device."""
+    device = make_climate_device(main_mode=1, ap_sub_mode=2)
+    entry = await setup_blueair(aws=[device])
+    entity = entity_object(hass, CLIMATE)
+
+    await entity.async_set_hvac_mode(HVACMode.FAN_ONLY)
+    assert device.ap_sub_mode == 2
+
+    await entity.async_set_hvac_mode(HVACMode.HEAT)
+    entity._optimistic_until = 0
+    device.heat_temp = 260
+    entry.runtime_data.aws_devices[0].async_update_listeners()
+    assert entity.target_temperature == 26.0

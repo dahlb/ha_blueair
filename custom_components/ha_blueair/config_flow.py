@@ -1,5 +1,6 @@
 """Config flow for the Blueair integration."""
 
+from collections.abc import Mapping
 import logging
 from typing import Any
 
@@ -9,7 +10,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.core import callback
-import voluptuous as vol
+import probatio
 
 from .const import (
     CONF_NIGHT_PRESET,
@@ -29,13 +30,13 @@ class OptionFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Display preferences UI."""
-        self.schema = vol.Schema(
+        self.schema = probatio.Schema(
             {
-                vol.Required(
+                probatio.Required(
                     CONF_SCAN_INTERVAL,
                     default=config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
-                vol.Required(
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=1, max=30)),
+                probatio.Required(
                     CONF_NIGHT_PRESET,
                     default=config_entry.options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET),
                 ): bool,
@@ -68,49 +69,106 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Initialize the config flow handler."""
         self.data: dict[str, Any] = {}
 
+    async def _async_validate_login(self, username: str, password: str, region: str) -> str | None:
+        """Log in to Blueair once to check the credentials.
+
+        The login opens its own aiohttp session, which is closed afterwards.
+
+        Args:
+            username: Blueair account username.
+            password: Blueair account password.
+            region: Blueair cloud region.
+
+        Returns:
+            str | None: The form error key, or None when the login succeeded.
+        """
+        api_cloud = None
+        try:
+            api_cloud, _devices = await get_aws_devices(
+                username=username, password=password, region=region
+            )
+        except AuthError:
+            return "auth"
+        except ClientError, TimeoutError:
+            # blueair_api's other errors (rate limits, server errors) are
+            # ClientError subclasses too: Blueair could not be reached.
+            _LOGGER.debug("Blueair cloud unreachable during login check", exc_info=True)
+            return "cannot_connect"
+        except KeyError, TypeError, ValueError:
+            _LOGGER.exception("Unexpected response from Blueair during login check")
+            return "unknown"
+        finally:
+            if api_cloud is not None:
+                await api_cloud.cleanup_client_session()
+        return None
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step of the config flow."""
         data_schema = {
-            vol.Required(
+            probatio.Required(
                 CONF_REGION,
                 default=REGION_USA,
-            ): vol.In(REGIONS),
-            vol.Required(CONF_USERNAME): str,
-            vol.Required(CONF_PASSWORD): str,
+            ): probatio.In(REGIONS),
+            probatio.Required(CONF_USERNAME): str,
+            probatio.Required(probatio.Secret(CONF_PASSWORD)): str,
         }
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            region = user_input[CONF_REGION]
             username = user_input[CONF_USERNAME]
-            password = user_input[CONF_PASSWORD]
-
-            api_cloud = None
-            try:
-                api_cloud, _devices = await get_aws_devices(
-                    username=username, password=password, region=region
-                )
+            error = await self._async_validate_login(
+                username, user_input[CONF_PASSWORD], user_input[CONF_REGION]
+            )
+            if error is None:
                 self.data.update(user_input)
                 await self.async_set_unique_id(username)
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=username,
-                    data=self.data,
-                )
-            except AuthError:
-                errors["base"] = "auth"
-            except ClientError, TimeoutError:
-                # blueair_api's other errors (rate limits, server errors) are
-                # ClientError subclasses too: Blueair could not be reached.
-                _LOGGER.debug("Blueair cloud unreachable during setup", exc_info=True)
-                errors["base"] = "cannot_connect"
-            except KeyError, TypeError, ValueError:
-                _LOGGER.exception("Unexpected response from Blueair during setup")
-                errors["base"] = "unknown"
-            finally:
-                if api_cloud is not None:
-                    await api_cloud.cleanup_client_session()
+                return self.async_create_entry(title=username, data=self.data)
+            errors["base"] = error
 
         return self.async_show_form(
-            step_id="user", data_schema=vol.Schema(data_schema), errors=errors
+            step_id="user", data_schema=probatio.Schema(data_schema), errors=errors
+        )
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
+        """Start reauthentication after Blueair rejected the stored credentials.
+
+        Args:
+            entry_data: Data of the config entry that needs new credentials.
+
+        Returns:
+            ConfigFlowResult: The password form.
+        """
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the account's new password and update the entry.
+
+        Args:
+            user_input: Submitted password, or None to show the form.
+
+        Returns:
+            ConfigFlowResult: The form (with any error) or the reauth abort.
+        """
+        reauth_entry = self._get_reauth_entry()
+        username = reauth_entry.data[CONF_USERNAME]
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            password = user_input[CONF_PASSWORD]
+            error = await self._async_validate_login(
+                username, password, reauth_entry.data[CONF_REGION]
+            )
+            if error is None:
+                return self.async_update_reload_and_abort(
+                    reauth_entry, data_updates={CONF_PASSWORD: password}
+                )
+            errors["base"] = error
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=probatio.Schema({probatio.Required(probatio.Secret(CONF_PASSWORD)): str}),
+            description_placeholders={"username": username},
+            errors=errors,
         )

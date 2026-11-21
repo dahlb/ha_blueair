@@ -17,6 +17,9 @@ from .entity import BlueairEntity, async_setup_entry_helper
 
 _LOGGER: Logger = getLogger(__package__)
 
+# Commands go to Blueair's cloud API; send one at a time.
+PARALLEL_UPDATES = 1
+
 MIN_TEMP_C = 15.0
 MAX_TEMP_C = 37.0
 TEMP_STEP_C = 1.0

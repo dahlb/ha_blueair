@@ -8,7 +8,8 @@ from pathlib import Path
 from aiohttp import ClientConnectionError
 from blueair_api import LoginError, ServerError
 from homeassistant import config_entries
-from homeassistant.const import CONF_REGION, CONF_USERNAME
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
@@ -122,3 +123,89 @@ def test_every_flow_field_has_a_data_description(file_name: str, section: str, s
     assert (
         CONF_USERNAME not in step_strings["data"] or step_strings["data_description"][CONF_USERNAME]
     )
+
+
+def _reauth_entry(hass: HomeAssistant) -> MockConfigEntry:
+    """Add a Blueair entry whose stored password is out of date.
+
+    Args:
+        hass: Home Assistant instance.
+
+    Returns:
+        MockConfigEntry: The added entry.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=USERNAME,
+        title=USERNAME,
+        data={**entry_data(), CONF_PASSWORD: "old-password"},
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    return entry
+
+
+@pytest.mark.asyncio
+async def test_reauth_flow_updates_the_password(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
+) -> None:
+    """Store the new password after Blueair accepts it, and reload the entry."""
+    entry = _reauth_entry(hass)
+
+    form = await entry.start_reauth_flow(hass)
+    assert form["type"] is FlowResultType.FORM
+    assert form["step_id"] == "reauth_confirm"
+    assert form["description_placeholders"]["username"] == USERNAME
+
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"], {CONF_PASSWORD: "new-password"}
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert entry.data[CONF_PASSWORD] == "new-password"
+    assert entry.data[CONF_USERNAME] == USERNAME
+    # The flow checks the new password itself before the entry reloads with it.
+    assert {
+        "username": USERNAME,
+        "password": "new-password",
+        "region": entry_data()[CONF_REGION],
+    } in blueair_cloud.aws_calls
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [(LoginError("still wrong"), "auth"), (ClientConnectionError("offline"), "cannot_connect")],
+)
+async def test_reauth_flow_keeps_the_form_open_on_errors(
+    hass: HomeAssistant,
+    blueair_cloud: FakeBlueairCloud,
+    error: BaseException,
+    expected: str,
+) -> None:
+    """Keep the old password and show an error when the new one cannot be checked."""
+    entry = _reauth_entry(hass)
+    blueair_cloud.aws_error = error
+    form = await entry.start_reauth_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"], {CONF_PASSWORD: "new-password"}
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": expected}
+    assert entry.data[CONF_PASSWORD] == "old-password"
+
+
+@pytest.mark.parametrize("file_name", ["strings.json", "translations/en.json"])
+def test_reauth_and_exception_strings_exist(file_name: str) -> None:
+    """Translate the reauth form and every raised exception."""
+    strings = json.loads((INTEGRATION_DIR / file_name).read_text(encoding="utf-8"))
+    reauth = strings["config"]["step"]["reauth_confirm"]
+
+    assert set(reauth["data"]) == set(reauth["data_description"]) == {CONF_PASSWORD}
+    assert "reauth_successful" in strings["config"]["abort"]
+    assert set(strings["exceptions"]) == {"auth_failed", "update_failed", "command_failed"}

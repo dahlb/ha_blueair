@@ -45,40 +45,29 @@ rules:
 
   # Silver
   action-exceptions:
-    status: todo
+    status: done
     comment: >-
-      Entity commands (fan speed, light brightness, switches, ...) let raw aiohttp / API
-      errors escape instead of raising HomeAssistantError.
+      Device commands go through the coordinator's _async_device_command, which raises a
+      translated HomeAssistantError (and starts reauth on a rejected login).
   config-entry-unloading:
     status: done
     comment: Unload disconnects MQTT and unloads every platform.
-  docs-configuration-parameters:
-    status: todo
-    comment: README does not document the scan interval or night preset options.
-  docs-installation-parameters:
-    status: todo
-    comment: README mentions username and password but not the region field.
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
   entity-unavailable: done
   integration-owner: done
   log-when-unavailable:
-    status: todo
+    status: done
     comment: >-
-      The coordinators' update method lets transport errors escape as unexpected
-      exceptions, which DataUpdateCoordinator logs with a stack trace on every failed
-      poll; raise UpdateFailed so the outage and recovery are each logged once.
-  parallel-updates:
-    status: todo
-    comment: No platform sets PARALLEL_UPDATES.
-  reauthentication-flow:
-    status: todo
-    comment: >-
-      Setup turns LoginError into ConfigEntryNotReady, and the config flow has no reauth
-      step (strings.json has an unused reauth_confirm entry).
+      Failed polls raise UpdateFailed, so DataUpdateCoordinator logs the outage once and
+      its recovery once.
+  parallel-updates: done
+  reauthentication-flow: done
   test-coverage:
-    status: todo
+    status: done
     comment: >-
-      Coverage is about 32%; config flow, fan, light, sensor, switch, humidifier,
-      binary_sensor and diagnostics have no tests. The rule requires above 95%.
+      Coverage (statements and branches) is above 95% for every module, and
+      [tool.coverage.report] fail_under = 95 keeps it there.
 
   # Gold
   devices: done
