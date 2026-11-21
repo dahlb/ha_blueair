@@ -55,8 +55,8 @@
             </div>
         </aside>
         <h2>
-            <span class="text">27 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">27<span class="text"> run</span></button>
+            <span class="text">29 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">29<span class="text"> run</span></button>
             <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">0<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
             <button type="button" class="par run show_par button_toggle_par" value="par" data-shortcut="p" title="Toggle lines partially run">0<span class="text"> partial</span></button>
@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_90c2d7e930cf4dbd_coordinator_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-21 04:00 +0000
+            created at 2026-11-21 13:17 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -94,61 +94,67 @@
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="com"># Integration Setting Constants</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="nam">CONFIG_FLOW_VERSION</span><span class="op">:</span> <span class="nam">int</span> <span class="op">=</span> <span class="num">2</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="nam">DEFAULT_SCAN_INTERVAL</span><span class="op">:</span> <span class="nam">int</span> <span class="op">=</span> <span class="num">5</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="com"># How often to check the account for added or removed devices, in minutes.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="nam">DEVICE_LIST_INTERVAL</span><span class="op">:</span> <span class="nam">int</span> <span class="op">=</span> <span class="num">30</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t"><span class="com"># Whether fans offer the Night preset. Off leaves Night out of their</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="com"># preset list, e.g. so HomeKit Bridge doesn&#x27;t show a Night switch.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t"><span class="nam">CONF_NIGHT_PRESET</span><span class="op">:</span> <span class="nam">str</span> <span class="op">=</span> <span class="str">&quot;night_preset&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t"><span class="nam">DEFAULT_NIGHT_PRESET</span><span class="op">:</span> <span class="nam">bool</span> <span class="op">=</span> <span class="key">True</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t"><span class="nam">PLATFORMS</span> <span class="op">=</span> <span class="op">[</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">BINARY_SENSOR</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t22" href="#t22">22</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">CLIMATE</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t23" href="#t23">23</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">FAN</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t24" href="#t24">24</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">HUMIDIFIER</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">LIGHT</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">SENSOR</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">SWITCH</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t"><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t"><span class="key">class</span> <span class="nam">FanMode</span><span class="op">(</span><span class="nam">Enum</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Fan modes reported by Blueair devices.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">    <span class="nam">AUTO</span> <span class="op">=</span> <span class="str">&quot;auto&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">    <span class="nam">STEP1</span> <span class="op">=</span> <span class="str">&quot;step1&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t36" href="#t36">36</a></span><span class="t">    <span class="nam">STEP2</span> <span class="op">=</span> <span class="str">&quot;step2&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">    <span class="nam">STEP3</span> <span class="op">=</span> <span class="str">&quot;step3&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="nam">STEP4</span> <span class="op">=</span> <span class="str">&quot;step4&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="com"># Minor version 2 lowercases the unique ID (the account username).</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="nam">CONFIG_FLOW_MINOR_VERSION</span><span class="op">:</span> <span class="nam">int</span> <span class="op">=</span> <span class="num">2</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="nam">DEFAULT_SCAN_INTERVAL</span><span class="op">:</span> <span class="nam">int</span> <span class="op">=</span> <span class="num">5</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t"><span class="com"># Polling interval, in minutes, for AWS devices while MQTT pushes their</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="com"># updates; polling is then only a fallback for missed messages. A longer</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t"><span class="com"># configured interval is kept.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t"><span class="nam">MQTT_SCAN_INTERVAL</span><span class="op">:</span> <span class="nam">int</span> <span class="op">=</span> <span class="num">30</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t"><span class="com"># How often to check the account for added or removed devices, in minutes.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t"><span class="nam">DEVICE_LIST_INTERVAL</span><span class="op">:</span> <span class="nam">int</span> <span class="op">=</span> <span class="num">30</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t22" href="#t22">22</a></span><span class="t"><span class="com"># Whether fans offer the Night preset. Off leaves Night out of their</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t23" href="#t23">23</a></span><span class="t"><span class="com"># preset list, e.g. so HomeKit Bridge doesn&#x27;t show a Night switch.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t24" href="#t24">24</a></span><span class="t"><span class="nam">CONF_NIGHT_PRESET</span><span class="op">:</span> <span class="nam">str</span> <span class="op">=</span> <span class="str">&quot;night_preset&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t"><span class="nam">DEFAULT_NIGHT_PRESET</span><span class="op">:</span> <span class="nam">bool</span> <span class="op">=</span> <span class="key">True</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t"><span class="nam">PLATFORMS</span> <span class="op">=</span> <span class="op">[</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">BINARY_SENSOR</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">CLIMATE</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">FAN</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">HUMIDIFIER</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">LIGHT</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">SENSOR</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">    <span class="nam">Platform</span><span class="op">.</span><span class="nam">SWITCH</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t"><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t36" href="#t36">36</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t"><span class="key">class</span> <span class="nam">FanMode</span><span class="op">(</span><span class="nam">Enum</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Fan modes reported by Blueair devices.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t"><span class="com"># Home Assistant Data Storage Constants</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t"><span class="nam">REGION_EU</span> <span class="op">=</span> <span class="str">&quot;eu&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t"><span class="nam">REGION_USA</span> <span class="op">=</span> <span class="str">&quot;us&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t"><span class="nam">REGION_AU</span> <span class="op">=</span> <span class="str">&quot;au&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t46" href="#t46">46</a></span><span class="t"><span class="nam">REGION_CN</span> <span class="op">=</span> <span class="str">&quot;cn&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t47" href="#t47">47</a></span><span class="t"><span class="nam">REGIONS</span> <span class="op">=</span> <span class="op">[</span><span class="nam">REGION_USA</span><span class="op">,</span> <span class="nam">REGION_EU</span><span class="op">,</span> <span class="nam">REGION_AU</span><span class="op">,</span> <span class="nam">REGION_CN</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">    <span class="nam">AUTO</span> <span class="op">=</span> <span class="str">&quot;auto&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">    <span class="nam">STEP1</span> <span class="op">=</span> <span class="str">&quot;step1&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">    <span class="nam">STEP2</span> <span class="op">=</span> <span class="str">&quot;step2&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t">    <span class="nam">STEP3</span> <span class="op">=</span> <span class="str">&quot;step3&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">    <span class="nam">STEP4</span> <span class="op">=</span> <span class="str">&quot;step4&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t46" href="#t46">46</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t47" href="#t47">47</a></span><span class="t"><span class="com"># Home Assistant Data Storage Constants</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t48" href="#t48">48</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t49" href="#t49">49</a></span><span class="t"><span class="nam">DEFAULT_FAN_SPEED_PERCENTAGE</span> <span class="op">=</span> <span class="num">50</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t"><span class="com"># Custom Mode Constants</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t"><span class="nam">MODE_FAN_SPEED</span> <span class="op">=</span> <span class="str">&quot;fan_speed&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t"><span class="nam">MODE_AUTO</span> <span class="op">=</span> <span class="str">&quot;auto&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t"><span class="nam">MODE_NIGHT</span> <span class="op">=</span> <span class="str">&quot;night&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t"><span class="com"># Additional preset modes used by Blueair Signature-series air</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t"><span class="com"># purifiers (SP1i / SP3i / SP4i, type_name=&#x27;blue40&#x27;, hw=&#x27;l_blue40&#x27;),</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t"><span class="com"># which expose all four preset modes through the `apsubmode` shadow</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t"><span class="com"># field rather than `automode` / `nightmode`. See issues</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t"><span class="com"># dahlb/ha_blueair#348 and #261.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t61" href="#t61">61</a></span><span class="t"><span class="com">#</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t62" href="#t62">62</a></span><span class="t"><span class="com"># The integer wire values for these labels live in</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t"><span class="com"># `blueair_api.AP_SUB_MODE_LABELS` so the library can stay the</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t64" href="#t64">64</a></span><span class="t"><span class="com"># single source of truth for the apsubmode namespace (see also</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t65" href="#t65">65</a></span><span class="t"><span class="com"># Phase 3 tracking in dahlb/ha_blueair#353).</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t"><span class="nam">MODE_MANUAL_FAN</span> <span class="op">=</span> <span class="str">&quot;manual_fan&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t"><span class="nam">MODE_ECO</span> <span class="op">=</span> <span class="str">&quot;eco&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t49" href="#t49">49</a></span><span class="t"><span class="nam">REGION_EU</span> <span class="op">=</span> <span class="str">&quot;eu&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t"><span class="nam">REGION_USA</span> <span class="op">=</span> <span class="str">&quot;us&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t"><span class="nam">REGION_AU</span> <span class="op">=</span> <span class="str">&quot;au&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t"><span class="nam">REGION_CN</span> <span class="op">=</span> <span class="str">&quot;cn&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t"><span class="nam">REGIONS</span> <span class="op">=</span> <span class="op">[</span><span class="nam">REGION_USA</span><span class="op">,</span> <span class="nam">REGION_EU</span><span class="op">,</span> <span class="nam">REGION_AU</span><span class="op">,</span> <span class="nam">REGION_CN</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t"><span class="nam">DEFAULT_FAN_SPEED_PERCENTAGE</span> <span class="op">=</span> <span class="num">50</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t"><span class="com"># Custom Mode Constants</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t"><span class="nam">MODE_FAN_SPEED</span> <span class="op">=</span> <span class="str">&quot;fan_speed&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t"><span class="nam">MODE_AUTO</span> <span class="op">=</span> <span class="str">&quot;auto&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t"><span class="nam">MODE_NIGHT</span> <span class="op">=</span> <span class="str">&quot;night&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t61" href="#t61">61</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t62" href="#t62">62</a></span><span class="t"><span class="com"># Additional preset modes used by Blueair Signature-series air</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t"><span class="com"># purifiers (SP1i / SP3i / SP4i, type_name=&#x27;blue40&#x27;, hw=&#x27;l_blue40&#x27;),</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t64" href="#t64">64</a></span><span class="t"><span class="com"># which expose all four preset modes through the `apsubmode` shadow</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t65" href="#t65">65</a></span><span class="t"><span class="com"># field rather than `automode` / `nightmode`. See issues</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t"><span class="com"># dahlb/ha_blueair#348 and #261.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t"><span class="com">#</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t"><span class="com"># The integer wire values for these labels live in</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t"><span class="com"># `blueair_api.AP_SUB_MODE_LABELS` so the library can stay the</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t"><span class="com"># single source of truth for the apsubmode namespace (see also</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t71" href="#t71">71</a></span><span class="t"><span class="com"># Phase 3 tracking in dahlb/ha_blueair#353).</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t72" href="#t72">72</a></span><span class="t"><span class="nam">MODE_MANUAL_FAN</span> <span class="op">=</span> <span class="str">&quot;manual_fan&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t73" href="#t73">73</a></span><span class="t"><span class="nam">MODE_ECO</span> <span class="op">=</span> <span class="str">&quot;eco&quot;</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -158,7 +164,7 @@
             <a class="nav" href="z_90c2d7e930cf4dbd_coordinator_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-21 04:00 +0000
+            created at 2026-11-21 13:17 +0000
         </p>
     </div>
 </footer>
