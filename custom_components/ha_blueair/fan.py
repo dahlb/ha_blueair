@@ -497,18 +497,15 @@ class BlueairFan(BlueairEntity[BlueairUpdateCoordinatorDevice], FanEntity):
         if self.coordinator.fan_auto_mode is True:
             await self.coordinator.set_fan_auto_mode(False)
         await self.coordinator.set_fan_speed(new_speed)
-        self.async_write_ha_state()
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode of the fan."""
         if preset_mode == MODE_AUTO:
             await self.coordinator.set_fan_auto_mode(True)
-        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.set_fan_speed(0)
-        self.async_write_ha_state()
 
     async def async_turn_on(
         self,
@@ -521,13 +518,10 @@ class BlueairFan(BlueairEntity[BlueairUpdateCoordinatorDevice], FanEntity):
             await self.async_set_percentage(percentage=percentage)
         elif preset_mode is not None:
             await self.async_set_preset_mode(preset_mode)
-        elif self.is_on:
-            # Already running and nothing asked for: keep the current
-            # speed and mode (issue #390).
-            self.async_write_ha_state()
-        else:
+        elif not self.is_on:
+            # When already running and nothing is asked for, keep the
+            # current speed and mode (issue #390).
             await self.coordinator.set_fan_speed(1)
-            self.async_write_ha_state()
 
     @property
     def speed_count(self) -> int:
@@ -596,17 +590,14 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
         """Set the fan speed percentage."""
         await self._presets.leave_presets(self.coordinator)
         await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
-        self.async_write_ha_state()
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode of the fan."""
         await self._presets.set_preset_mode(self.coordinator, preset_mode)
-        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.set_running(False)
-        self.async_write_ha_state()
 
     async def async_turn_on(
         self,
@@ -633,11 +624,9 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
             # HA reboots. Thus we set the default turn_on fan speed to 50%
             # to make sure the fan actually spins at all.
             await self.async_set_percentage(percentage=DEFAULT_FAN_SPEED_PERCENTAGE)
-        else:
-            # A plain turn on resumes whatever the device was doing
-            # (auto, night, its last speed) instead of forcing 50%, and
-            # leaves an already-running fan alone (issue #390).
-            self.async_write_ha_state()
+        # Otherwise a plain turn on resumes whatever the device was doing
+        # (auto, night, its last speed) instead of forcing 50%, and
+        # leaves an already-running fan alone (issue #390).
 
     @property
     def speed_count(self) -> int:

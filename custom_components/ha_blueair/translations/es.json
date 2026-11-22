@@ -55,11 +55,13 @@
         "title": "Blueair: configuración",
         "data": {
           "scan_interval": "Intervalo de sondeo en minutos",
-          "night_preset": "Ofrecer el modo predefinido Noche en los ventiladores"
+          "night_preset": "Ofrecer el modo predefinido Noche en los ventiladores",
+          "filter_expired_threshold": "Umbral de caducidad del filtro (%)"
         },
         "data_description": {
           "scan_interval": "Cada cuántos minutos se consulta Blueair para cada dispositivo (1-30). Los dispositivos con actualizaciones MQTT en tiempo real se consultan con menos frecuencia mientras MQTT está conectado.",
-          "night_preset": "Desactívalo para quitar Noche de los modos predefinidos de los ventiladores, por ejemplo para que HomeKit Bridge no añada un interruptor Noche a cada purificador. Un ventilador puesto en Noche de otra forma lo sigue indicando. Si usas HomeKit Bridge, recárgalo después de cambiar esto: solo crea los interruptores de modos de un accesorio una vez."
+          "night_preset": "Desactívalo para quitar Noche de los modos predefinidos de los ventiladores, por ejemplo para que HomeKit Bridge no añada un interruptor Noche a cada purificador. Un ventilador puesto en Noche de otra forma lo sigue indicando. Si usas HomeKit Bridge, recárgalo después de cambiar esto: solo crea los interruptores de modos de un accesorio una vez.",
+          "filter_expired_threshold": "Los modelos actuales activan Caducidad del filtro cuando Vida del filtro está en este porcentaje o por debajo (0-50), por ejemplo 10 para recibir el aviso antes de que se agote el filtro. Los modelos antiguos informan ellos mismos de la caducidad del filtro."
         }
       }
     }

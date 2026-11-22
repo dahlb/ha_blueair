@@ -23,6 +23,11 @@ DEVICE_LIST_INTERVAL: int = 30
 # preset list, e.g. so HomeKit Bridge doesn't show a Night switch.
 CONF_NIGHT_PRESET: str = "night_preset"
 DEFAULT_NIGHT_PRESET: bool = True
+# Filter Life percentage at or below which current (AWS) models report
+# Filter Expiration. Legacy models report filter expiry themselves.
+CONF_FILTER_EXPIRED_THRESHOLD: str = "filter_expired_threshold"
+DEFAULT_FILTER_EXPIRED_THRESHOLD: int = 0
+MAX_FILTER_EXPIRED_THRESHOLD: int = 50
 PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.CLIMATE,

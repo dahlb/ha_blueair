@@ -14,12 +14,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import probatio
 
 from .const import (
+    CONF_FILTER_EXPIRED_THRESHOLD,
     CONF_NIGHT_PRESET,
     CONFIG_FLOW_MINOR_VERSION,
     CONFIG_FLOW_VERSION,
+    DEFAULT_FILTER_EXPIRED_THRESHOLD,
     DEFAULT_NIGHT_PRESET,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MAX_FILTER_EXPIRED_THRESHOLD,
     REGION_USA,
     REGIONS,
 )
@@ -46,7 +49,8 @@ class OptionFlowHandler(OptionsFlowWithReload):
     """Display preferences UI.
 
     Saving the options reloads the entry, which applies the new polling
-    interval and rebuilds the fans' preset lists.
+    interval and Filter Expiration threshold, and rebuilds the fans' preset
+    lists.
     """
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -73,6 +77,15 @@ class OptionFlowHandler(OptionsFlowWithReload):
                     CONF_NIGHT_PRESET,
                     default=options.get(CONF_NIGHT_PRESET, DEFAULT_NIGHT_PRESET),
                 ): bool,
+                probatio.Required(
+                    CONF_FILTER_EXPIRED_THRESHOLD,
+                    default=options.get(
+                        CONF_FILTER_EXPIRED_THRESHOLD, DEFAULT_FILTER_EXPIRED_THRESHOLD
+                    ),
+                ): probatio.All(
+                    probatio.Coerce(int),
+                    probatio.Range(min=0, max=MAX_FILTER_EXPIRED_THRESHOLD),
+                ),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

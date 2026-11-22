@@ -9,7 +9,7 @@
 ![Project Maintenance][maintenance-shield]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-A custom integration for Blueair Filters.  If your model isn't reported correctly please open a ticket and include your model name and the diagnostic file from the integration.
+A custom integration for Blueair air purifiers, humidifiers and fans.  If your model isn't reported correctly please open a ticket and include your model name and the diagnostic file from the integration.
 
 ## Feature Highlights ##
 - fan
@@ -72,6 +72,7 @@ Click **Configure** on the integration to change:
 
 - **Polling Interval in Minutes** (default 5, range 1-30) — how often every device is polled. Devices with real-time MQTT updates (most current models) poll less often while MQTT is connected; see [How Data Updates](#how-data-updates).
 - **Offer the Night preset on fans** (default on) — turn off to leave Night out of fans' preset list, e.g. so HomeKit Bridge doesn't add a Night switch.
+- **Filter Expiration threshold (%)** (default 0, range 0-50) — current (AWS) models turn **Filter Expiration** on when **Filter Life** is at or below this percentage; set e.g. 10 to be warned before the filter runs out. Legacy models report filter expiry themselves.
 
 Saving the options reloads the integration.
 
@@ -133,7 +134,7 @@ automation:
           entity_id: light.bedroom_led_light
 ```
 
-Get a reminder when the filter needs replacing. Legacy models report this directly; current (AWS) models turn **Filter Expiration** on when **Filter Life** reaches 0%. To be warned earlier, trigger on **Filter Life** dropping below a threshold instead:
+Get a reminder when the filter needs replacing. Legacy models report this directly; current (AWS) models turn **Filter Expiration** on when **Filter Life** reaches 0%, or the **Filter Expiration threshold** set in the [options](#options):
 
 ```yaml
 automation:
@@ -197,7 +198,7 @@ never offered a pre-release and stay on the latest stable build.
 
 ### Installing a beta as a tester (HACS) ###
 
-1. In Home Assistant, open **HACS** and find **Blueair Filters** under
+1. In Home Assistant, open **HACS** and find **Blueair** under
    Integrations.
 2. Open the three-dot menu on the integration and choose **Redownload**
    (some HACS versions label this **Update information** / **Reinstall**).
@@ -238,7 +239,7 @@ This integration follows the standard Home Assistant removal process; no extra s
 
 1. Go to **Settings → Devices & Services → Blueair**.
 2. Click the three-dot menu next to your Blueair account and choose **Delete**. This removes its devices and entities and stops all requests to Blueair's cloud.
-3. *(Optional)* If you installed through HACS and will not use the integration again, open **HACS**, find **Blueair Filters**, choose **Remove**, then restart Home Assistant. For a manual install, delete `config/custom_components/ha_blueair` and restart.
+3. *(Optional)* If you installed through HACS and will not use the integration again, open **HACS**, find **Blueair**, choose **Remove**, then restart Home Assistant. For a manual install, delete `config/custom_components/ha_blueair` and restart.
 
 Removing the integration does not change any settings on your Blueair devices or in your Blueair account.
 

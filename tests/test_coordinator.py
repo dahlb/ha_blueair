@@ -162,6 +162,24 @@ async def test_aws_filter_expires_when_its_life_runs_out(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("usage", "state"),
+    [(89, "off"), (90, "on"), (95, "on")],
+)
+async def test_aws_filter_expiration_follows_the_threshold_option(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any], usage: int, state: str
+) -> None:
+    """Turn Filter Expiration on once Filter Life is at or below the configured threshold."""
+    entry = await setup_blueair(
+        aws=[make_purifier(filter_usage_percentage=usage)],
+        options={"filter_expired_threshold": 10},
+    )
+
+    assert entry.runtime_data.aws_devices[0].filter_expired_threshold == 10
+    assert hass.states.get("binary_sensor.bedroom_filter_expiration").state == state
+
+
+@pytest.mark.asyncio
 async def test_aws_devices_without_a_filter_have_no_filter_expiration(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
