@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import BlueairConfigEntry
 from .coordinator import BlueairUpdateCoordinator
-from .entity import BlueairEntity, async_setup_entry_helper
+from .entity import BlueairEntity, async_setup_entry_helper, coordinator_reports
 
 # Read-only platform: the coordinators fetch data centrally, so entity updates
 # never call Blueair and need no limit.
@@ -46,10 +46,7 @@ class BlueairBinarySensor(BlueairEntity, BinarySensorEntity):
         """Return whether the coordinator supports this entity."""
         # See sensor.BlueairSensor.is_implemented (issue #356) for rationale
         # on the NotImplemented default.
-        return (
-            getattr(coordinator, cls(coordinator).entity_description.key, NotImplemented)
-            is not NotImplemented
-        )
+        return coordinator_reports(coordinator, cls.entity_description.key)
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the temperature sensor."""
