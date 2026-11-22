@@ -179,8 +179,15 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
 
     @property
     def filter_expired(self) -> Capability[bool]:
-        """Return whether the filter has expired."""
-        return NotImplemented
+        """Return whether the filter needs replacing.
+
+        AWS devices don't report this directly; the filter has expired once
+        its remaining life (see filter_life) reaches 0%.
+        """
+        life = self.filter_life
+        if life is None or life is NotImplemented:
+            return life
+        return life <= 0
 
     @property
     def filter_life(self) -> Capability[int]:
