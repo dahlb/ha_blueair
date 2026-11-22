@@ -319,6 +319,12 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
         self._update_supported_features()
         self.async_write_ha_state()
 
+        # Each command updates the entity from the device, which remembers the
+        # device's stored speed for the new mode; read the fan modes to resume
+        # before sending any.
+        last_fan_mode_fan_only = self._last_fan_mode_fan_only
+        last_fan_mode_cool = self._last_fan_mode_cool
+
         if not self.coordinator.is_on:
             await self.coordinator.set_running(True)
 
@@ -333,7 +339,7 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
             return
 
         if hvac_mode == HVACMode.FAN_ONLY:
-            desired = self._last_fan_mode_fan_only or FanMode.AUTO.value
+            desired = last_fan_mode_fan_only or FanMode.AUTO.value
             self._optimistic_fan_mode = desired
             self._attr_fan_mode = desired
             self.async_write_ha_state()
@@ -351,7 +357,7 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
             return
 
         if hvac_mode == HVACMode.COOL:
-            desired = self._last_fan_mode_cool or FanMode.STEP1.value
+            desired = last_fan_mode_cool or FanMode.STEP1.value
             if desired == FanMode.AUTO.value:
                 desired = FanMode.STEP1.value
 
