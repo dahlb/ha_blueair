@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -20,6 +21,13 @@ from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 import pytest
+
+from custom_components.ha_blueair.fan import (
+    _CLASSIC_PRESETS,
+    _COMBO_PRESETS,
+    _SIGNATURE_PRESETS,
+    _preset_family,
+)
 
 from .conftest import entity_object, make_aws_device, make_combo, make_legacy_device, make_purifier
 
@@ -370,3 +378,92 @@ async def test_legacy_fan_without_a_reported_speed_has_no_percentage(
     device.fan_speed = None
 
     assert entity_object(hass, "fan.hallway_fan").percentage is None
+
+
+def _family_coordinator(**attributes: Any) -> SimpleNamespace:
+    """Return a stand-in coordinator for the preset families.
+
+    Every preset field defaults to NotImplemented, and every setter is an
+    AsyncMock so tests can check what was written.
+
+    Args:
+        attributes: Preset field values the device reports.
+
+    Returns:
+        SimpleNamespace: The coordinator.
+    """
+    fields = {
+        "ap_sub_mode": NotImplemented,
+        "combo_mode": NotImplemented,
+        "fan_auto_mode": NotImplemented,
+        "night_mode": NotImplemented,
+        **attributes,
+    }
+    setters = {
+        name: AsyncMock()
+        for name in (
+            "set_ap_sub_mode",
+            "set_combo_mode",
+            "set_fan_auto_mode",
+            "set_night_mode",
+            "set_fan_speed",
+        )
+    }
+    return SimpleNamespace(**fields, **setters)
+
+
+@pytest.mark.parametrize(
+    ("attributes", "family"),
+    [
+        ({"ap_sub_mode": 0}, _SIGNATURE_PRESETS),
+        # A device with automode as well uses the classic fields, not apsubmode.
+        ({"ap_sub_mode": 0, "fan_auto_mode": False}, _CLASSIC_PRESETS),
+        ({"combo_mode": 1}, _COMBO_PRESETS),
+        ({"fan_auto_mode": False, "night_mode": False}, _CLASSIC_PRESETS),
+        ({}, _CLASSIC_PRESETS),
+    ],
+)
+def test_preset_family_follows_the_device_fields(
+    attributes: dict[str, Any], family: object
+) -> None:
+    """Pick the preset family from the shadow fields the device declares."""
+    assert _preset_family(_family_coordinator(**attributes)) is family
+
+
+@pytest.mark.parametrize(
+    ("attributes", "preset_modes"),
+    [
+        ({"fan_auto_mode": False, "night_mode": False}, ["auto", "night"]),
+        ({"fan_auto_mode": False}, ["auto"]),
+        ({"night_mode": False}, ["night"]),
+        ({}, []),
+    ],
+)
+def test_classic_presets_offer_the_fields_the_device_has(
+    attributes: dict[str, Any], preset_modes: list[str]
+) -> None:
+    """Offer Auto and Night only for the fields the device declares."""
+    assert _CLASSIC_PRESETS.preset_modes(_family_coordinator(**attributes)) == preset_modes
+
+
+@pytest.mark.parametrize("family", [_SIGNATURE_PRESETS, _COMBO_PRESETS])
+@pytest.mark.parametrize("value", [None, "x", NotImplemented])
+def test_mode_field_presets_treat_unreadable_values_as_manual(family: Any, value: object) -> None:
+    """Show the speed, and no preset, while the mode field can't be read."""
+    coordinator = _family_coordinator(ap_sub_mode=value, combo_mode=value)
+
+    assert family.preset_mode(coordinator) is None
+    assert family.shows_speed(coordinator)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("family", [_SIGNATURE_PRESETS, _COMBO_PRESETS, _CLASSIC_PRESETS])
+async def test_unknown_presets_write_nothing(family: Any) -> None:
+    """Ignore a preset label the family doesn't know."""
+    coordinator = _family_coordinator()
+
+    await family.set_preset_mode(coordinator, "turbo")
+
+    for name in vars(coordinator):
+        if name.startswith("set_"):
+            getattr(coordinator, name).assert_not_awaited()
