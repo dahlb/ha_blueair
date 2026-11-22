@@ -6,7 +6,7 @@ from enum import Enum
 from homeassistant.const import Platform
 
 DOMAIN: str = "ha_blueair"
-VERSION: str = "1.63.2"
+VERSION: str = "1.64.0"
 
 # Integration Setting Constants
 CONFIG_FLOW_VERSION: int = 2
