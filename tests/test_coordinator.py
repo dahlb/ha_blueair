@@ -136,6 +136,43 @@ async def test_rejected_login_on_a_command_starts_reauthentication(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("usage", "expired", "state"),
+    [
+        (25, False, "off"),
+        (99, False, "off"),
+        (100, True, "on"),
+        # Some filters report usage past 100%.
+        (110, True, "on"),
+        (None, None, "unknown"),
+    ],
+)
+async def test_aws_filter_expires_when_its_life_runs_out(
+    hass: HomeAssistant,
+    setup_blueair: Callable[..., Any],
+    usage: int | None,
+    expired: bool | None,
+    state: str,
+) -> None:
+    """Turn Filter Expiration on for AWS purifiers once Filter Life reaches 0%."""
+    entry = await setup_blueair(aws=[make_purifier(filter_usage_percentage=usage)])
+
+    assert entry.runtime_data.aws_devices[0].filter_expired is expired
+    assert hass.states.get("binary_sensor.bedroom_filter_expiration").state == state
+
+
+@pytest.mark.asyncio
+async def test_aws_devices_without_a_filter_have_no_filter_expiration(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Leave Filter Expiration off devices that report no filter usage."""
+    entry = await setup_blueair(aws=[make_purifier(filter_usage_percentage=NotImplemented)])
+
+    assert entry.runtime_data.aws_devices[0].filter_expired is NotImplemented
+    assert hass.states.get("binary_sensor.bedroom_filter_expiration") is None
+
+
+@pytest.mark.asyncio
 async def test_a_command_updates_every_entity_of_the_device(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
