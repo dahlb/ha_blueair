@@ -117,3 +117,35 @@ def test_base_entity_requires_is_implemented() -> None:
 
     with pytest.raises(NotImplementedError):
         BlueairEntity.is_implemented(object())
+
+
+# Marks a coordinator that doesn't declare the attribute at all.
+_MISSING = object()
+
+
+@pytest.mark.parametrize(
+    ("module", "class_name", "key"),
+    [
+        ("sensor", "BlueairTemperatureSensor", "temperature"),
+        ("binary_sensor", "BlueairWaterShortageSensor", "water_shortage"),
+        ("switch", "BlueairChildLockSwitchEntity", "child_lock"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("value", "implemented"), [(_MISSING, False), (NotImplemented, False), (None, True)]
+)
+def test_is_implemented_reads_the_class_description(
+    module: str, class_name: str, key: str, value: object, implemented: bool
+) -> None:
+    """Check support from the class's description, without creating an entity.
+
+    A coordinator that lacks the attribute entirely is unsupported rather
+    than an error (issue #356), on every platform.
+    """
+    entity_class = getattr(
+        importlib.import_module(f"custom_components.ha_blueair.{module}"), class_name
+    )
+    coordinator = SimpleNamespace() if value is _MISSING else SimpleNamespace(**{key: value})
+
+    with patch.object(entity_class, "__init__", side_effect=AssertionError("instantiated")):
+        assert entity_class.is_implemented(coordinator) is implemented
