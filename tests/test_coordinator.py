@@ -167,9 +167,11 @@ async def test_a_failed_command_does_not_update_the_entities(
     coordinator = entry.runtime_data.aws_devices[0]
     device.api.error = ClientConnectionError("offline")
 
-    with patch.object(coordinator, "async_update_listeners") as update_listeners:
-        with pytest.raises(HomeAssistantError):
-            await coordinator.set_child_lock(True)
+    with (
+        patch.object(coordinator, "async_update_listeners") as update_listeners,
+        pytest.raises(HomeAssistantError),
+    ):
+        await coordinator.set_child_lock(True)
 
     update_listeners.assert_not_called()
 
