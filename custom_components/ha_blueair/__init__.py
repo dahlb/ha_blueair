@@ -8,7 +8,6 @@ import logging
 from typing import Any
 
 from aiohttp import ClientError
-from aiomqtt import MqttError
 from blueair_api import (
     Device,
     DeviceAws,
@@ -16,6 +15,7 @@ from blueair_api import (
     HttpBlueair,
     LoginError,
     MqttAwsBlueair,
+    MqttError,
     get_aws_devices,
     get_devices,
 )
