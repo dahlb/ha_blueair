@@ -165,11 +165,20 @@ async def test_mqtt_disconnects_when_home_assistant_stops(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error",
+    [
+        MqttError("TLS handshake failed"),
+        OSError("network unreachable"),
+        TimeoutError(),
+        ValueError("No MQTT broker configured for region: xx"),
+    ],
+)
 async def test_mqtt_connect_failure_falls_back_to_polling(
-    hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
+    hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt], error: Exception
 ) -> None:
     """Keep the entry working by polling when MQTT cannot connect."""
-    fake_mqtt.connect_error = MqttError("TLS handshake failed")
+    fake_mqtt.connect_error = error
 
     entry = await setup_blueair(aws=[make_purifier()])
 
@@ -270,11 +279,27 @@ async def test_mqtt_messages_update_the_device(
 
 
 @pytest.mark.asyncio
+async def test_unexpected_mqtt_start_errors_fail_the_setup(
+    hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
+) -> None:
+    """Surface a bug while starting MQTT instead of silently polling."""
+    fake_mqtt.connect_error = RuntimeError("bug")
+
+    with pytest.raises(AssertionError):
+        # setup_blueair asserts that setup succeeded.
+        await setup_blueair(aws=[make_purifier()])
+
+    assert hass.config_entries.async_entries(DOMAIN)[0].state is ConfigEntryState.SETUP_ERROR
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error", [AttributeError, KeyError, TypeError, ValueError])
 async def test_mqtt_payloads_that_fail_to_apply_are_skipped(
     hass: HomeAssistant,
     setup_blueair: Any,
     fake_mqtt: type[FakeMqtt],
     caplog: pytest.LogCaptureFixture,
+    error: type[Exception],
 ) -> None:
     """Log and skip a payload the device cannot apply, without breaking MQTT updates."""
     device = make_purifier()
@@ -283,7 +308,7 @@ async def test_mqtt_payloads_that_fail_to_apply_are_skipped(
 
     def reject(_payload: Any) -> None:
         """Fail like a malformed payload would."""
-        raise ValueError("bad payload")
+        raise error("bad payload")
 
     device.apply_sensor_data = reject
     device.apply_state_change = reject
@@ -294,6 +319,28 @@ async def test_mqtt_payloads_that_fail_to_apply_are_skipped(
 
     assert "apply_sensor_data raised" in caplog.text
     assert "apply_state_change raised" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_unexpected_mqtt_callback_errors_reach_the_mqtt_client(
+    hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
+) -> None:
+    """Let a bug propagate to blueair_api's MQTT client, which logs it and keeps going."""
+    device = make_purifier()
+    await setup_blueair(aws=[device])
+    client = fake_mqtt.instances[0]
+
+    def broken(_payload: Any) -> None:
+        """Fail the way a bug would."""
+        raise RuntimeError("bug")
+
+    device.apply_sensor_data = broken
+    device.apply_state_change = broken
+
+    with pytest.raises(RuntimeError):
+        client.on_sensor_data("purifier-1", {"pm2_5": 1})
+    with pytest.raises(RuntimeError):
+        client.on_state_change("purifier-1", {"standby": False})
 
 
 @pytest.mark.asyncio

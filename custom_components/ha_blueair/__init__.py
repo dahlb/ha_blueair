@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from aiohttp import ClientError
+from aiomqtt import MqttError
 from blueair_api import (
     Device,
     DeviceAws,
@@ -88,6 +89,11 @@ class BlueairRuntimeData:
 
 
 type BlueairConfigEntry = ConfigEntry[BlueairRuntimeData]
+
+# Errors a malformed MQTT payload can raise while blueair_api applies it to
+# the device. blueair_api's MQTT client also logs anything else a callback
+# raises, so an unexpected error can't stop the message loop.
+_PAYLOAD_ERRORS = (AttributeError, KeyError, TypeError, ValueError)
 
 
 class _MqttPolling:
@@ -217,7 +223,7 @@ async def _async_start_mqtt(
                 device = coordinator.blueair_api_device
                 try:
                     device.apply_sensor_data(sensors)
-                except Exception:
+                except _PAYLOAD_ERRORS:
                     _LOGGER.exception(
                         "apply_sensor_data raised for device %s with payload %r",
                         device_id,
@@ -237,7 +243,7 @@ async def _async_start_mqtt(
                 device = coordinator.blueair_api_device
                 try:
                     device.apply_state_change(state)
-                except Exception:
+                except _PAYLOAD_ERRORS:
                     _LOGGER.exception(
                         "apply_state_change raised for device %s with payload %r",
                         device_id,
@@ -301,7 +307,10 @@ async def _async_start_mqtt(
             config_entry.async_on_unload(
                 hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop_mqtt)
             )
-        except Exception:
+        except MqttError, OSError, TimeoutError, ValueError:
+            # MqttError: the broker refused or dropped the first connection;
+            # OSError: network or TLS failures; ValueError: no broker for the
+            # region. Anything else is a bug and fails setup visibly.
             _LOGGER.exception("Failed to start MQTT, falling back to polling only")
             if mqtt_client is not None:
                 await mqtt_client.disconnect()
