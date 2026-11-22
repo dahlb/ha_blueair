@@ -7,8 +7,7 @@ from typing import Any
 from unittest.mock import patch
 
 from aiohttp import ClientConnectionError
-from aiomqtt import MqttError
-from blueair_api import LoginError
+from blueair_api import LoginError, MqttError
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
