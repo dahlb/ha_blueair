@@ -4,7 +4,7 @@
 
 | Name                                                       |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
 |----------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
-| custom\_components/ha\_blueair/\_\_init\_\_.py             |      262 |        0 |       56 |        3 |     99% |315-\>317, 338-\>340, 534-\>552 |
+| custom\_components/ha\_blueair/\_\_init\_\_.py             |      261 |        0 |       56 |        3 |     99% |315-\>317, 338-\>340, 534-\>552 |
 | custom\_components/ha\_blueair/binary\_sensor.py           |       31 |        0 |        0 |        0 |    100% |           |
 | custom\_components/ha\_blueair/climate.py                  |      285 |        0 |       96 |        5 |     99% |196-\>exit, 316-\>319, 359-\>exit, 390-\>393, 408-\>413 |
 | custom\_components/ha\_blueair/config\_flow.py             |       82 |        0 |       14 |        0 |    100% |           |
@@ -20,7 +20,7 @@
 | custom\_components/ha\_blueair/mqtt\_mapping.py            |        9 |        0 |        4 |        0 |    100% |           |
 | custom\_components/ha\_blueair/sensor.py                   |       96 |        0 |        8 |        0 |    100% |           |
 | custom\_components/ha\_blueair/switch.py                   |       37 |        0 |        0 |        0 |    100% |           |
-| **TOTAL**                                                  | **2053** |    **3** |  **352** |   **21** | **99%** |           |
+| **TOTAL**                                                  | **2052** |    **3** |  **352** |   **21** | **99%** |           |
 
 
 ## Setup coverage badge
