@@ -13,14 +13,14 @@
 | custom\_components/ha\_blueair/coordinator\_device.py      |      208 |        0 |       24 |        0 |    100% |           |
 | custom\_components/ha\_blueair/coordinator\_device\_aws.py |      274 |        1 |       24 |        1 |     99% |       288 |
 | custom\_components/ha\_blueair/diagnostics.py              |       50 |        0 |       18 |        2 |     97% |72-\>77, 87-\>120 |
-| custom\_components/ha\_blueair/entity.py                   |       43 |        0 |        6 |        0 |    100% |           |
+| custom\_components/ha\_blueair/entity.py                   |       45 |        0 |        6 |        0 |    100% |           |
 | custom\_components/ha\_blueair/fan.py                      |      247 |        0 |       96 |        9 |     97% |181-\>183, 299-\>301, 301-\>303, 306-\>308, 308-\>311, 372-\>374, 391-\>393, 452-\>454, 469-\>471 |
 | custom\_components/ha\_blueair/humidifier.py               |       96 |        0 |       12 |        0 |    100% |           |
 | custom\_components/ha\_blueair/light.py                    |      113 |        0 |       18 |        3 |     98% |94-\>96, 140-\>142, 186-\>188 |
 | custom\_components/ha\_blueair/mqtt\_mapping.py            |        9 |        0 |        4 |        0 |    100% |           |
 | custom\_components/ha\_blueair/sensor.py                   |       96 |        0 |        8 |        0 |    100% |           |
 | custom\_components/ha\_blueair/switch.py                   |       39 |        0 |        0 |        0 |    100% |           |
-| **TOTAL**                                                  | **2085** |    **2** |  **378** |   **24** | **99%** |           |
+| **TOTAL**                                                  | **2087** |    **2** |  **378** |   **24** | **99%** |           |
 
 
 ## Setup coverage badge
