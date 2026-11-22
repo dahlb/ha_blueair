@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from asyncio import sleep
 import logging
+import math
 from typing import Any
 
 from blueair_api import AP_SUB_MODE_LABELS
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
 from . import BlueairConfigEntry
 from .const import (
@@ -73,11 +75,36 @@ def _drop_night_if_disabled(
 
 
 def _speed_percentage(coordinator: BlueairUpdateCoordinator) -> int | None:
-    """Return the fan speed as a percentage, or None before it's reported."""
+    """Return the fan speed as a percentage, or None before it's reported.
+
+    Args:
+        coordinator: The device's coordinator.
+
+    Returns:
+        int | None: The speed as a percentage of the device's speed count.
+    """
     speed = coordinator.fan_speed
     if speed is None or speed is NotImplemented:
         return None
-    return int((speed * 100) // coordinator.speed_count)
+    return ranged_value_to_percentage((1, coordinator.speed_count), speed)
+
+
+def _percentage_speed(coordinator: BlueairUpdateCoordinator, percentage: int) -> int:
+    """Return the device fan speed for a percentage.
+
+    Rounds up, so any percentage above 0 gives a speed of at least 1 instead
+    of stopping the fan (e.g. 10% on a three-speed fan is speed 1, not 0).
+
+    Args:
+        coordinator: The device's coordinator.
+        percentage: Requested speed percentage, 0-100.
+
+    Returns:
+        int: Fan speed between 0 and the device's speed count.
+    """
+    if percentage <= 0:
+        return 0
+    return math.ceil(percentage_to_ranged_value((1, coordinator.speed_count), percentage))
 
 
 def _is_on(coordinator: BlueairUpdateCoordinator) -> bool | None:
@@ -136,21 +163,13 @@ class BlueairFan(BlueairEntity[BlueairUpdateCoordinatorDevice], FanEntity):
     @property
     def percentage(self) -> int | None:
         """Return the current speed percentage."""
-        speed = self.coordinator.fan_speed
-        if self.preset_mode is None and speed is not None and speed is not NotImplemented:
-            return int(round(speed * 33.33, 0))
+        if self.preset_mode is None:
+            return _speed_percentage(self.coordinator)
         return None
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Sets fan speed percentage."""
-        if percentage == 100:
-            new_speed = 3
-        elif percentage > 50:
-            new_speed = 2
-        elif percentage > 20:
-            new_speed = 1
-        else:
-            new_speed = 0
+        new_speed = _percentage_speed(self.coordinator, percentage)
 
         if self.coordinator.fan_auto_mode is True:
             await self.coordinator.set_fan_auto_mode(False)
@@ -352,8 +371,7 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
                 already_manual = False
             if not already_manual:
                 await self.coordinator.set_ap_sub_mode(manual_value)
-            blueair_percentage = round(percentage / 100 * self.coordinator.speed_count)
-            await self.coordinator.set_fan_speed(blueair_percentage)
+            await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
             self.async_write_ha_state()
             return
 
@@ -372,8 +390,7 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
                 already_manual = False
             if not already_manual:
                 await self.coordinator.set_combo_mode(manual_value)
-            blueair_percentage = round(percentage / 100 * self.coordinator.speed_count)
-            await self.coordinator.set_fan_speed(blueair_percentage)
+            await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
             self.async_write_ha_state()
             return
 
@@ -385,8 +402,7 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
             # aws then it sets the speed to what night mode had set and updates aws with
             # that speed, without this wait the following set is overridden by the device
             await sleep(2)
-        blueair_percentage = round(percentage / 100 * self.coordinator.speed_count)
-        await self.coordinator.set_fan_speed(blueair_percentage)
+        await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
         self.async_write_ha_state()
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
