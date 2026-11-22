@@ -16,5 +16,5 @@
   "requirements": [
     "blueair-api==2.1.0"
   ],
-  "version": "1.65.0"
+  "version": "1.65.1"
 }
