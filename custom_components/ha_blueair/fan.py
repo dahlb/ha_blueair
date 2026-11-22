@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from asyncio import sleep
+from collections.abc import Awaitable, Callable, Mapping
 import logging
 import math
 from typing import Any
@@ -22,7 +24,7 @@ from .const import (
     MODE_MANUAL_FAN,
     MODE_NIGHT,
 )
-from .coordinator import BlueairUpdateCoordinator
+from .coordinator import BlueairUpdateCoordinator, Capability
 from .coordinator_device import BlueairUpdateCoordinatorDevice
 from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
@@ -31,13 +33,6 @@ _LOGGER = logging.getLogger(__name__)
 
 # Commands go to Blueair's cloud API; send one at a time.
 PARALLEL_UPDATES = 1
-
-# Reverse lookup for AP_SUB_MODE_LABELS: HA preset label -> apsubmode
-# wire value. Built once at import time; the library guarantees keys
-# are ints and values are unique (see test_labels_are_unique).
-_LABEL_TO_AP_SUB_MODE: dict[str, int] = {
-    label: value for value, label in AP_SUB_MODE_LABELS.items()
-}
 
 # Investigation of the Blueair cloud API responses and AWS IoT
 # protocol behavior shows that Signature-family devices pair every
@@ -59,9 +54,337 @@ _COMBO_MODE_TO_LABEL: dict[int, str] = {
     2: MODE_AUTO,
     3: MODE_NIGHT,
 }
-_LABEL_TO_COMBO_MODE: dict[str, int] = {
-    label: value for value, label in _COMBO_MODE_TO_LABEL.items()
-}
+
+
+def _as_int(value: Capability[int]) -> int | None:
+    """Return a reported mode value as an int, or None when it can't be read.
+
+    Args:
+        value: The value the device reported.
+
+    Returns:
+        int | None: The value, or None for None, NotImplemented, or a value
+        that isn't a number.
+    """
+    if value is None or value is NotImplemented:
+        return None
+    try:
+        return int(value)
+    except TypeError, ValueError:
+        return None
+
+
+class _PresetFamily(ABC):
+    """How one family of AWS fans reports and switches its preset modes.
+
+    Blueair fans switch presets in three different ways (see
+    ``_preset_family``); each family keeps its rules in one place so the fan
+    entity doesn't branch on the family in every method.
+    """
+
+    # Family name for debug logs.
+    name: str
+
+    @abstractmethod
+    def preset_modes(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> list[str]:
+        """Return the presets the device supports.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            list[str]: Preset labels, before the Night option is applied.
+        """
+
+    @abstractmethod
+    def preset_mode(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> str | None:
+        """Return the active preset.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            str | None: The preset label, or None when no preset is active
+            or it isn't known yet.
+        """
+
+    @abstractmethod
+    def shows_speed(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> bool:
+        """Return whether the fan speed is meaningful to show.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            bool: False while a preset picks the speed itself.
+        """
+
+    @abstractmethod
+    async def leave_presets(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
+        """Switch to manual control so the device honors a speed write.
+
+        Args:
+            coordinator: The device's coordinator.
+        """
+
+    @abstractmethod
+    async def set_preset_mode(
+        self, coordinator: BlueairUpdateCoordinatorDeviceAws, preset_mode: str
+    ) -> None:
+        """Switch the device to a preset.
+
+        Args:
+            coordinator: The device's coordinator.
+            preset_mode: The preset label.
+        """
+
+
+class _ClassicPresets(_PresetFamily):
+    """Fans with separate ``automode`` and ``nightmode`` shadow fields."""
+
+    name = "classic"
+
+    def preset_modes(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> list[str]:
+        """Return Auto and Night, for whichever fields the device has.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            list[str]: Preset labels.
+        """
+        preset_modes = []
+        if coordinator.fan_auto_mode is not NotImplemented:
+            preset_modes.append(MODE_AUTO)
+        if coordinator.night_mode is not NotImplemented:
+            preset_modes.append(MODE_NIGHT)
+        return preset_modes
+
+    def preset_mode(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> str | None:
+        """Return Auto or Night when that field is on.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            str | None: The preset label, or None in manual control.
+        """
+        if coordinator.fan_auto_mode is True:
+            return MODE_AUTO
+        if coordinator.night_mode is True:
+            return MODE_NIGHT
+        return None
+
+    def shows_speed(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> bool:
+        """Return True in manual control (no preset active).
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            bool: Whether the fan speed is meaningful to show.
+        """
+        return self.preset_mode(coordinator) is None
+
+    async def leave_presets(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
+        """Turn auto and night mode off.
+
+        Args:
+            coordinator: The device's coordinator.
+        """
+        if coordinator.fan_auto_mode is True:
+            await coordinator.set_fan_auto_mode(False)
+        if coordinator.night_mode is True:
+            await coordinator.set_night_mode(False)
+            # need to wait when turning off night mode for device to receive message from
+            # aws then it sets the speed to what night mode had set and updates aws with
+            # that speed, without this wait the following set is overridden by the device
+            await sleep(2)
+
+    async def set_preset_mode(
+        self, coordinator: BlueairUpdateCoordinatorDeviceAws, preset_mode: str
+    ) -> None:
+        """Turn auto or night mode on.
+
+        Args:
+            coordinator: The device's coordinator.
+            preset_mode: The preset label.
+        """
+        if preset_mode == MODE_AUTO:
+            await coordinator.set_fan_auto_mode(True)
+        elif preset_mode == MODE_NIGHT:
+            await coordinator.set_night_mode(True)
+
+
+class _ModeFieldPresets(_PresetFamily):
+    """Fans that select every preset, manual included, through one mode field."""
+
+    def __init__(
+        self,
+        name: str,
+        labels: Mapping[int, str],
+        read: Callable[[BlueairUpdateCoordinatorDeviceAws], Capability[int]],
+        write: Callable[[BlueairUpdateCoordinatorDeviceAws, int], Awaitable[None]],
+        fan_speed_after_preset: int | None = None,
+    ) -> None:
+        """Initialize the family.
+
+        Args:
+            name: Family name for debug logs.
+            labels: Mode field value to preset label; must include
+                ``MODE_MANUAL_FAN``.
+            read: Returns the device's mode field value.
+            write: Writes a mode field value to the device.
+            fan_speed_after_preset: Fan speed to write after every preset
+                change, if the family needs one.
+        """
+        self.name = name
+        self._labels = labels
+        # Reverse lookup: HA preset label -> wire value. Built once at import
+        # time; for AP_SUB_MODE_LABELS the library guarantees keys are ints and
+        # values are unique (see test_labels_are_unique).
+        self._values = {label: value for value, label in labels.items()}
+        self._manual = self._values[MODE_MANUAL_FAN]
+        self._read = read
+        self._write = write
+        self._fan_speed_after_preset = fan_speed_after_preset
+
+    def preset_modes(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> list[str]:
+        """Return every labelled mode.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            list[str]: Preset labels.
+        """
+        return list(self._labels.values())
+
+    def preset_mode(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> str | None:
+        """Return the label of the device's mode field value.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            str | None: The preset label, or None when the value is unknown.
+        """
+        value = _as_int(self._read(coordinator))
+        return None if value is None else self._labels.get(value)
+
+    def shows_speed(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> bool:
+        """Return True in the manual mode, or while the mode is unknown.
+
+        The speed slider is only meaningful in manual; in the other modes the
+        device chooses the speed and a percentage would be misleading.
+
+        Args:
+            coordinator: The device's coordinator.
+
+        Returns:
+            bool: Whether the fan speed is meaningful to show.
+        """
+        value = _as_int(self._read(coordinator))
+        return value is None or value == self._manual
+
+    async def leave_presets(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
+        """Switch to the manual mode first so the device honors the speed write.
+
+        Skipped if already there to avoid an extraneous shadow write on every
+        speed change.
+
+        Args:
+            coordinator: The device's coordinator.
+        """
+        if _as_int(self._read(coordinator)) != self._manual:
+            await self._write(coordinator, self._manual)
+
+    async def set_preset_mode(
+        self, coordinator: BlueairUpdateCoordinatorDeviceAws, preset_mode: str
+    ) -> None:
+        """Write the preset's mode field value.
+
+        Args:
+            coordinator: The device's coordinator.
+            preset_mode: The preset label.
+        """
+        value = self._values.get(preset_mode)
+        if value is None:
+            # HA frontend validates against preset_modes before
+            # calling us, so this only fires when an automation
+            # or service call sends an unknown label. Surface it
+            # at debug level so the user can diagnose without
+            # having to enable trace-level logging on HA core.
+            _LOGGER.debug(
+                "BlueairAwsFan: ignoring unknown preset_mode=%r (known: %s)",
+                preset_mode,
+                list(self._values),
+            )
+            return
+        await self._write(coordinator, value)
+        if self._fan_speed_after_preset is not None:
+            await coordinator.set_fan_speed(self._fan_speed_after_preset)
+
+
+_CLASSIC_PRESETS = _ClassicPresets()
+# Signature devices: four presets derived from AP_SUB_MODE_LABELS
+# (manual_fan / auto / night / eco). Investigation of the Blueair cloud API
+# responses and AWS IoT protocol behavior shows that apsubmode writes on
+# Signature-family devices are paired with a fanspeed reset (see
+# _SIGNATURE_APSUBMODE_FANSPEED_RESET). The slider is hidden in non-manual
+# presets, so this write is invisible while the preset is active.
+_SIGNATURE_PRESETS = _ModeFieldPresets(
+    "Signature",
+    AP_SUB_MODE_LABELS,
+    lambda coordinator: coordinator.ap_sub_mode,
+    lambda coordinator, value: coordinator.set_ap_sub_mode(value),
+    fan_speed_after_preset=_SIGNATURE_APSUBMODE_FANSPEED_RESET,
+)
+# 2-in-1 combo devices: Manual / Auto / Night via combo_mode. Combo devices
+# manage their own fan speed in Auto/Night, so no paired fanspeed reset is
+# needed (unlike Signature).
+_COMBO_PRESETS = _ModeFieldPresets(
+    "combo",
+    _COMBO_MODE_TO_LABEL,
+    lambda coordinator: coordinator.combo_mode,
+    lambda coordinator, value: coordinator.set_combo_mode(value),
+)
+
+
+def _preset_family(coordinator: BlueairUpdateCoordinatorDeviceAws) -> _PresetFamily:
+    """Return how the device reports and switches its presets.
+
+    Signature-series devices switch presets via ``apsubmode`` and have no
+    ``automode`` / ``nightmode`` shadow fields. Currently observed on SP4i
+    (and assumed on SP1i / SP3i — same ``blue40`` / ``l_blue40`` capability
+    shape). The library's ``AP_SUB_MODE_LABELS`` is intentionally
+    Signature-only; T10i / pet_air_pro / 2-in-1 declare ``automode`` and so
+    are excluded by this gate — see the constant's docstring in
+    ``blueair_api/device_aws.py``. Issues: dahlb/ha_blueair#348 and #261.
+
+    2-in-1 combo devices (e.g. DH3i) switch presets via ``mode``, exposed as
+    ``combo_mode``. These devices declare neither ``automode`` nor
+    ``nightmode`` shadow fields and have no ``apsubmode``; their
+    Manual/Auto/Night presets all ride on ``combo_mode`` (see
+    ``_COMBO_MODE_TO_LABEL``). Issue: dahlb/ha_blueair#241.
+
+    Every other device uses separate ``automode`` and ``nightmode`` fields.
+
+    Args:
+        coordinator: The device's coordinator.
+
+    Returns:
+        _PresetFamily: The device's preset family.
+    """
+    if (
+        coordinator.ap_sub_mode is not NotImplemented
+        and coordinator.fan_auto_mode is NotImplemented
+        and coordinator.night_mode is NotImplemented
+    ):
+        return _SIGNATURE_PRESETS
+    if coordinator.combo_mode is not NotImplemented:
+        return _COMBO_PRESETS
+    return _CLASSIC_PRESETS
 
 
 def _drop_night_if_disabled(
@@ -227,80 +550,25 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
         """Return whether the coordinator supports this entity."""
         return isinstance(coordinator, BlueairUpdateCoordinatorDeviceAws)
 
-    @staticmethod
-    def _supports_signature_presets(coordinator: BlueairUpdateCoordinator) -> bool:
-        """Return True for Signature-series devices that switch presets via ``apsubmode``.
-
-        These have no ``automode`` / ``nightmode`` shadow fields.
-
-        Currently observed on SP4i (and assumed on SP1i / SP3i — same
-        ``blue40`` / ``l_blue40`` capability shape). The library's
-        ``AP_SUB_MODE_LABELS`` is intentionally Signature-only;
-        T10i / pet_air_pro / 2-in-1 declare ``automode`` and so are
-        excluded by this gate — see the constant's docstring in
-        ``blueair_api/device_aws.py``.
-
-        Issues: dahlb/ha_blueair#348 and #261.
-        """
-        return (
-            coordinator.ap_sub_mode is not NotImplemented
-            and coordinator.fan_auto_mode is NotImplemented
-            and coordinator.night_mode is NotImplemented
-        )
-
-    @staticmethod
-    def _supports_combo_presets(coordinator: BlueairUpdateCoordinator) -> bool:
-        """Return True for 2-in-1 combo devices (e.g. DH3i) that switch presets via ``mode``.
-
-        The single ``mode`` field is exposed as ``combo_mode``.
-
-        These devices declare neither ``automode`` nor ``nightmode``
-        shadow fields and have no ``apsubmode``; their Manual/Auto/Night
-        presets all ride on ``combo_mode`` (see ``_COMBO_MODE_TO_LABEL``).
-
-        Issue: dahlb/ha_blueair#241.
-        """
-        return coordinator.combo_mode is not NotImplemented
-
     def __init__(self, coordinator: BlueairUpdateCoordinatorDeviceAws) -> None:
         """Initialize the fan entity."""
-        self._signature_presets = self._supports_signature_presets(coordinator)
-        self._combo_presets = self._supports_combo_presets(coordinator)
+        self._presets = _preset_family(coordinator)
+        preset_modes = self._presets.preset_modes(coordinator)
 
-        if self._signature_presets:
+        if self._presets is not _CLASSIC_PRESETS:
             # One-shot at entity creation so a debug-log session can
             # answer "did this device enter the Signature preset path?"
             # without polling state. Fires once per entity instance
             # (typically once at HA startup / integration reload).
             _LOGGER.debug(
-                "BlueairAwsFan(%s): Signature preset modes enabled (model=%s, presets=%s)",
-                getattr(coordinator.blueair_api_device, "uuid", "?"),
+                "BlueairAwsFan(%s): %s preset modes enabled (model=%s, presets=%s)",
+                coordinator.id,
+                self._presets.name,
                 coordinator.model,
-                list(AP_SUB_MODE_LABELS.values()),
+                preset_modes,
             )
 
-        if self._combo_presets:
-            _LOGGER.debug(
-                "BlueairAwsFan(%s): combo preset modes enabled (model=%s, presets=%s)",
-                getattr(coordinator.blueair_api_device, "uuid", "?"),
-                coordinator.model,
-                list(_COMBO_MODE_TO_LABEL.values()),
-            )
-
-        self._attr_preset_modes = []
-        if self._signature_presets:
-            # Signature devices: four presets derived from
-            # AP_SUB_MODE_LABELS (manual_fan / auto / night / eco).
-            self._attr_preset_modes = list(AP_SUB_MODE_LABELS.values())
-        elif self._combo_presets:
-            # 2-in-1 combo devices: Manual / Auto / Night via combo_mode.
-            self._attr_preset_modes = list(_COMBO_MODE_TO_LABEL.values())
-        else:
-            if coordinator.fan_auto_mode is not NotImplemented:
-                self._attr_preset_modes.append(MODE_AUTO)
-            if coordinator.night_mode is not NotImplemented:
-                self._attr_preset_modes.append(MODE_NIGHT)
-        self._attr_preset_modes = _drop_night_if_disabled(coordinator, self._attr_preset_modes)
+        self._attr_preset_modes = _drop_night_if_disabled(coordinator, preset_modes)
 
         self._attr_supported_features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         if coordinator.fan_speed is not NotImplemented:
@@ -318,139 +586,21 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
     @property
     def percentage(self) -> int | None:
         """Return the current speed percentage."""
-        if self._signature_presets:
-            # On Signature devices the user only sees a meaningful speed
-            # value while in manual_fan (apsubmode=0). In auto/night/eco
-            # the device picks the speed and the percentage UI is
-            # actively misleading.
-            ap_sub_mode = self.coordinator.ap_sub_mode
-            if ap_sub_mode in (None, NotImplemented):
-                manual = True
-            else:
-                try:
-                    manual = int(ap_sub_mode) == _LABEL_TO_AP_SUB_MODE[MODE_MANUAL_FAN]
-                except TypeError, ValueError:
-                    manual = True
-            if not manual:
-                return None
-            return _speed_percentage(self.coordinator)
-
-        if self._combo_presets:
-            # The speed slider is only meaningful in Manual; in
-            # Auto/Night the device chooses the speed and a percentage
-            # would be misleading.
-            combo_mode = self.coordinator.combo_mode
-            try:
-                manual = (
-                    combo_mode in (None, NotImplemented)
-                    or int(combo_mode) == _LABEL_TO_COMBO_MODE[MODE_MANUAL_FAN]
-                )
-            except TypeError, ValueError:
-                manual = True
-            if not manual:
-                return None
-            return _speed_percentage(self.coordinator)
-
-        if self.preset_mode is None:
-            return _speed_percentage(self.coordinator)
-        return None
+        # In a preset the device picks the speed and the percentage UI is
+        # actively misleading.
+        if not self._presets.shows_speed(self.coordinator):
+            return None
+        return _speed_percentage(self.coordinator)
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the fan speed percentage."""
-        if self._signature_presets:
-            # Switch into manual_fan first so the device honors the
-            # percentage write. Skipped if already there to avoid an
-            # extraneous shadow write on every speed change.
-            manual_value = _LABEL_TO_AP_SUB_MODE[MODE_MANUAL_FAN]
-            ap_sub_mode = self.coordinator.ap_sub_mode
-            try:
-                already_manual = (
-                    ap_sub_mode not in (None, NotImplemented) and int(ap_sub_mode) == manual_value
-                )
-            except TypeError, ValueError:
-                already_manual = False
-            if not already_manual:
-                await self.coordinator.set_ap_sub_mode(manual_value)
-            await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
-            self.async_write_ha_state()
-            return
-
-        if self._combo_presets:
-            # Combo devices honor a manual fan-speed write only while in
-            # Manual mode, so switch there first (skipped if already
-            # Manual to avoid a redundant write). No fanspeed reset is
-            # needed here.
-            manual_value = _LABEL_TO_COMBO_MODE[MODE_MANUAL_FAN]
-            combo_mode = self.coordinator.combo_mode
-            try:
-                already_manual = (
-                    combo_mode not in (None, NotImplemented) and int(combo_mode) == manual_value
-                )
-            except TypeError, ValueError:
-                already_manual = False
-            if not already_manual:
-                await self.coordinator.set_combo_mode(manual_value)
-            await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
-            self.async_write_ha_state()
-            return
-
-        if self.coordinator.fan_auto_mode is True:
-            await self.coordinator.set_fan_auto_mode(False)
-        if self.coordinator.night_mode is True:
-            await self.coordinator.set_night_mode(False)
-            # need to wait when turning off night mode for device to receive message from
-            # aws then it sets the speed to what night mode had set and updates aws with
-            # that speed, without this wait the following set is overridden by the device
-            await sleep(2)
+        await self._presets.leave_presets(self.coordinator)
         await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
         self.async_write_ha_state()
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode of the fan."""
-        if self._signature_presets:
-            value = _LABEL_TO_AP_SUB_MODE.get(preset_mode)
-            if value is None:
-                # HA frontend validates against preset_modes before
-                # calling us, so this only fires when an automation
-                # or service call sends an unknown label. Surface it
-                # at debug level so the user can diagnose without
-                # having to enable trace-level logging on HA core.
-                _LOGGER.debug(
-                    "BlueairAwsFan: ignoring unknown preset_mode=%r (known: %s)",
-                    preset_mode,
-                    list(_LABEL_TO_AP_SUB_MODE),
-                )
-                return
-            await self.coordinator.set_ap_sub_mode(value)
-            # Investigation of the Blueair cloud API responses and AWS
-            # IoT protocol behavior shows that apsubmode writes on
-            # Signature-family devices are paired with a fanspeed
-            # reset (see _SIGNATURE_APSUBMODE_FANSPEED_RESET docstring).
-            # The slider is hidden in non-manual presets, so this write
-            # is invisible while the preset is active.
-            await self.coordinator.set_fan_speed(_SIGNATURE_APSUBMODE_FANSPEED_RESET)
-            self.async_write_ha_state()
-            return
-
-        if self._combo_presets:
-            value = _LABEL_TO_COMBO_MODE.get(preset_mode)
-            if value is None:
-                _LOGGER.debug(
-                    "BlueairAwsFan: ignoring unknown preset_mode=%r (known: %s)",
-                    preset_mode,
-                    list(_LABEL_TO_COMBO_MODE),
-                )
-                return
-            # Combo devices manage their own fan speed in Auto/Night, so
-            # no paired fanspeed reset is needed (unlike Signature).
-            await self.coordinator.set_combo_mode(value)
-            self.async_write_ha_state()
-            return
-
-        if preset_mode == MODE_AUTO:
-            await self.coordinator.set_fan_auto_mode(True)
-        elif preset_mode == MODE_NIGHT:
-            await self.coordinator.set_night_mode(True)
+        await self._presets.set_preset_mode(self.coordinator, preset_mode)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -497,26 +647,4 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
     @property
     def preset_mode(self) -> str | None:
         """Return the current preset mode, e.g., auto, smart, interval, favorite."""
-        if self._signature_presets:
-            ap_sub_mode = self.coordinator.ap_sub_mode
-            if ap_sub_mode in (None, NotImplemented):
-                return None
-            try:
-                return AP_SUB_MODE_LABELS.get(int(ap_sub_mode))
-            except TypeError, ValueError:
-                return None
-
-        if self._combo_presets:
-            combo_mode = self.coordinator.combo_mode
-            if combo_mode in (None, NotImplemented):
-                return None
-            try:
-                return _COMBO_MODE_TO_LABEL.get(int(combo_mode))
-            except TypeError, ValueError:
-                return None
-
-        if self.coordinator.fan_auto_mode is True:
-            return MODE_AUTO
-        if self.coordinator.night_mode is True:
-            return MODE_NIGHT
-        return None
+        return self._presets.preset_mode(self.coordinator)
