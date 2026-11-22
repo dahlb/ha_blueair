@@ -12,7 +12,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
@@ -123,24 +123,45 @@ async def test_user_flow_treats_the_username_case_insensitively(
 async def test_options_flow_updates_the_options(
     hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
 ) -> None:
-    """Save the polling interval and night preset options, and reload to apply them."""
+    """Save the polling interval, night preset and filter threshold, and reload to apply them."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id=USERNAME, data=entry_data(), version=2)
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     first_runtime_data = entry.runtime_data
 
     form = await hass.config_entries.options.async_init(entry.entry_id)
-    assert form["data_schema"]({}) == {"scan_interval": 5, "night_preset": True}
-    result = await hass.config_entries.options.async_configure(
-        form["flow_id"], {"scan_interval": 10, "night_preset": False}
-    )
+    assert form["data_schema"]({}) == {
+        "scan_interval": 5,
+        "night_preset": True,
+        "filter_expired_threshold": 0,
+    }
+    new_options = {"scan_interval": 10, "night_preset": False, "filter_expired_threshold": 10}
+    result = await hass.config_entries.options.async_configure(form["flow_id"], new_options)
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {"scan_interval": 10, "night_preset": False}
+    assert entry.options == new_options
     assert entry.state is ConfigEntryState.LOADED
     assert entry.runtime_data is not first_runtime_data
     assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("threshold", [-1, 51])
+async def test_options_flow_rejects_out_of_range_filter_thresholds(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud, threshold: int
+) -> None:
+    """Keep the Filter Expiration threshold between 0% and 50%."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=USERNAME, data=entry_data(), version=2)
+    entry.add_to_hass(hass)
+
+    form = await hass.config_entries.options.async_init(entry.entry_id)
+
+    with pytest.raises(InvalidData):
+        await hass.config_entries.options.async_configure(
+            form["flow_id"],
+            {"scan_interval": 5, "night_preset": True, "filter_expired_threshold": threshold},
+        )
 
 
 @pytest.mark.parametrize("file_name", ["strings.json", "translations/en.json"])

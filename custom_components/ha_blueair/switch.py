@@ -61,12 +61,10 @@ class BlueairSwitchEntity(BlueairEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         await getattr(self.coordinator, f"set_{self.entity_description.key}")(True)
-        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await getattr(self.coordinator, f"set_{self.entity_description.key}")(False)
-        self.async_write_ha_state()
 
 
 class BlueairChildLockSwitchEntity(BlueairSwitchEntity):

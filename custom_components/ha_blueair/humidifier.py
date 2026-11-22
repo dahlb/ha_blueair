@@ -95,7 +95,6 @@ class BlueairAwsHumidifier(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Hum
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.set_running(False)
-        self.async_write_ha_state()
 
     async def async_turn_on(
         self,
@@ -105,7 +104,6 @@ class BlueairAwsHumidifier(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Hum
     ) -> None:
         """Turn the entity on."""
         await self.coordinator.set_running(True)
-        self.async_write_ha_state()
 
     async def async_set_mode(self, mode: str) -> None:
         """Set the mode."""
@@ -113,20 +111,16 @@ class BlueairAwsHumidifier(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Hum
             # This mode doesn't apply when off
             await self.coordinator.set_fan_auto_mode(True)
             await self.coordinator.set_running(True)
-            self.async_write_ha_state()
         elif mode == MODE_SLEEP:
             # This mode doesn't apply when off
             await self.coordinator.set_night_mode(True)
             await self.coordinator.set_fan_auto_mode(False)
             await self.coordinator.set_running(False)
-            self.async_write_ha_state()
         elif mode == MODE_FAN_SPEED:
             # This mode doesn't apply when off
             await self.coordinator.set_fan_auto_mode(False)
             await self.coordinator.set_night_mode(False)
             await self.coordinator.set_running(True)
-
-            self.async_write_ha_state()
         else:
             raise ServiceValidationError(
                 translation_domain=DOMAIN,
@@ -187,7 +181,6 @@ class BlueairAwsComboHumidifier(BlueairEntity[BlueairUpdateCoordinatorDeviceAws]
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.set_humidifier_mode(False)
-        self.async_write_ha_state()
 
     async def async_turn_on(
         self,
@@ -197,7 +190,6 @@ class BlueairAwsComboHumidifier(BlueairEntity[BlueairUpdateCoordinatorDeviceAws]
     ) -> None:
         """Turn the entity on."""
         await self.coordinator.set_humidifier_mode(True)
-        self.async_write_ha_state()
 
     async def async_set_humidity(self, humidity: int) -> None:
         """Set the target humidity and ensure humidification is on."""

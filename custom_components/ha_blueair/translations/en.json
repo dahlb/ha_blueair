@@ -55,11 +55,13 @@
         "title": "Blue Air: Configuration",
         "data": {
           "scan_interval": "Polling Interval in Minutes",
-          "night_preset": "Offer the Night preset on fans"
+          "night_preset": "Offer the Night preset on fans",
+          "filter_expired_threshold": "Filter Expiration threshold (%)"
         },
         "data_description": {
           "scan_interval": "How often to poll Blueair for every device, in minutes (1-30). Devices with real-time MQTT updates poll less often (every 30 minutes, or this interval if longer) while MQTT is connected.",
-          "night_preset": "Turn off to leave Night out of the fans' preset modes, for example so HomeKit Bridge doesn't give each purifier a Night switch. A fan put in Night some other way still reports it. If you use HomeKit Bridge, reload it after changing this: it only builds an accessory's preset switches once."
+          "night_preset": "Turn off to leave Night out of the fans' preset modes, for example so HomeKit Bridge doesn't give each purifier a Night switch. A fan put in Night some other way still reports it. If you use HomeKit Bridge, reload it after changing this: it only builds an accessory's preset switches once.",
+          "filter_expired_threshold": "Current models turn Filter Expiration on when Filter Life is at or below this percentage (0-50), for example 10 to be warned before the filter runs out. Legacy models report filter expiry themselves."
         }
       }
     }

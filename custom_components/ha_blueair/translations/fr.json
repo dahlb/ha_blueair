@@ -55,11 +55,13 @@
         "title": "Blueair : configuration",
         "data": {
           "scan_interval": "Intervalle d'interrogation en minutes",
-          "night_preset": "Proposer le préréglage Nuit sur les ventilateurs"
+          "night_preset": "Proposer le préréglage Nuit sur les ventilateurs",
+          "filter_expired_threshold": "Seuil d'expiration du filtre (%)"
         },
         "data_description": {
           "scan_interval": "Fréquence d'interrogation de Blueair pour chaque appareil, en minutes (1-30). Les appareils avec mises à jour MQTT en temps réel sont interrogés moins souvent tant que MQTT est connecté.",
-          "night_preset": "Désactivez pour retirer Nuit des préréglages des ventilateurs, par exemple pour que HomeKit Bridge n'ajoute pas d'interrupteur Nuit à chaque purificateur. Un ventilateur mis en Nuit autrement l'indique toujours. Si vous utilisez HomeKit Bridge, rechargez-le après ce changement : il ne crée les interrupteurs de préréglage d'un accessoire qu'une seule fois."
+          "night_preset": "Désactivez pour retirer Nuit des préréglages des ventilateurs, par exemple pour que HomeKit Bridge n'ajoute pas d'interrupteur Nuit à chaque purificateur. Un ventilateur mis en Nuit autrement l'indique toujours. Si vous utilisez HomeKit Bridge, rechargez-le après ce changement : il ne crée les interrupteurs de préréglage d'un accessoire qu'une seule fois.",
+          "filter_expired_threshold": "Les modèles actuels activent Expiration du filtre lorsque Durée de vie du filtre est inférieure ou égale à ce pourcentage (0-50), par exemple 10 pour être averti avant que le filtre ne soit épuisé. Les anciens modèles signalent eux-mêmes l'expiration du filtre."
         }
       }
     }

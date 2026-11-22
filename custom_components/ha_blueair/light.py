@@ -106,12 +106,10 @@ class BlueairLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoordinato
         if ATTR_BRIGHTNESS in kwargs:
             self._last_brightness = desired_brightness
         await self.coordinator.set_brightness(desired_brightness)
-        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.set_brightness(0)
-        self.async_write_ha_state()
 
 
 class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoordinatorDeviceAws]):
@@ -152,12 +150,10 @@ class BlueairMoodLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoordi
         if ATTR_BRIGHTNESS in kwargs:
             self._last_brightness = desired_brightness
         await self.coordinator.set_mood_brightness(desired_brightness)
-        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.turn_off_mood_brightness()
-        self.async_write_ha_state()
 
 
 class BlueairNightLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoordinatorDeviceAws]):
@@ -198,9 +194,7 @@ class BlueairNightLightEntity(BlueairRestoredBrightnessEntity[BlueairUpdateCoord
         if ATTR_BRIGHTNESS in kwargs:
             self._last_brightness = desired_brightness
         await self.coordinator.set_night_light_brightness(desired_brightness)
-        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.turn_off_night_light_brightness()
-        self.async_write_ha_state()

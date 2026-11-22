@@ -55,11 +55,13 @@
         "title": "Blueair: konfiguration",
         "data": {
           "scan_interval": "Uppdateringsintervall i minuter",
-          "night_preset": "Erbjud förinställningen Natt på fläktar"
+          "night_preset": "Erbjud förinställningen Natt på fläktar",
+          "filter_expired_threshold": "Tröskel för filterbyte (%)"
         },
         "data_description": {
           "scan_interval": "Hur ofta Blueair efterfrågas för varje enhet, i minuter (1-30). Enheter med MQTT-uppdateringar i realtid efterfrågas mer sällan medan MQTT är anslutet.",
-          "night_preset": "Stäng av för att ta bort Natt från fläktarnas förinställningar, till exempel så att HomeKit Bridge inte lägger till en Natt-brytare för varje renare. En fläkt som satts i Natt på annat sätt visar det fortfarande. Om du använder HomeKit Bridge, ladda om den efter ändringen: den skapar ett tillbehörs förinställningsbrytare bara en gång."
+          "night_preset": "Stäng av för att ta bort Natt från fläktarnas förinställningar, till exempel så att HomeKit Bridge inte lägger till en Natt-brytare för varje renare. En fläkt som satts i Natt på annat sätt visar det fortfarande. Om du använder HomeKit Bridge, ladda om den efter ändringen: den skapar ett tillbehörs förinställningsbrytare bara en gång.",
+          "filter_expired_threshold": "Nuvarande modeller slår på Filterbyte när Filterlivslängd är på eller under denna procentsats (0-50), till exempel 10 för att få en varning innan filtret är förbrukat. Äldre modeller rapporterar själva när filtret behöver bytas."
         }
       }
     }

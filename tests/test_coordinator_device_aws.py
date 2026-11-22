@@ -26,7 +26,11 @@ def load_coordinator_device_aws() -> type[Any]:
         },
         "blueair_api": {"DeviceAws": object},
         "homeassistant.exceptions": {"ServiceValidationError": Exception},
-        f"{package}.const": {"DOMAIN": "ha_blueair"},
+        f"{package}.const": {
+            "CONF_FILTER_EXPIRED_THRESHOLD": "filter_expired_threshold",
+            "DEFAULT_FILTER_EXPIRED_THRESHOLD": 0,
+            "DOMAIN": "ha_blueair",
+        },
         f"{package}.coordinator": {
             "BlueairUpdateCoordinator": object,
             "Capability": object,

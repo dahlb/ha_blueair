@@ -9,7 +9,7 @@ from blueair_api import DeviceAws
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util.color import brightness_to_value, value_to_brightness
 
-from .const import DOMAIN
+from .const import CONF_FILTER_EXPIRED_THRESHOLD, DEFAULT_FILTER_EXPIRED_THRESHOLD, DOMAIN
 from .coordinator import BlueairUpdateCoordinator, Capability
 
 _LOGGER = logging.getLogger(__name__)
@@ -182,12 +182,23 @@ class BlueairUpdateCoordinatorDeviceAws(BlueairUpdateCoordinator):
         """Return whether the filter needs replacing.
 
         AWS devices don't report this directly; the filter has expired once
-        its remaining life (see filter_life) reaches 0%.
+        its remaining life (see filter_life) is at or below the Filter
+        Expiration threshold option (0% by default).
         """
         life = self.filter_life
         if life is None or life is NotImplemented:
             return life
-        return life <= 0
+        return life <= self.filter_expired_threshold
+
+    @property
+    def filter_expired_threshold(self) -> int:
+        """Return the Filter Life percentage at which the filter counts as expired."""
+        if self.config_entry is None:
+            return DEFAULT_FILTER_EXPIRED_THRESHOLD
+        threshold: int = self.config_entry.options.get(
+            CONF_FILTER_EXPIRED_THRESHOLD, DEFAULT_FILTER_EXPIRED_THRESHOLD
+        )
+        return threshold
 
     @property
     def filter_life(self) -> Capability[int]:
