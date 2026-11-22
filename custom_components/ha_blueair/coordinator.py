@@ -106,6 +106,11 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
     async def _async_device_command(self, command: Awaitable[Any]) -> None:
         """Await a device command, turning API failures into Home Assistant errors.
 
+        blueair_api stores the new value on the device as it sends the command,
+        so after a successful command every entity of the device is updated
+        right away instead of waiting for the next refresh (e.g. turning a
+        humidifier off also shows its fan as off).
+
         Args:
             command: The pending blueair_api device call.
 
@@ -127,6 +132,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
                 translation_key="command_failed",
                 translation_placeholders={"device": self.device_name, "error": str(error)},
             ) from error
+        self.async_update_listeners()
 
     @property
     def id(self) -> str:

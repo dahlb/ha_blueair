@@ -26,7 +26,9 @@ from custom_components.ha_blueair.fan import (
     _CLASSIC_PRESETS,
     _COMBO_PRESETS,
     _SIGNATURE_PRESETS,
+    _percentage_speed,
     _preset_family,
+    _speed_percentage,
 )
 
 from .conftest import entity_object, make_aws_device, make_combo, make_legacy_device, make_purifier
@@ -206,7 +208,8 @@ async def test_combo_fan_uses_combo_mode_presets(
 
     await _call(hass, SERVICE_SET_PERCENTAGE, entity_id, percentage=40)
     assert device.combo_mode == 1
-    assert device.fan_speed == round(0.4 * 91)
+    # 40% rounds up to 37, the second gear, which the fan reports back as 40%.
+    assert device.fan_speed == 37
 
 
 @pytest.mark.asyncio
@@ -229,17 +232,17 @@ async def test_aws_fan_command_failure_raises_a_translated_error(
 async def test_legacy_fan_maps_percentages_to_three_speeds(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
-    """Map percentages onto the legacy 0-3 speed scale and turn off at speed 0."""
+    """Map percentages onto the legacy 1-3 speeds; only turning off writes speed 0."""
     device = make_legacy_device()
     await setup_blueair(legacy=[device])
     entity_id = "fan.hallway_fan"
 
     state = hass.states.get(entity_id)
-    assert state.attributes[ATTR_PERCENTAGE] == 67
+    assert state.attributes[ATTR_PERCENTAGE] == 66
     # The legacy API cannot set night mode, so Night is not offered.
     assert state.attributes["preset_modes"] == ["auto"]
 
-    for percentage, speed in [(100, "3"), (60, "2"), (30, "1"), (10, "0")]:
+    for percentage, speed in [(100, "3"), (60, "2"), (30, "1"), (10, "1")]:
         await _call(hass, SERVICE_SET_PERCENTAGE, entity_id, percentage=percentage)
         assert device.api.writes[-1] == ("fan_speed", speed)
 
@@ -378,6 +381,34 @@ async def test_legacy_fan_without_a_reported_speed_has_no_percentage(
     device.fan_speed = None
 
     assert entity_object(hass, "fan.hallway_fan").percentage is None
+
+
+@pytest.mark.parametrize(
+    ("speed_count", "percentage", "speed"),
+    [
+        (3, 0, 0),
+        (3, 1, 1),
+        (3, 10, 1),
+        (3, 33, 1),
+        (3, 34, 2),
+        (3, 66, 2),
+        (3, 67, 3),
+        (3, 100, 3),
+        (91, 1, 1),
+        (91, 40, 37),
+        (91, 100, 91),
+    ],
+)
+def test_percentages_round_up_to_a_running_speed(
+    speed_count: int, percentage: int, speed: int
+) -> None:
+    """Never turn a fan off for a non-zero percentage, and round-trip reported speeds."""
+    coordinator = SimpleNamespace(speed_count=speed_count, fan_speed=speed)
+
+    assert _percentage_speed(coordinator, percentage) == speed
+    if percentage:
+        # Reading a speed back and setting it again keeps the same speed.
+        assert _percentage_speed(coordinator, _speed_percentage(coordinator)) == speed
 
 
 def _family_coordinator(**attributes: Any) -> SimpleNamespace:

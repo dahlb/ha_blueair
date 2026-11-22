@@ -31,6 +31,25 @@ class BlueairEntityClass(Protocol):
         """Return whether the coordinator supports this entity."""
 
 
+def coordinator_reports(coordinator: BlueairUpdateCoordinator, key: str) -> bool:
+    """Return whether the coordinator supports the value an entity shows.
+
+    A coordinator that doesn't declare the attribute at all (e.g. an AWS-only
+    property on the legacy coordinator class) counts as not supporting it,
+    instead of raising AttributeError and aborting the whole platform
+    (issue #356).
+
+    Args:
+        coordinator: The device's coordinator.
+        key: Name of the coordinator property, usually the entity
+            description's key.
+
+    Returns:
+        bool: False when the property is missing or reports NotImplemented.
+    """
+    return getattr(coordinator, key, NotImplemented) is not NotImplemented
+
+
 def async_setup_entry_helper(
     hass: HomeAssistant,
     config_entry: BlueairConfigEntry,

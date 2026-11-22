@@ -23,7 +23,7 @@ from . import BlueairConfigEntry
 from .const import DOMAIN
 from .coordinator import BlueairUpdateCoordinator
 from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
-from .entity import BlueairEntity, async_setup_entry_helper
+from .entity import BlueairEntity, async_setup_entry_helper, coordinator_reports
 
 # Percentage sensors that used to (incorrectly) report device_class=battery.
 # See dahlb/ha_blueair#378.
@@ -109,10 +109,7 @@ class BlueairSensor(BlueairEntity, SensorEntity):
         # coordinator class) is treated as "not implemented" instead of
         # raising AttributeError, which would abort the whole sensor platform.
         # See issue #356.
-        return (
-            getattr(coordinator, cls(coordinator).entity_description.key, NotImplemented)
-            is not NotImplemented
-        )
+        return coordinator_reports(coordinator, cls.entity_description.key)
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the temperature sensor."""

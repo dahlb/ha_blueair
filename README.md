@@ -133,7 +133,7 @@ automation:
           entity_id: light.bedroom_led_light
 ```
 
-Get a reminder when the filter needs replacing:
+Get a reminder when the filter needs replacing. Legacy models report this directly; current (AWS) models turn **Filter Expiration** on when **Filter Life** reaches 0%. To be warned earlier, trigger on **Filter Life** dropping below a threshold instead:
 
 ```yaml
 automation:

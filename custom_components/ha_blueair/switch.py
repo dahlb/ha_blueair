@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import BlueairConfigEntry
 from .coordinator import BlueairUpdateCoordinator
-from .entity import BlueairEntity, async_setup_entry_helper
+from .entity import BlueairEntity, async_setup_entry_helper, coordinator_reports
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class BlueairSwitchEntity(BlueairEntity, SwitchEntity):
     @classmethod
     def is_implemented(cls, coordinator: BlueairUpdateCoordinator) -> bool:
         """Return whether the coordinator supports this entity."""
-        return getattr(coordinator, cls(coordinator).entity_description.key) is not NotImplemented
+        return coordinator_reports(coordinator, cls.entity_description.key)
 
     def __init__(self, coordinator: BlueairUpdateCoordinator) -> None:
         """Initialize the blueair switch entity."""

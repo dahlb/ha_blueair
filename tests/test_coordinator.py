@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 import logging
 from typing import Any
+from unittest.mock import patch
 
 from aiohttp import ClientConnectionError
 from blueair_api import LoginError
@@ -19,7 +20,7 @@ import pytest
 
 from custom_components.ha_blueair.const import DOMAIN
 
-from .conftest import make_climate_device, make_legacy_device, make_purifier
+from .conftest import make_climate_device, make_humidifier, make_legacy_device, make_purifier
 
 # AWS-only readings the legacy REST API never reports.
 LEGACY_UNSUPPORTED = [
@@ -132,6 +133,84 @@ async def test_rejected_login_on_a_command_starts_reauthentication(
 
     assert raised.value.translation_key == "auth_failed"
     assert len(hass.config_entries.flow.async_progress_by_handler(DOMAIN)) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("usage", "expired", "state"),
+    [
+        (25, False, "off"),
+        (99, False, "off"),
+        (100, True, "on"),
+        # Some filters report usage past 100%.
+        (110, True, "on"),
+        (None, None, "unknown"),
+    ],
+)
+async def test_aws_filter_expires_when_its_life_runs_out(
+    hass: HomeAssistant,
+    setup_blueair: Callable[..., Any],
+    usage: int | None,
+    expired: bool | None,
+    state: str,
+) -> None:
+    """Turn Filter Expiration on for AWS purifiers once Filter Life reaches 0%."""
+    entry = await setup_blueair(aws=[make_purifier(filter_usage_percentage=usage)])
+
+    assert entry.runtime_data.aws_devices[0].filter_expired is expired
+    assert hass.states.get("binary_sensor.bedroom_filter_expiration").state == state
+
+
+@pytest.mark.asyncio
+async def test_aws_devices_without_a_filter_have_no_filter_expiration(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Leave Filter Expiration off devices that report no filter usage."""
+    entry = await setup_blueair(aws=[make_purifier(filter_usage_percentage=NotImplemented)])
+
+    assert entry.runtime_data.aws_devices[0].filter_expired is NotImplemented
+    assert hass.states.get("binary_sensor.bedroom_filter_expiration") is None
+
+
+@pytest.mark.asyncio
+async def test_a_command_updates_every_entity_of_the_device(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Show a command's result on the device's other entities before the next refresh."""
+    device = make_humidifier()
+    await setup_blueair(aws=[device])
+    assert hass.states.get("fan.nursery_fan").state == "on"
+    polls = device.refresh_count
+
+    await hass.services.async_call(
+        "humidifier",
+        "turn_off",
+        {"entity_id": "humidifier.nursery_humidifier"},
+        blocking=True,
+    )
+
+    # The debounced refresh hasn't run yet; the fan shows the command's result.
+    assert device.refresh_count == polls
+    assert hass.states.get("fan.nursery_fan").state == "off"
+
+
+@pytest.mark.asyncio
+async def test_a_failed_command_does_not_update_the_entities(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Leave the other entities alone when the command could not be sent."""
+    device = make_humidifier()
+    entry = await setup_blueair(aws=[device])
+    coordinator = entry.runtime_data.aws_devices[0]
+    device.api.error = ClientConnectionError("offline")
+
+    with (
+        patch.object(coordinator, "async_update_listeners") as update_listeners,
+        pytest.raises(HomeAssistantError),
+    ):
+        await coordinator.set_child_lock(True)
+
+    update_listeners.assert_not_called()
 
 
 @pytest.mark.asyncio
