@@ -15,6 +15,16 @@
           "password": "Lösenordet för det Blueair-kontot."
         }
       },
+      "cloud_region": {
+        "title": "Blueair-enheternas molnregion",
+        "description": "Ditt konto loggar in på {region}, men Blueair rapporterar enheter i mer än en molnregion. Välj den molnregion som har enheterna som den här posten ska styra. Föreslagen region är {suggested_cloud_region}.",
+        "data": {
+          "cloud_region": "Enheternas molnregion"
+        },
+        "data_description": {
+          "cloud_region": "Den Blueair-molnregion som har dina enheter. Oftast samma som kontoregionen; vissa konton, till exempel med en CP7i, har sina enheter i en annan region."
+        }
+      },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
         "description": "Blueair avvisade det sparade lösenordet för {username}. Ange kontots nuvarande lösenord.",
@@ -30,10 +40,12 @@
         "description": "Ändra region eller lösenord för {username}. Lägg till ett annat Blueair-konto som en ny post.",
         "data": {
           "region": "Region",
+          "cloud_region": "Enheternas molnregion",
           "password": "Lösenord"
         },
         "data_description": {
           "region": "Den Blueair-molnregion där ditt konto skapades (regionen du valde i Blueair-appen).",
+          "cloud_region": "Den Blueair-molnregion som har dina enheter. Oftast samma som kontoregionen; vissa konton, till exempel med en CP7i, har sina enheter i en annan region.",
           "password": "Det nuvarande lösenordet för ditt Blueair-konto."
         }
       }
@@ -181,6 +193,30 @@
     "life_sensors_no_longer_battery": {
       "title": "Filter-, vek- och vattensensorer rapporteras inte längre som batterier",
       "description": "Sensorerna Filterlivslängd, Vekens livslängd, Vattenrenarens livslängd och Vattennivå använde tidigare enhetsklassen `battery`, vilket felaktigt tog med dem i batteripaneler, automationer för låg batterinivå och HomeKits batterirapportering. De är procentvärden, inte batterier, så enhetsklassen `battery` har tagits bort. Värden, enheter och historik är oförändrade.\n\nOm du förlitade dig på den gamla batteriklassningen kan du följa migreringsguiden (Läs mer) för att återskapa den med en mallsensor. Annars kan du avfärda det här meddelandet."
+    },
+    "cloud_region_mismatch": {
+      "title": "Blueair-enheterna kan finnas i en annan molnregion",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Bekräfta Blueair-enheternas molnregion",
+            "description": "{device_name} har inget aktuellt tillstånd i molnregionen {cloud_region}, vilket händer när ett kontos enheter finns i en annan region. Välj den molnregion som har dina enheter; föreslagen region är {suggested_cloud_region}. Integrationen laddas om när du skickar.",
+            "data": {
+              "cloud_region": "Enheternas molnregion"
+            },
+            "data_description": {
+              "cloud_region": "Den Blueair-molnregion som har dina enheter. Oftast samma som kontoregionen; vissa konton, till exempel med en CP7i, har sina enheter i en annan region."
+            }
+          }
+        },
+        "error": {
+          "auth": "Blueair avvisade de sparade inloggningsuppgifterna när enheternas molnregion söktes. Du kan ändå välja en region.",
+          "cannot_connect": "Det gick inte att nå Blueair för att söka enheternas molnregion. Du kan ändå välja en region."
+        },
+        "abort": {
+          "entry_not_found": "Blueair-konfigurationsposten finns inte längre."
+        }
+      }
     }
   },
   "exceptions": {

@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from aiohttp import ClientError
-from blueair_api import AuthError, get_aws_devices
+from blueair_api import AuthError, HttpAwsBlueair, get_aws_devices
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_SCAN_INTERVAL, CONF_USERNAME
@@ -13,7 +13,9 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import probatio
 
+from .cloud_region import async_scan_cloud_regions, suggest_cloud_region
 from .const import (
+    CONF_CLOUD_REGION,
     CONF_FILTER_EXPIRED_THRESHOLD,
     CONF_NIGHT_PRESET,
     CONFIG_FLOW_MINOR_VERSION,
@@ -109,7 +111,9 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Initialize the config flow handler."""
         self.data: dict[str, Any] = {}
 
-    async def _async_validate_login(self, username: str, password: str, region: str) -> str | None:
+    async def _async_login(
+        self, username: str, password: str, region: str, cloud_region: str
+    ) -> tuple[HttpAwsBlueair | None, str | None]:
         """Log in to Blueair once to check the credentials.
 
         The login uses Home Assistant's shared aiohttp session, which
@@ -118,32 +122,79 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         Args:
             username: Blueair account username.
             password: Blueair account password.
-            region: Blueair cloud region.
+            region: Blueair account (login) region.
+            cloud_region: BlueCloud region hosting the devices.
 
         Returns:
-            str | None: The form error key, or None when the login succeeded.
+            tuple[HttpAwsBlueair | None, str | None]: The logged-in client, or
+            None and the form error key.
         """
         try:
-            await get_aws_devices(
+            api, _devices = await get_aws_devices(
                 username=username,
                 password=password,
-                region=region,
+                gigya_region=region,
+                cloud_region=cloud_region,
                 client_session=async_get_clientsession(self.hass),
             )
         except AuthError:
-            return "auth"
+            return None, "auth"
         except ClientError, TimeoutError:
             # blueair_api's other errors (rate limits, server errors) are
             # ClientError subclasses too: Blueair could not be reached.
             _LOGGER.debug("Blueair cloud unreachable during login check", exc_info=True)
-            return "cannot_connect"
+            return None, "cannot_connect"
         except KeyError, TypeError, ValueError:
             _LOGGER.exception("Unexpected response from Blueair during login check")
-            return "unknown"
-        return None
+            return None, "unknown"
+        return api, None
+
+    async def _async_validate_login(
+        self, username: str, password: str, region: str, cloud_region: str
+    ) -> str | None:
+        """Log in to Blueair once to check the credentials.
+
+        Args:
+            username: Blueair account username.
+            password: Blueair account password.
+            region: Blueair account (login) region.
+            cloud_region: BlueCloud region hosting the devices.
+
+        Returns:
+            str | None: The form error key, or None when the login succeeded.
+        """
+        _api, error = await self._async_login(username, password, region, cloud_region)
+        return error
+
+    async def _async_suggest_cloud_region(
+        self, api: HttpAwsBlueair, region: str
+    ) -> tuple[str, bool]:
+        """Find the BlueCloud region hosting the account's devices.
+
+        Args:
+            api: Logged-in client for the account.
+            region: The account region, used when nothing better is found.
+
+        Returns:
+            tuple[str, bool]: The suggested cloud region, and True when the
+            user should confirm it.
+        """
+        try:
+            scan = await async_scan_cloud_regions(api)
+        except ClientError, TimeoutError:
+            # The login worked, so keep the account region; the repair issue
+            # or reconfigure flow can change it later.
+            _LOGGER.debug("BlueCloud region scan failed; using %s", region, exc_info=True)
+            return region, False
+        return suggest_cloud_region(scan, region)
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Handle the user step of the config flow."""
+        """Handle the user step of the config flow.
+
+        After the login, Blueair is probed for the cloud region that hosts the
+        devices. The entry is created right away when the region is clear;
+        otherwise the cloud_region step asks the user.
+        """
         data_schema = {
             probatio.Required(
                 CONF_REGION,
@@ -156,19 +207,54 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             username = user_input[CONF_USERNAME]
+            region = user_input[CONF_REGION]
             # Checked before logging in, so a duplicate needs no network call.
             await self.async_set_unique_id(_unique_id(username))
             self._abort_if_unique_id_configured()
-            error = await self._async_validate_login(
-                username, user_input[CONF_PASSWORD], user_input[CONF_REGION]
+            api, error = await self._async_login(
+                username, user_input[CONF_PASSWORD], region, region
             )
-            if error is None:
+            if api is not None:
                 self.data.update(user_input)
+                cloud_region, confirm = await self._async_suggest_cloud_region(api, region)
+                self.data[CONF_CLOUD_REGION] = cloud_region
+                if confirm:
+                    return await self.async_step_cloud_region()
                 return self.async_create_entry(title=username, data=self.data)
-            errors["base"] = error
+            errors["base"] = error or "unknown"
 
         return self.async_show_form(
             step_id="user", data_schema=probatio.Schema(data_schema), errors=errors
+        )
+
+    async def async_step_cloud_region(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask which cloud region to use when devices answer on several.
+
+        Args:
+            user_input: Submitted cloud region, or None to show the form.
+
+        Returns:
+            ConfigFlowResult: The form, or the created entry.
+        """
+        if user_input is not None:
+            self.data[CONF_CLOUD_REGION] = user_input[CONF_CLOUD_REGION]
+            return self.async_create_entry(title=self.data[CONF_USERNAME], data=self.data)
+
+        return self.async_show_form(
+            step_id="cloud_region",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(
+                        CONF_CLOUD_REGION, default=self.data[CONF_CLOUD_REGION]
+                    ): probatio.In(REGIONS),
+                }
+            ),
+            description_placeholders={
+                "region": self.data[CONF_REGION],
+                "suggested_cloud_region": self.data[CONF_CLOUD_REGION],
+            },
         )
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
@@ -198,8 +284,9 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             password = user_input[CONF_PASSWORD]
+            region = reauth_entry.data[CONF_REGION]
             error = await self._async_validate_login(
-                username, password, reauth_entry.data[CONF_REGION]
+                username, password, region, reauth_entry.data.get(CONF_CLOUD_REGION, region)
             )
             if error is None:
                 return self.async_update_reload_and_abort(
@@ -217,13 +304,13 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Change the account's region or password.
+        """Change the account region, device cloud region or password.
 
         The username is the entry's unique ID, so another account needs its own
         entry.
 
         Args:
-            user_input: Submitted region and password, or None to show the form.
+            user_input: Submitted regions and password, or None to show the form.
 
         Returns:
             ConfigFlowResult: The form (with any error) or the reconfigure abort.
@@ -233,11 +320,17 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             region = user_input[CONF_REGION]
+            cloud_region = user_input[CONF_CLOUD_REGION]
             password = user_input[CONF_PASSWORD]
-            error = await self._async_validate_login(username, password, region)
+            error = await self._async_validate_login(username, password, region, cloud_region)
             if error is None:
                 return self.async_update_reload_and_abort(
-                    entry, data_updates={CONF_REGION: region, CONF_PASSWORD: password}
+                    entry,
+                    data_updates={
+                        CONF_REGION: region,
+                        CONF_CLOUD_REGION: cloud_region,
+                        CONF_PASSWORD: password,
+                    },
                 )
             errors["base"] = error
 
@@ -248,6 +341,10 @@ class ConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     probatio.Required(CONF_REGION, default=entry.data[CONF_REGION]): probatio.In(
                         REGIONS
                     ),
+                    probatio.Required(
+                        CONF_CLOUD_REGION,
+                        default=entry.data.get(CONF_CLOUD_REGION, entry.data[CONF_REGION]),
+                    ): probatio.In(REGIONS),
                     probatio.Required(probatio.Secret(CONF_PASSWORD)): str,
                 }
             ),

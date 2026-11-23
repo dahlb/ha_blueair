@@ -57,13 +57,21 @@ If a model shows the wrong entities, or Blueair releases a new one, open an issu
 ## Installation ##
 You can install this either manually copying files or using HACS. Then add the integration from **Settings → Devices & Services → Add Integration → Blueair** and enter:
 
-- **Region** — the Blueair cloud region your account was created in (`us`, `eu`, `au` or `cn`; the region you picked in the Blueair app).
+- **Region** — the Blueair region your account signs in on (`us`, `eu`, `au` or `cn`; the region you picked in the Blueair app). The region hosting your devices is found automatically; see [Account region and device cloud region](#account-region-and-device-cloud-region).
 - **Username** — the email address you use to sign in to the Blueair app.
 - **Password** — the password for that Blueair account.
 
 If Blueair later rejects the saved password (for example after you change it in the app), Home Assistant shows a **Re-authenticate** prompt for the integration; enter the new password there instead of removing and re-adding it.
 
 To change the region or password yourself, choose **Reconfigure** from the integration's three-dot menu. To use a different Blueair account, add the integration again.
+
+### Account region and device cloud region ###
+Most Blueair accounts sign in and keep their devices on the same region, but some (for example accounts with a CP7i) sign in on one region while their devices are hosted on another. After you sign in, the integration checks every Blueair cloud region for your devices:
+
+- If one region clearly hosts your devices (the only one with online devices, or the only one with devices at all), it is saved without asking. An account without devices keeps its account region.
+- If devices answer on more than one region, setup asks you to pick the **Device cloud region**, suggesting the one with the most online devices.
+
+The device cloud region is only looked up when you add the account or fix a repair; normal startups reuse the saved value. If a device has no recent state on the saved region (a sign that it is hosted elsewhere), Home Assistant raises a **Blueair devices may be on another cloud region** repair. Its **Fix** button looks up the region again, lets you confirm it, and reloads the integration. You can also change the device cloud region from **Reconfigure**.
 
 Devices you add to the Blueair account later appear in Home Assistant automatically, and devices you remove from the account are removed from Home Assistant, within 30 minutes. A device that is no longer on the account can also be deleted from its device page.
 

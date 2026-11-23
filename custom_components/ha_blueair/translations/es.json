@@ -15,6 +15,16 @@
           "password": "La contraseña de esa cuenta de Blueair."
         }
       },
+      "cloud_region": {
+        "title": "Región de nube de los dispositivos Blueair",
+        "description": "Tu cuenta inicia sesión en {region}, pero Blueair indica dispositivos en más de una región de nube. Elige la región de nube que aloja los dispositivos que debe controlar esta entrada. La región sugerida es {suggested_cloud_region}.",
+        "data": {
+          "cloud_region": "Región de nube de los dispositivos"
+        },
+        "data_description": {
+          "cloud_region": "La región de nube de Blueair que aloja tus dispositivos. Normalmente es la misma que la región de la cuenta; algunas cuentas, por ejemplo con un CP7i, tienen sus dispositivos en otra región."
+        }
+      },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
         "description": "Blueair rechazó la contraseña guardada para {username}. Introduce la contraseña actual de la cuenta.",
@@ -30,10 +40,12 @@
         "description": "Cambia la región o la contraseña de {username}. Para usar otra cuenta de Blueair, añádela como una entrada nueva.",
         "data": {
           "region": "Región",
+          "cloud_region": "Región de nube de los dispositivos",
           "password": "Contraseña"
         },
         "data_description": {
           "region": "La región de la nube de Blueair en la que se creó tu cuenta (la región que elegiste en la app de Blueair).",
+          "cloud_region": "La región de nube de Blueair que aloja tus dispositivos. Normalmente es la misma que la región de la cuenta; algunas cuentas, por ejemplo con un CP7i, tienen sus dispositivos en otra región.",
           "password": "La contraseña actual de tu cuenta de Blueair."
         }
       }
@@ -181,6 +193,30 @@
     "life_sensors_no_longer_battery": {
       "title": "Los sensores de filtro, mecha y agua ya no se indican como baterías",
       "description": "Los sensores Vida del filtro, Vida de la mecha, Vida del purificador de agua y Nivel de agua usaban antes la clase de dispositivo `battery`, lo que los incluía por error en paneles de baterías, automatizaciones de batería baja y en los informes de batería de HomeKit. Son porcentajes, no baterías, así que se ha eliminado la clase `battery`. Los valores, las unidades y el historial no cambian.\n\nSi dependías de la clasificación como batería, sigue la guía de migración (Más información) para recrearla con un sensor de plantilla. Si no, puedes descartar este aviso."
+    },
+    "cloud_region_mismatch": {
+      "title": "Los dispositivos Blueair pueden estar en otra región de nube",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Confirmar la región de nube de los dispositivos Blueair",
+            "description": "{device_name} no tiene un estado reciente en la región de nube {cloud_region}, lo que ocurre cuando los dispositivos de una cuenta están alojados en otra región. Elige la región de nube que aloja tus dispositivos; la región sugerida es {suggested_cloud_region}. La integración se recarga al enviar.",
+            "data": {
+              "cloud_region": "Región de nube de los dispositivos"
+            },
+            "data_description": {
+              "cloud_region": "La región de nube de Blueair que aloja tus dispositivos. Normalmente es la misma que la región de la cuenta; algunas cuentas, por ejemplo con un CP7i, tienen sus dispositivos en otra región."
+            }
+          }
+        },
+        "error": {
+          "auth": "Blueair rechazó las credenciales guardadas al buscar la región de nube de los dispositivos. Aún puedes elegir una región.",
+          "cannot_connect": "No se pudo contactar con Blueair para buscar la región de nube de los dispositivos. Aún puedes elegir una región."
+        },
+        "abort": {
+          "entry_not_found": "La entrada de configuración de Blueair ya no existe."
+        }
+      }
     }
   },
   "exceptions": {

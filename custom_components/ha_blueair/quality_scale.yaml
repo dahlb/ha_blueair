@@ -108,12 +108,14 @@ rules:
   reconfiguration-flow:
     status: done
     comment: >-
-      Changes the region and password; the username is the entry's unique ID, so another
-      account gets its own entry.
+      Changes the account region, device cloud region and password; the username is the
+      entry's unique ID, so another account gets its own entry.
   repair-issues:
     status: done
     comment: >-
-      Raises a repair issue for life sensors that no longer use the battery device class.
+      Raises a repair issue for life sensors that no longer use the battery device class,
+      and a fixable one when devices look stale on the configured cloud region; its fix
+      flow suggests the region that hosts the devices and reloads the entry.
   stale-devices:
     status: done
     comment: >-

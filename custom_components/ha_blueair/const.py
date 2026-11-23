@@ -10,8 +10,15 @@ VERSION: str = "1.65.1"
 
 # Integration Setting Constants
 CONFIG_FLOW_VERSION: int = 2
-# Minor version 2 lowercases the unique ID (the account username).
-CONFIG_FLOW_MINOR_VERSION: int = 2
+# Minor version 2 lowercases the unique ID (the account username); minor
+# version 3 stores the device cloud region (CONF_CLOUD_REGION).
+CONFIG_FLOW_MINOR_VERSION: int = 3
+# BlueCloud region that hosts the account's devices (REST API and MQTT).
+# Usually the same as the account (login) region in CONF_REGION, but some
+# accounts sign in on one region while their devices live on another.
+CONF_CLOUD_REGION: str = "cloud_region"
+# Repair issue raised when devices look like they are on another cloud region.
+ISSUE_CLOUD_REGION_MISMATCH: str = "cloud_region_mismatch"
 DEFAULT_SCAN_INTERVAL: int = 5
 # Polling interval, in minutes, for AWS devices while MQTT pushes their
 # updates; polling is then only a fallback for missed messages. A longer
