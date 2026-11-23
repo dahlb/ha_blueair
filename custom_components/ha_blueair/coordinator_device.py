@@ -289,7 +289,7 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         await self._async_device_command(
             self.blueair_api_device.set_brightness(round(brightness * 4 / 255.0))
         )
-        await self.async_request_refresh()
+        await self._async_refresh_after_command()
 
     async def set_mood_brightness(self, mood_brightness: int) -> None:
         """Set the mood brightness."""
@@ -323,7 +323,7 @@ class BlueairUpdateCoordinatorDevice(BlueairUpdateCoordinator):
         """Set the fan speed (0-3)."""
         # The legacy API takes the speed as a string.
         await self._async_device_command(self.blueair_api_device.set_fan_speed(str(new_speed)))
-        await self.async_request_refresh()
+        await self._async_refresh_after_command()
 
     async def set_fan_auto_mode(self, value: bool) -> None:
         """Set the fan auto mode."""

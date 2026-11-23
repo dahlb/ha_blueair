@@ -113,7 +113,8 @@ rules:
   repair-issues:
     status: done
     comment: >-
-      Raises a repair issue for life sensors that no longer use the battery device class.
+      Raises a persistent repair issue for installs whose life sensors were registered with
+      the battery device class, which was removed.
   stale-devices:
     status: done
     comment: >-

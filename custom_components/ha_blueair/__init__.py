@@ -133,6 +133,7 @@ class _MqttPolling:
         self._connected = self._has_connected = True
         _LOGGER.debug("MQTT connected; polling AWS devices every %s", self._mqtt_interval)
         self._set_interval(self._mqtt_interval)
+        self._set_mqtt_connected(True)
         if reconnected:
             # Updates pushed while disconnected were missed.
             self._request_refresh()
@@ -148,6 +149,7 @@ class _MqttPolling:
         self._connected = False
         _LOGGER.debug("MQTT disconnected; polling AWS devices every %s", self._poll_interval)
         self._set_interval(self._poll_interval)
+        self._set_mqtt_connected(False)
         # The next scheduled poll may still be a full MQTT interval away.
         self._request_refresh()
 
@@ -159,6 +161,17 @@ class _MqttPolling:
         """
         for coordinator in self._coordinators:
             coordinator.update_interval = interval
+
+    def _set_mqtt_connected(self, connected: bool) -> None:
+        """Tell every coordinator whether MQTT pushes its device's state.
+
+        Commands skip their confirming poll while it does.
+
+        Args:
+            connected: Whether MQTT is connected.
+        """
+        for coordinator in self._coordinators:
+            coordinator.mqtt_connected = connected
 
     def _request_refresh(self) -> None:
         """Ask every coordinator for a (debounced) refresh."""
@@ -317,6 +330,7 @@ async def _async_start_mqtt(
             mqtt_client = None
             for coordinator in aws_coordinators:
                 coordinator.update_interval = timedelta(minutes=interval)
+                coordinator.mqtt_connected = False
     else:
         _LOGGER.debug("MQTT credentials not available, using polling only")
     return mqtt_client

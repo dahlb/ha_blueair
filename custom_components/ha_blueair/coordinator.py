@@ -55,6 +55,8 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
         """
         self.hass: HomeAssistant = hass
         self.blueair_api_device = blueair_api_device
+        # Set while MQTT pushes this device's state changes (AWS devices only).
+        self.mqtt_connected = False
         request_refresh_debouncer: Debouncer[Coroutine[Any, Any, None]] = Debouncer(
             hass,
             _LOGGER,
@@ -133,6 +135,17 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
                 translation_placeholders={"device": self.device_name, "error": str(error)},
             ) from error
         self.async_update_listeners()
+
+    async def _async_refresh_after_command(self) -> None:
+        """Poll the device to confirm a command, unless MQTT will push the result.
+
+        blueair_api already stored the command's value and every entity shows
+        it (see _async_device_command). While MQTT is connected the device
+        pushes its confirmed state, so the poll would only repeat it.
+        """
+        if self.mqtt_connected:
+            return
+        await self.async_request_refresh()
 
     @property
     def id(self) -> str:
@@ -393,7 +406,7 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
     async def set_child_lock(self, locked: bool) -> None:
         """Set the child lock."""
         await self._async_device_command(self.blueair_api_device.set_child_lock(locked))
-        await self.async_request_refresh()
+        await self._async_refresh_after_command()
 
     @abstractmethod
     async def set_night_mode(self, mode: bool) -> None:

@@ -79,7 +79,7 @@ Saving the options reloads the integration.
 ## How Data Updates ##
 - **Current (AWS) models** push changes over MQTT, so states and sensors update within seconds. While MQTT is connected they are polled only every 30 minutes (or at the polling interval, if that is longer) in case a message is missed; if MQTT disconnects they poll right away and go back to the polling interval until it reconnects.
 - **Legacy models** are polled at the polling interval only.
-- Commands go to Blueair's cloud; the entity shows the new state straight away and the next update confirms it.
+- Commands go to Blueair's cloud; every entity of the device shows the new state straight away. Current (AWS) models confirm it over MQTT; otherwise the device is polled about 10 seconds later to confirm it.
 - The account's device list is checked every 30 minutes for added or removed devices.
 - If Blueair can't be reached, the entities become unavailable and the outage is logged once; they recover on the next successful update.
 - If one device can't be reached when Home Assistant starts, the other devices still load. The unreachable device is retried at the polling interval, and the integration reloads to add its entities once it answers. Setup is only retried as a whole when no device can be reached.
