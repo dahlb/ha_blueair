@@ -78,7 +78,9 @@ async def test_installs_with_battery_life_sensors_get_a_persistent_repair_issue(
     assert issue is not None
     # The registry no longer says battery, so the notice must survive restarts.
     assert issue.is_persistent
-    registry_entry = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, "purifier-1_Filter Life")
+    registry_entry = er.async_get(hass).async_get_entity_id(
+        "sensor", DOMAIN, "purifier-1_Filter Life"
+    )
     assert registry_entry is not None
     assert er.async_get(hass).async_get(registry_entry).original_device_class is None
 
@@ -112,6 +114,7 @@ def test_life_sensor_suffixes_match_the_sensor_unique_ids() -> None:
         BlueairWaterLevelSensor,
     ]
 
-    assert _LIFE_LEVEL_UNIQUE_ID_SUFFIXES == tuple(
-        f"_{sensor_class._unique_id_suffix}" for sensor_class in sensor_classes
+    assert (
+        tuple(f"_{sensor_class._unique_id_suffix}" for sensor_class in sensor_classes)
+        == _LIFE_LEVEL_UNIQUE_ID_SUFFIXES
     )
