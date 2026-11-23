@@ -65,10 +65,6 @@ def suggest_cloud_region(scan: CloudRegionScan, default: str) -> tuple[str, bool
     """
     if scan.winner is None:
         return default, False
-    online_regions = [
-        region for region, probe in scan.per_region.items() if probe.online_count
-    ]
-    ambiguous = len(online_regions) > 1 or (
-        not online_regions and scan.multi_region_detected
-    )
+    online_regions = [region for region, probe in scan.per_region.items() if probe.online_count]
+    ambiguous = len(online_regions) > 1 or (not online_regions and scan.multi_region_detected)
     return scan.winner, ambiguous
