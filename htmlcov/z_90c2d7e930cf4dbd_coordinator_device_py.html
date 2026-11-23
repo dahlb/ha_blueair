@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_90c2d7e930cf4dbd_coordinator_device_aws_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-23 11:55 +0000
+            created at 2026-11-23 12:42 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -373,7 +373,7 @@
     <p class="run"><span class="n"><a id="t289" href="#t289">289</a></span><span class="t">        <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_async_device_command</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t290" href="#t290">290</a></span><span class="t">            <span class="nam">self</span><span class="op">.</span><span class="nam">blueair_api_device</span><span class="op">.</span><span class="nam">set_brightness</span><span class="op">(</span><span class="nam">round</span><span class="op">(</span><span class="nam">brightness</span> <span class="op">*</span> <span class="num">4</span> <span class="op">/</span> <span class="num">255.0</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t291" href="#t291">291</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t292" href="#t292">292</a></span><span class="t">        <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">async_request_refresh</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t292" href="#t292">292</a></span><span class="t">        <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_async_refresh_after_command</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t293" href="#t293">293</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t294" href="#t294">294</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">set_mood_brightness</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">mood_brightness</span><span class="op">:</span> <span class="nam">int</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t295" href="#t295">295</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Set the mood brightness.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
@@ -407,7 +407,7 @@
     <p class="pln"><span class="n"><a id="t323" href="#t323">323</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Set the fan speed (0-3).&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t324" href="#t324">324</a></span><span class="t">        <span class="com"># The legacy API takes the speed as a string.</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t325" href="#t325">325</a></span><span class="t">        <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_async_device_command</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">blueair_api_device</span><span class="op">.</span><span class="nam">set_fan_speed</span><span class="op">(</span><span class="nam">str</span><span class="op">(</span><span class="nam">new_speed</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t326" href="#t326">326</a></span><span class="t">        <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">async_request_refresh</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t326" href="#t326">326</a></span><span class="t">        <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_async_refresh_after_command</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t327" href="#t327">327</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t328" href="#t328">328</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">set_fan_auto_mode</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">value</span><span class="op">:</span> <span class="nam">bool</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Set the fan auto mode.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
@@ -461,7 +461,7 @@
             <a class="nav" href="z_90c2d7e930cf4dbd_coordinator_device_aws_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-23 11:55 +0000
+            created at 2026-11-23 12:42 +0000
         </p>
     </div>
 </footer>
