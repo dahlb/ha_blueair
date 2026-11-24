@@ -14,7 +14,7 @@
   ],
   "quality_scale": "platinum",
   "requirements": [
-    "blueair-api==2.1.0"
+    "blueair-api==2.1.3"
   ],
-  "version": "1.65.1"
+  "version": "1.65.4"
 }

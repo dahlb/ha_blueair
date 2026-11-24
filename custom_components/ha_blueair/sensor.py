@@ -16,6 +16,7 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 import homeassistant.helpers.issue_registry as ir
 
@@ -33,6 +34,14 @@ _LIFE_LEVEL_SENSOR_KEYS = (
     "water_refresher_life",
     "water_level",
 )
+# Unique ID suffixes of those sensors (their original English names; see
+# BlueairEntity.__init__).
+_LIFE_LEVEL_UNIQUE_ID_SUFFIXES = (
+    "_Filter Life",
+    "_Wick Life",
+    "_Water Refresher Life",
+    "_Water Level",
+)
 BATTERY_DEVICE_CLASS_ISSUE_ID = "life_sensors_no_longer_battery"
 
 # Read-only platform: the coordinators fetch data centrally, so entity updates
@@ -46,6 +55,10 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the Blueair sensors from config entry."""
+    # Checked before the entities are added, which records their current
+    # (non-battery) device class in the entity registry.
+    had_battery_life_sensors = _has_battery_life_sensors(hass, config_entry)
+
     async_setup_entry_helper(
         hass,
         config_entry,
@@ -73,26 +86,50 @@ async def async_setup_entry(
     # dashboards, low-battery automations and HomeKit battery reporting.  That
     # classification has been removed (#378).  Surface a dismissible repair to
     # let affected users know and point them at the migration guide.  Only fire
-    # when the account actually exposes one of these sensors, and self-heal if
-    # it no longer does.
+    # for installs whose sensors were registered as batteries (new installs
+    # never were), and self-heal if the account no longer has such a sensor.
+    # The issue is persistent: the registry no longer says "battery" after this
+    # first run, so it couldn't be raised again on the next start.
     coordinators = config_entry.runtime_data.coordinators
     has_life_level_sensor = any(
         getattr(coordinator, key, NotImplemented) is not NotImplemented
         for coordinator in coordinators
         for key in _LIFE_LEVEL_SENSOR_KEYS
     )
-    if has_life_level_sensor:
+    if not has_life_level_sensor:
+        ir.async_delete_issue(hass, DOMAIN, BATTERY_DEVICE_CLASS_ISSUE_ID)
+    elif had_battery_life_sensors:
         ir.async_create_issue(
             hass,
             DOMAIN,
             BATTERY_DEVICE_CLASS_ISSUE_ID,
             is_fixable=False,
+            is_persistent=True,
             severity=ir.IssueSeverity.WARNING,
             translation_key=BATTERY_DEVICE_CLASS_ISSUE_ID,
             learn_more_url="https://github.com/dahlb/ha_blueair#filter-wick-and-water-sensors-no-longer-report-as-batteries",
         )
-    else:
-        ir.async_delete_issue(hass, DOMAIN, BATTERY_DEVICE_CLASS_ISSUE_ID)
+
+
+def _has_battery_life_sensors(hass: HomeAssistant, config_entry: BlueairConfigEntry) -> bool:
+    """Return whether the entry's life/level sensors are registered as batteries.
+
+    Only installs set up before the battery device class was removed (#378),
+    and not yet started since, have such registry entries.
+
+    Args:
+        hass: Home Assistant instance.
+        config_entry: The account's config entry.
+
+    Returns:
+        bool: True when a life or level sensor still has the battery class.
+    """
+    return any(
+        entry.domain == "sensor"
+        and entry.unique_id.endswith(_LIFE_LEVEL_UNIQUE_ID_SUFFIXES)
+        and entry.original_device_class == SensorDeviceClass.BATTERY
+        for entry in er.async_entries_for_config_entry(er.async_get(hass), config_entry.entry_id)
+    )
 
 
 class BlueairSensor(BlueairEntity, SensorEntity):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import timedelta
 import logging
 from typing import Any
 from unittest.mock import patch
@@ -15,12 +16,20 @@ from homeassistant.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
 )
-from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.helpers.update_coordinator import REQUEST_REFRESH_DEFAULT_COOLDOWN, UpdateFailed
+from homeassistant.util import dt as dt_util
 import pytest
+from pytest_homeassistant.common import async_fire_time_changed
 
 from custom_components.ha_blueair.const import DOMAIN
 
-from .conftest import make_climate_device, make_humidifier, make_legacy_device, make_purifier
+from .conftest import (
+    FakeMqtt,
+    make_climate_device,
+    make_humidifier,
+    make_legacy_device,
+    make_purifier,
+)
 
 # AWS-only readings the legacy REST API never reports.
 LEGACY_UNSUPPORTED = [
@@ -213,6 +222,48 @@ async def test_a_command_updates_every_entity_of_the_device(
 
 
 @pytest.mark.asyncio
+async def test_commands_skip_the_confirming_poll_while_mqtt_is_connected(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any], fake_mqtt: type[FakeMqtt]
+) -> None:
+    """Rely on MQTT to confirm a command, and poll for it again once MQTT drops."""
+    device = make_purifier()
+    entry = await setup_blueair(aws=[device])
+    coordinator = entry.runtime_data.aws_devices[0]
+    assert coordinator.mqtt_connected
+
+    polls = device.refresh_count
+    await coordinator.set_child_lock(True)
+    await _run_debounced_refresh(hass)
+    assert device.refresh_count == polls
+
+    fake_mqtt.instances[0].on_disconnect_callback()
+    await _run_debounced_refresh(hass)
+    assert not coordinator.mqtt_connected
+    polls = device.refresh_count
+
+    await coordinator.set_child_lock(False)
+    await _run_debounced_refresh(hass)
+    assert device.refresh_count == polls + 1
+
+
+@pytest.mark.asyncio
+async def test_commands_poll_to_confirm_without_mqtt(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Poll after a command when the device has no MQTT updates."""
+    device = make_purifier()
+    entry = await setup_blueair(aws=[device])
+    coordinator = entry.runtime_data.aws_devices[0]
+    assert not coordinator.mqtt_connected
+    polls = device.refresh_count
+
+    await coordinator.set_child_lock(True)
+    await _run_debounced_refresh(hass)
+
+    assert device.refresh_count == polls + 1
+
+
+@pytest.mark.asyncio
 async def test_a_failed_command_does_not_update_the_entities(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
@@ -229,6 +280,18 @@ async def test_a_failed_command_does_not_update_the_entities(
         await coordinator.set_child_lock(True)
 
     update_listeners.assert_not_called()
+
+
+async def _run_debounced_refresh(hass: HomeAssistant) -> None:
+    """Advance time past the refresh debouncer's cooldown and let refreshes run.
+
+    Args:
+        hass: Home Assistant instance.
+    """
+    async_fire_time_changed(
+        hass, dt_util.utcnow() + timedelta(seconds=REQUEST_REFRESH_DEFAULT_COOLDOWN + 1)
+    )
+    await hass.async_block_till_done()
 
 
 @pytest.mark.asyncio

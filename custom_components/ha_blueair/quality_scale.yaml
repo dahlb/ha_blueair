@@ -113,9 +113,10 @@ rules:
   repair-issues:
     status: done
     comment: >-
-      Raises a repair issue for life sensors that no longer use the battery device class,
-      and a fixable one when devices look stale on the configured cloud region; its fix
-      flow suggests the region that hosts the devices and reloads the entry.
+      Raises a persistent repair issue for installs whose life sensors were registered with
+      the battery device class, which was removed, and a fixable one when devices look stale
+      on the configured cloud region; its fix flow suggests the region that hosts the devices
+      and reloads the entry.
   stale-devices:
     status: done
     comment: >-
