@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import ClientConnectionError
-from blueair_api import LoginError, ServerError
+from blueair_api import CandidateProbe, CloudRegionScan, LoginError, ServerError
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_USERNAME
@@ -17,7 +17,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
-from custom_components.ha_blueair.const import DOMAIN
+from custom_components.ha_blueair.const import CONF_CLOUD_REGION, DOMAIN
 
 from .conftest import USERNAME, FakeBlueairCloud, entry_data
 
@@ -39,9 +39,10 @@ async def test_user_flow_creates_an_entry(
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == USERNAME
-    assert result["data"] == entry_data()
+    assert result["data"] == {**entry_data(), CONF_CLOUD_REGION: entry_data()[CONF_REGION]}
     assert result["result"].unique_id == USERNAME
-    assert blueair_cloud.aws_calls[-1]["region"] == entry_data()[CONF_REGION]
+    assert blueair_cloud.aws_calls[-1]["gigya_region"] == entry_data()[CONF_REGION]
+    assert blueair_cloud.aws_calls[-1]["cloud_region"] == entry_data()[CONF_REGION]
     # The login uses Home Assistant's shared session and leaves it open.
     assert blueair_cloud.aws_calls[-1]["client_session"] is async_get_clientsession(hass)
     assert blueair_cloud.cleanup_calls == 0
@@ -166,7 +167,13 @@ async def test_options_flow_rejects_out_of_range_filter_thresholds(
 
 @pytest.mark.parametrize("file_name", ["strings.json", "translations/en.json"])
 @pytest.mark.parametrize(
-    ("section", "step"), [("config", "user"), ("config", "reconfigure"), ("options", "init")]
+    ("section", "step"),
+    [
+        ("config", "user"),
+        ("config", "cloud_region"),
+        ("config", "reconfigure"),
+        ("options", "init"),
+    ],
 )
 def test_every_flow_field_has_a_data_description(file_name: str, section: str, step: str) -> None:
     """Describe every config and options flow field, as the config-flow rule requires."""
@@ -238,7 +245,8 @@ async def test_reauth_flow_updates_the_password(
     assert {
         "username": USERNAME,
         "password": "new-password",
-        "region": entry_data()[CONF_REGION],
+        "gigya_region": entry_data()[CONF_REGION],
+        "cloud_region": entry_data()[CONF_REGION],
     } in _logins(blueair_cloud)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
@@ -273,7 +281,7 @@ async def test_reauth_flow_keeps_the_form_open_on_errors(
 async def test_reconfigure_flow_updates_the_region_and_password(
     hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
 ) -> None:
-    """Store the new region and password after Blueair accepts them."""
+    """Store the new regions and password after Blueair accepts them."""
     entry = _reauth_entry(hass)
 
     form = await entry.start_reconfigure_flow(hass)
@@ -282,7 +290,8 @@ async def test_reconfigure_flow_updates_the_region_and_password(
     assert form["description_placeholders"]["username"] == USERNAME
 
     result = await hass.config_entries.flow.async_configure(
-        form["flow_id"], {CONF_REGION: "eu", CONF_PASSWORD: "new-password"}
+        form["flow_id"],
+        {CONF_REGION: "us", CONF_CLOUD_REGION: "eu", CONF_PASSWORD: "new-password"},
     )
 
     assert result["type"] is FlowResultType.ABORT
@@ -290,11 +299,15 @@ async def test_reconfigure_flow_updates_the_region_and_password(
     assert entry.data == {
         CONF_USERNAME: USERNAME,
         CONF_PASSWORD: "new-password",
-        CONF_REGION: "eu",
+        CONF_REGION: "us",
+        CONF_CLOUD_REGION: "eu",
     }
-    assert {"username": USERNAME, "password": "new-password", "region": "eu"} in (
-        _logins(blueair_cloud)
-    )
+    assert {
+        "username": USERNAME,
+        "password": "new-password",
+        "gigya_region": "us",
+        "cloud_region": "eu",
+    } in _logins(blueair_cloud)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
 
@@ -334,3 +347,127 @@ def test_reauth_and_exception_strings_exist(file_name: str) -> None:
         "invalid_mode",
         "invalid_temperature",
     }
+
+
+def _scan(**probes: tuple[int, int]) -> CloudRegionScan:
+    """Build a cloud region scan the way blueair_api reports one.
+
+    Args:
+        probes: (devices, online devices) per region.
+
+    Returns:
+        CloudRegionScan: The scan, with blueair_api's winner and multi-region flag.
+    """
+    per_region = {
+        region: CandidateProbe(region=region, device_count=devices, online_count=online)
+        for region, (devices, online) in probes.items()
+    }
+    online = {
+        region: probe.online_count for region, probe in per_region.items() if probe.online_count
+    }
+    found = {
+        region: probe.device_count for region, probe in per_region.items() if probe.device_count
+    }
+    counts = online or found
+    return CloudRegionScan(
+        selected_region=next(iter(probes)),
+        candidates_tried=list(probes),
+        per_region=per_region,
+        winner=max(counts, key=lambda region: counts[region]) if counts else None,
+        multi_region_detected=len(found) > 1,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("scan", "expected"),
+    [
+        # Signs in on us, devices online on eu only (e.g. a CP7i).
+        (_scan(us=(1, 0), eu=(1, 1)), "eu"),
+        # Every device offline, but only one region knows them.
+        (_scan(us=(0, 0), eu=(2, 0)), "eu"),
+        # No devices anywhere: keep the account region.
+        (_scan(us=(0, 0), eu=(0, 0)), "us"),
+    ],
+)
+async def test_user_flow_saves_a_clear_cloud_region_without_asking(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud, scan: CloudRegionScan, expected: str
+) -> None:
+    """Create the entry with the region hosting the devices when only one does."""
+    blueair_cloud.scan = scan
+    form = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(form["flow_id"], entry_data())
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_REGION] == "us"
+    assert result["data"][CONF_CLOUD_REGION] == expected
+    assert blueair_cloud.scan_calls == ["us"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "scan",
+    [
+        # Devices online on two regions.
+        _scan(us=(1, 1), eu=(2, 2)),
+        # Devices on two regions, all offline.
+        _scan(us=(1, 0), eu=(2, 0)),
+    ],
+)
+async def test_user_flow_asks_for_an_ambiguous_cloud_region(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud, scan: CloudRegionScan
+) -> None:
+    """Ask the user to pick the cloud region, suggesting the scan's winner."""
+    blueair_cloud.scan = scan
+    form = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    step = await hass.config_entries.flow.async_configure(form["flow_id"], entry_data())
+
+    assert step["type"] is FlowResultType.FORM
+    assert step["step_id"] == "cloud_region"
+    assert step["description_placeholders"] == {"region": "us", "suggested_cloud_region": "eu"}
+
+    result = await hass.config_entries.flow.async_configure(
+        step["flow_id"], {CONF_CLOUD_REGION: "us"}
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == USERNAME
+    assert result["data"] == {**entry_data(), CONF_CLOUD_REGION: "us"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error", [ClientConnectionError("offline"), TimeoutError()])
+async def test_user_flow_keeps_the_account_region_when_the_scan_fails(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud, error: BaseException
+) -> None:
+    """Create the entry with the account region when the region scan fails."""
+    blueair_cloud.scan_error = error
+    form = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(form["flow_id"], entry_data())
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_CLOUD_REGION] == "us"
+
+
+@pytest.mark.parametrize("file_name", ["strings.json", "translations/en.json"])
+def test_cloud_region_strings_use_the_flow_placeholders(file_name: str) -> None:
+    """Translate the cloud region step and repair with the placeholders the code sets."""
+    strings = json.loads((INTEGRATION_DIR / file_name).read_text(encoding="utf-8"))
+    step = strings["config"]["step"]["cloud_region"]
+    fix_flow = strings["issues"]["cloud_region_mismatch"]["fix_flow"]
+
+    assert "{region}" in step["description"]
+    assert "{suggested_cloud_region}" in step["description"]
+    for placeholder in ("{device_name}", "{cloud_region}", "{suggested_cloud_region}"):
+        assert placeholder in fix_flow["step"]["confirm"]["description"]
+    assert set(fix_flow["error"]) == {"auth", "cannot_connect"}
+    assert set(fix_flow["abort"]) == {"entry_not_found"}

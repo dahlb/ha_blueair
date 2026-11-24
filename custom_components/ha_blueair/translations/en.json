@@ -10,9 +10,19 @@
           "password": "Password"
         },
         "data_description": {
-          "region": "The Blueair cloud region your account was created in (the region you picked in the Blueair app).",
+          "region": "The Blueair region you sign in on (the region you picked in the Blueair app). The region hosting your devices is found automatically after you sign in.",
           "username": "The email address you use to sign in to the Blueair app.",
           "password": "The password for that Blueair account."
+        }
+      },
+      "cloud_region": {
+        "title": "Blueair Device Cloud Region",
+        "description": "Your account signs in on {region}, but Blueair reports devices on more than one cloud region. Choose the cloud region that hosts the devices this entry should control. The suggested region is {suggested_cloud_region}.",
+        "data": {
+          "cloud_region": "Device cloud region"
+        },
+        "data_description": {
+          "cloud_region": "The Blueair cloud region that hosts your devices. Usually the same as the account region; some accounts, for example with a CP7i, keep their devices on another region."
         }
       },
       "reauth_confirm": {
@@ -27,13 +37,15 @@
       },
       "reconfigure": {
         "title": "Reconfigure Blueair",
-        "description": "Change the region or password for {username}. To use another Blueair account, add it as a new entry.",
+        "description": "Change the regions or password for {username}. To use another Blueair account, add it as a new entry.",
         "data": {
           "region": "Region",
+          "cloud_region": "Device cloud region",
           "password": "Password"
         },
         "data_description": {
           "region": "The Blueair cloud region your account was created in (the region you picked in the Blueair app).",
+          "cloud_region": "The Blueair cloud region that hosts your devices. Usually the same as the account region; some accounts, for example with a CP7i, keep their devices on another region.",
           "password": "The current password for your Blueair account."
         }
       }
@@ -181,6 +193,30 @@
     "life_sensors_no_longer_battery": {
       "title": "Filter, Wick and Water sensors no longer report as batteries",
       "description": "The Filter Life, Wick Life, Water Refresher Life and Water Level sensors previously used the `battery` device class, which incorrectly pulled them into battery dashboards, low-battery automations and HomeKit battery reporting. They are percentages, not batteries, so the `battery` device class has been removed. The values, units and history are unchanged.\n\nIf you relied on the old battery classification, follow the migration guide (Learn more) to re-create it with a template sensor. Otherwise you can safely dismiss this notice."
+    },
+    "cloud_region_mismatch": {
+      "title": "Blueair devices may be on another cloud region",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Confirm the Blueair device cloud region",
+            "description": "{device_name} has no recent state on the {cloud_region} cloud region, which happens when an account's devices are hosted on another region. Choose the cloud region that hosts your devices; the suggested region is {suggested_cloud_region}. The integration reloads after you submit.",
+            "data": {
+              "cloud_region": "Device cloud region"
+            },
+            "data_description": {
+              "cloud_region": "The Blueair cloud region that hosts your devices. Usually the same as the account region; some accounts, for example with a CP7i, keep their devices on another region."
+            }
+          }
+        },
+        "error": {
+          "auth": "Blueair rejected the saved credentials while looking for the device cloud region. You can still choose a region.",
+          "cannot_connect": "Unable to reach Blueair to look for the device cloud region. You can still choose a region."
+        },
+        "abort": {
+          "entry_not_found": "The Blueair config entry no longer exists."
+        }
+      }
     }
   },
   "exceptions": {

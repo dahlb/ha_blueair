@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from typing import Any, ClassVar
 from unittest.mock import patch
 
-from blueair_api import Device, DeviceAws
+from blueair_api import CandidateProbe, CloudRegionScan, Device, DeviceAws
 from homeassistant.const import CONF_PASSWORD, CONF_REGION, CONF_USERNAME
 import pytest
 
@@ -98,7 +98,12 @@ def make_aws_device(
             setattr(device, item.name, NotImplemented)
     device.name = name
     # Normally set by the real refresh; diagnostics include them.
-    device.raw_info = {"configuration": {"di": {"name": name}}}
+    device.raw_info = {
+        "configuration": {"di": {"name": name}},
+        # An online device with history: not a stale snapshot from another
+        # cloud region.
+        "states": [{"n": "online", "vb": True, "t": 2}, {"n": "fanspeed", "v": 10, "t": 1}],
+    }
     device.raw_sensors = []
     for key, value in {
         "firmware": "1.0.0",
@@ -371,6 +376,58 @@ class FakeBlueairCloud:
         self.mqtt_credentials = False
         self.token_refreshes = 0
         self.list_error: BaseException | None = None
+        # None: the devices answer on the client's cloud region only.
+        self.scan: CloudRegionScan | None = None
+        self.scan_error: BaseException | None = None
+        self.scan_calls: list[str] = []
+        self.http_clients: list[dict[str, Any]] = []
+
+    async def discover_cloud_region(self, cloud_region: str) -> CloudRegionScan:
+        """Scan the cloud regions the way HttpAwsBlueair.discover_cloud_region does.
+
+        Args:
+            cloud_region: The client's configured cloud region.
+
+        Returns:
+            CloudRegionScan: The configured ``scan``, or one with every AWS
+            device online on ``cloud_region``.
+
+        Raises:
+            BaseException: The configured ``scan_error``.
+        """
+        self.scan_calls.append(cloud_region)
+        if self.scan_error is not None:
+            raise self.scan_error
+        if self.scan is not None:
+            return self.scan
+        count = len(self.aws_devices)
+        return CloudRegionScan(
+            selected_region=cloud_region,
+            candidates_tried=[cloud_region],
+            per_region={
+                cloud_region: CandidateProbe(
+                    region=cloud_region, device_count=count, online_count=count
+                )
+            },
+            winner=cloud_region if count else None,
+        )
+
+    def http_aws_blueair(self, **kwargs: Any) -> Any:
+        """Build an AWS client the way HttpAwsBlueair's constructor does.
+
+        Args:
+            kwargs: Arguments the integration passed.
+
+        Returns:
+            Any: A client whose region scan uses this fake cloud.
+        """
+        self.http_clients.append(kwargs)
+        cloud_region = kwargs["cloud_region"]
+
+        async def discover_cloud_region() -> CloudRegionScan:
+            return await self.discover_cloud_region(cloud_region)
+
+        return SimpleNamespace(discover_cloud_region=discover_cloud_region)
 
     async def list_aws_devices(self) -> list[dict[str, str]]:
         """List the AWS devices the way HttpAwsBlueair.devices does.
@@ -417,6 +474,11 @@ class FakeBlueairCloud:
         if self.aws_error is not None:
             raise self.aws_error
         has_mqtt = self.mqtt_credentials
+        cloud_region = kwargs.get("cloud_region") or kwargs.get("region", REGION)
+
+        async def discover_cloud_region() -> CloudRegionScan:
+            return await self.discover_cloud_region(cloud_region)
+
         client = SimpleNamespace(
             mqtt_auth_name="name" if has_mqtt else None,
             mqtt_auth_signature="signature" if has_mqtt else None,
@@ -425,6 +487,7 @@ class FakeBlueairCloud:
             cleanup_client_session=self.cleanup_client_session,
             refresh_access_token=self.refresh_access_token,
             devices=self.list_aws_devices,
+            discover_cloud_region=discover_cloud_region,
         )
         return client, list(self.aws_devices)
 
@@ -490,6 +553,7 @@ def blueair_cloud(enable_custom_integrations: None) -> Iterator[FakeBlueairCloud
         patch("custom_components.ha_blueair.get_aws_devices", cloud.get_aws_devices),
         patch("custom_components.ha_blueair.get_devices", cloud.get_devices),
         patch("custom_components.ha_blueair.config_flow.get_aws_devices", cloud.get_aws_devices),
+        patch("custom_components.ha_blueair.repairs.HttpAwsBlueair", cloud.http_aws_blueair),
     ):
         yield cloud
 

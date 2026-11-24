@@ -16,6 +16,7 @@ from blueair_api import (
     LoginError,
     MqttAwsBlueair,
     MqttError,
+    device_state_looks_frozen,
     get_aws_devices,
     get_devices,
 )
@@ -29,17 +30,19 @@ from homeassistant.const import (
 )
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_CLOUD_REGION,
     CONFIG_FLOW_MINOR_VERSION,
     DEFAULT_SCAN_INTERVAL,
     DEVICE_LIST_INTERVAL,
     DOMAIN,
+    ISSUE_CLOUD_REGION_MISMATCH,
     MQTT_SCAN_INTERVAL,
     PLATFORMS,
     REGION_USA,
@@ -196,7 +199,7 @@ async def _async_start_mqtt(
     Args:
         hass: Home Assistant instance.
         config_entry: The account's config entry.
-        region: Blueair cloud region.
+        region: BlueCloud region hosting the devices (the MQTT broker's region).
         aws_http_client: Logged-in AWS client holding the MQTT credentials.
         aws_coordinators: Coordinators of the AWS devices to subscribe to.
         interval: Configured polling interval in minutes.
@@ -512,6 +515,66 @@ def _async_retry_unreachable_devices(
     )
 
 
+def _cloud_region_issue_id(config_entry: ConfigEntry) -> str:
+    """Return the ID of the entry's cloud region repair issue.
+
+    Args:
+        config_entry: The account's config entry.
+
+    Returns:
+        str: The issue ID, unique per config entry.
+    """
+    return f"{ISSUE_CLOUD_REGION_MISMATCH}_{config_entry.entry_id}"
+
+
+def _async_check_cloud_region(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    aws_coordinators: Sequence[BlueairUpdateCoordinatorDeviceAws],
+    cloud_region: str,
+) -> None:
+    """Raise a repair issue when a device looks like it is on another cloud region.
+
+    A cloud region that knows a device but never receives its updates returns
+    a single offline snapshot (or none), which blueair_api detects. The repair
+    flow then looks up the region that hosts the devices. Setup never changes
+    the region itself.
+
+    Args:
+        hass: Home Assistant instance.
+        config_entry: The account's config entry.
+        aws_coordinators: Coordinators of the AWS devices polled at setup.
+        cloud_region: The BlueCloud region the entry uses.
+    """
+    issue_id = _cloud_region_issue_id(config_entry)
+    for coordinator in aws_coordinators:
+        # raw_info is set by a successful poll of the device.
+        raw_info = getattr(coordinator.blueair_api_device, "raw_info", None)
+        if raw_info is None or not device_state_looks_frozen(raw_info):
+            continue
+        _LOGGER.warning(
+            "Blueair device %s has no recent state on cloud region %s; "
+            "its devices may be hosted on another region",
+            coordinator.device_name,
+            cloud_region,
+        )
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_CLOUD_REGION_MISMATCH,
+            translation_placeholders={
+                "device_name": coordinator.device_name,
+                "cloud_region": cloud_region,
+            },
+            data={"entry_id": config_entry.entry_id},
+        )
+        return
+    ir.async_delete_issue(hass, DOMAIN, issue_id)
+
+
 async def async_remove_config_entry_device(
     hass: HomeAssistant, config_entry: BlueairConfigEntry, device_entry: dr.DeviceEntry
 ) -> bool:
@@ -559,8 +622,17 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
                     "Blueair account %s is configured twice; keeping this entry's unique ID",
                     new_unique_id,
                 )
+        hass.config_entries.async_update_entry(config_entry, minor_version=2)
+
+    if config_entry.version == 2 and config_entry.minor_version < 3:
+        # Entries from before 2.3 used one region for both login and devices.
+        new_data = {
+            **config_entry.data,
+            CONF_CLOUD_REGION: config_entry.data.get(CONF_CLOUD_REGION)
+            or config_entry.data[CONF_REGION],
+        }
         hass.config_entries.async_update_entry(
-            config_entry, minor_version=CONFIG_FLOW_MINOR_VERSION
+            config_entry, data=new_data, minor_version=CONFIG_FLOW_MINOR_VERSION
         )
 
     _LOGGER.info(
@@ -582,6 +654,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
     region = config_entry.data[CONF_REGION]
+    # Migration stores the cloud region; fall back to the account region anyway.
+    cloud_region = config_entry.data.get(CONF_CLOUD_REGION, region)
     interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     _LOGGER.debug("setting up scan interval: %s", interval)
 
@@ -606,7 +680,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
             username=username,
             password=password,
             client_session=client_session,
-            region=region,
+            gigya_region=region,
+            cloud_region=cloud_region,
         )
 
         def create_coordinators(device: Device) -> BlueairUpdateCoordinatorDevice:
@@ -634,9 +709,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: BlueairConfigEntr
         unreachable = await _async_first_refresh(coordinators)
         device_coordinators = [c for c in device_coordinators if c not in unreachable]
         aws_coordinators = [c for c in aws_coordinators if c not in unreachable]
+        _async_check_cloud_region(hass, config_entry, aws_coordinators, cloud_region)
 
         mqtt_client = await _async_start_mqtt(
-            hass, config_entry, region, aws_http_client, aws_coordinators, interval
+            hass, config_entry, cloud_region, aws_http_client, aws_coordinators, interval
         )
 
         config_entry.runtime_data = BlueairRuntimeData(
@@ -687,4 +763,6 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: BlueairConfigEnt
         await mqtt_client.disconnect()
         _LOGGER.info("MQTT disconnected")
 
+    # Setup checks the cloud region again, so a reload clears a fixed issue.
+    ir.async_delete_issue(hass, DOMAIN, _cloud_region_issue_id(config_entry))
     return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)

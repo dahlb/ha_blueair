@@ -15,6 +15,16 @@
           "password": "Le mot de passe de ce compte Blueair."
         }
       },
+      "cloud_region": {
+        "title": "Région cloud des appareils Blueair",
+        "description": "Votre compte se connecte sur {region}, mais Blueair signale des appareils sur plusieurs régions cloud. Choisissez la région cloud qui héberge les appareils que cette entrée doit contrôler. La région suggérée est {suggested_cloud_region}.",
+        "data": {
+          "cloud_region": "Région cloud des appareils"
+        },
+        "data_description": {
+          "cloud_region": "La région cloud Blueair qui héberge vos appareils. Généralement la même que la région du compte ; certains comptes, par exemple avec un CP7i, ont leurs appareils sur une autre région."
+        }
+      },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
         "description": "Blueair a refusé le mot de passe enregistré pour {username}. Saisissez le mot de passe actuel du compte.",
@@ -30,10 +40,12 @@
         "description": "Modifiez la région ou le mot de passe de {username}. Pour utiliser un autre compte Blueair, ajoutez-le comme nouvelle entrée.",
         "data": {
           "region": "Région",
+          "cloud_region": "Région cloud des appareils",
           "password": "Mot de passe"
         },
         "data_description": {
           "region": "La région du cloud Blueair dans laquelle votre compte a été créé (celle choisie dans l'application Blueair).",
+          "cloud_region": "La région cloud Blueair qui héberge vos appareils. Généralement la même que la région du compte ; certains comptes, par exemple avec un CP7i, ont leurs appareils sur une autre région.",
           "password": "Le mot de passe actuel de votre compte Blueair."
         }
       }
@@ -181,6 +193,30 @@
     "life_sensors_no_longer_battery": {
       "title": "Les capteurs de filtre, de mèche et d'eau ne sont plus signalés comme des batteries",
       "description": "Les capteurs Durée de vie du filtre, Durée de vie de la mèche, Durée de vie du purificateur d'eau et Niveau d'eau utilisaient auparavant la classe d'appareil `battery`, ce qui les incluait à tort dans les tableaux de bord de batteries, les automatisations de batterie faible et les rapports de batterie HomeKit. Ce sont des pourcentages, pas des batteries : la classe `battery` a donc été retirée. Les valeurs, les unités et l'historique sont inchangés.\n\nSi vous dépendiez de l'ancienne classification en batterie, suivez le guide de migration (En savoir plus) pour la recréer avec un capteur modèle. Sinon, vous pouvez ignorer cet avis."
+    },
+    "cloud_region_mismatch": {
+      "title": "Les appareils Blueair sont peut-être sur une autre région cloud",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Confirmer la région cloud des appareils Blueair",
+            "description": "{device_name} n'a pas d'état récent sur la région cloud {cloud_region}, ce qui arrive lorsque les appareils d'un compte sont hébergés sur une autre région. Choisissez la région cloud qui héberge vos appareils ; la région suggérée est {suggested_cloud_region}. L'intégration se recharge après validation.",
+            "data": {
+              "cloud_region": "Région cloud des appareils"
+            },
+            "data_description": {
+              "cloud_region": "La région cloud Blueair qui héberge vos appareils. Généralement la même que la région du compte ; certains comptes, par exemple avec un CP7i, ont leurs appareils sur une autre région."
+            }
+          }
+        },
+        "error": {
+          "auth": "Blueair a refusé les identifiants enregistrés lors de la recherche de la région cloud des appareils. Vous pouvez quand même choisir une région.",
+          "cannot_connect": "Impossible de joindre Blueair pour rechercher la région cloud des appareils. Vous pouvez quand même choisir une région."
+        },
+        "abort": {
+          "entry_not_found": "L'entrée de configuration Blueair n'existe plus."
+        }
+      }
     }
   },
   "exceptions": {

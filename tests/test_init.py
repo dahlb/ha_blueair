@@ -11,13 +11,14 @@ from blueair_api import LoginError, MqttError
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import REQUEST_REFRESH_DEFAULT_COOLDOWN
 from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.ha_blueair import BlueairRuntimeData
-from custom_components.ha_blueair.const import DOMAIN
+from custom_components.ha_blueair.const import CONF_CLOUD_REGION, DOMAIN
 from custom_components.ha_blueair.coordinator import BlueairUpdateCoordinator
 
 from .conftest import (
@@ -506,7 +507,7 @@ async def test_entries_migrate_to_lowercase_unique_ids(
     assert await hass.config_entries.async_setup(entry.entry_id)
 
     assert entry.unique_id == expected
-    assert (entry.version, entry.minor_version) == (2, 2)
+    assert (entry.version, entry.minor_version) == (2, 3)
 
 
 @pytest.mark.asyncio
@@ -530,7 +531,7 @@ async def test_lowercase_migration_keeps_a_unique_id_another_entry_uses(
     await hass.async_block_till_done()
 
     assert entry.unique_id == "User@Example.com"
-    assert entry.minor_version == 2
+    assert entry.minor_version == 3
     assert "configured twice" in caplog.text
 
 
@@ -546,3 +547,103 @@ async def test_setup_skips_legacy_devices_when_the_legacy_login_is_rejected(
 
     assert entry.state is ConfigEntryState.LOADED
     assert entry.runtime_data.devices == []
+
+
+def _stale(device: Any) -> Any:
+    """Give a device the single offline snapshot of a region it doesn't report to.
+
+    Args:
+        device: The device to change.
+
+    Returns:
+        Any: The same device.
+    """
+    device.raw_info = {
+        "configuration": {"di": {"name": device.name}},
+        "states": [{"n": "online", "vb": False, "t": 5}, {"n": "fanspeed", "v": 0, "t": 5}],
+    }
+    return device
+
+
+@pytest.mark.asyncio
+async def test_setup_uses_the_cloud_region_for_devices_and_mqtt(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud, fake_mqtt: type[FakeMqtt]
+) -> None:
+    """Sign in on the account region and reach the devices on the cloud region."""
+    blueair_cloud.aws_devices = [make_purifier()]
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=USERNAME,
+        data={**entry_data(), CONF_CLOUD_REGION: "eu"},
+        version=2,
+        minor_version=3,
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+
+    assert blueair_cloud.aws_calls[-1]["gigya_region"] == "us"
+    assert blueair_cloud.aws_calls[-1]["cloud_region"] == "eu"
+    assert fake_mqtt.instances[0].kwargs["region"] == "eu"
+
+
+@pytest.mark.asyncio
+async def test_entries_migrate_to_a_cloud_region_matching_the_account_region(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
+) -> None:
+    """Give entries from before 2.3 the account region as their cloud region."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=USERNAME,
+        data={**entry_data(), "region": "eu"},
+        version=2,
+        minor_version=2,
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+
+    assert entry.minor_version == 3
+    assert entry.data[CONF_CLOUD_REGION] == "eu"
+    assert blueair_cloud.aws_calls[-1]["cloud_region"] == "eu"
+
+
+@pytest.mark.asyncio
+async def test_stale_devices_raise_a_cloud_region_issue(
+    hass: HomeAssistant, setup_blueair: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Raise a fixable issue when a device has no recent state, and drop it on unload."""
+    entry = await setup_blueair(aws=[make_humidifier(), _stale(make_purifier())])
+    issue_id = f"cloud_region_mismatch_{entry.entry_id}"
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, issue_id)
+    assert issue is not None
+    assert issue.is_fixable
+    assert issue.data == {"entry_id": entry.entry_id}
+    assert issue.translation_placeholders == {"device_name": "Bedroom", "cloud_region": "us"}
+    assert "may be hosted on another region" in caplog.text
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+@pytest.mark.asyncio
+async def test_current_devices_clear_the_cloud_region_issue(
+    hass: HomeAssistant, blueair_cloud: FakeBlueairCloud
+) -> None:
+    """Delete a cloud region issue from an earlier setup once the devices report state."""
+    blueair_cloud.aws_devices = [make_purifier()]
+    entry = _add_entry(hass)
+    issue_id = f"cloud_region_mismatch_{entry.entry_id}"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="cloud_region_mismatch",
+    )
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
