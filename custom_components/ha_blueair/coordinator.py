@@ -10,7 +10,12 @@ from types import NotImplementedType
 from typing import Any
 
 from aiohttp import ClientError
-from blueair_api import Device as BlueAirApiDevice, DeviceAws as BlueAirAwsDevice, LoginError
+from blueair_api import (
+    Device as BlueAirApiDevice,
+    DeviceAws as BlueAirAwsDevice,
+    LoginError,
+    RateError,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
@@ -21,7 +26,7 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .const import DOMAIN
+from .const import DOMAIN, RATE_LIMIT_RETRY_MINUTES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,7 +75,9 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
             A rejected login raises ConfigEntryAuthFailed, which starts
             reauthentication. Any other API or transport failure raises
             UpdateFailed, so the coordinator logs the outage once and its
-            recovery once instead of a stack trace on every failed poll.
+            recovery once instead of a stack trace on every failed poll. A
+            rate limit also delays the next poll by RATE_LIMIT_RETRY_MINUTES,
+            so polling doesn't keep the account over BlueCloud's limit.
 
             Returns:
                 str: The device state, compared to skip no-op updates.
@@ -84,6 +91,13 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
             except LoginError as error:
                 raise ConfigEntryAuthFailed(
                     translation_domain=DOMAIN, translation_key="auth_failed"
+                ) from error
+            except RateError as error:
+                raise UpdateFailed(
+                    translation_domain=DOMAIN,
+                    translation_key="update_failed",
+                    translation_placeholders={"error": str(error)},
+                    retry_after=timedelta(minutes=RATE_LIMIT_RETRY_MINUTES).total_seconds(),
                 ) from error
             except (ClientError, TimeoutError) as error:
                 # blueair_api's errors are ClientError subclasses too.

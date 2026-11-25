@@ -220,11 +220,17 @@ async def test_mqtt_lengthens_polling_while_connected(
     assert entry.runtime_data.devices[0].update_interval == timedelta(minutes=scan_interval)
 
 
+async def _advance(hass: HomeAssistant, delta: timedelta) -> None:
+    """Fire the timers due within ``delta`` and let their tasks finish."""
+    async_fire_time_changed(hass, dt_util.utcnow() + delta)
+    await hass.async_block_till_done()
+
+
 @pytest.mark.asyncio
 async def test_mqtt_disconnect_restores_polling_and_reconnect_refreshes(
     hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
 ) -> None:
-    """Poll right away at the normal interval while MQTT is down, and again on reconnect."""
+    """Poll right away at the normal interval while MQTT is down, and catch up on reconnect."""
     device = make_purifier()
     entry = await setup_blueair(aws=[device])
     coordinator = entry.runtime_data.aws_devices[0]
@@ -234,22 +240,73 @@ async def test_mqtt_disconnect_restores_polling_and_reconnect_refreshes(
     client.on_disconnect_callback()
     # Every failed reconnect attempt reports a disconnect too.
     client.on_disconnect_callback()
-    async_fire_time_changed(
-        hass, dt_util.utcnow() + timedelta(seconds=REQUEST_REFRESH_DEFAULT_COOLDOWN + 1)
-    )
-    await hass.async_block_till_done()
+    await _advance(hass, timedelta(seconds=REQUEST_REFRESH_DEFAULT_COOLDOWN + 1))
 
     assert coordinator.update_interval == timedelta(minutes=5)
     assert device.refresh_count == polls + 1
 
     client.on_connect_callback()
-    async_fire_time_changed(
-        hass, dt_util.utcnow() + timedelta(seconds=2 * REQUEST_REFRESH_DEFAULT_COOLDOWN + 2)
-    )
-    await hass.async_block_till_done()
+    await _advance(hass, timedelta(seconds=2 * REQUEST_REFRESH_DEFAULT_COOLDOWN + 2))
 
     assert coordinator.update_interval == timedelta(minutes=30)
+    # The catch-up poll waits until a full polling interval has passed since the last one.
+    assert device.refresh_count == polls + 1
+
+    await _advance(hass, timedelta(minutes=5, seconds=REQUEST_REFRESH_DEFAULT_COOLDOWN + 1))
+
     assert device.refresh_count == polls + 2
+
+
+@pytest.mark.asyncio
+async def test_flapping_mqtt_polls_at_most_once_per_interval(
+    hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
+) -> None:
+    """A connection that keeps dropping must not poll every device on every attempt."""
+    device = make_purifier()
+    await setup_blueair(aws=[device])
+    client = fake_mqtt.instances[0]
+    polls = device.refresh_count
+
+    start = dt_util.utcnow()
+    elapsed = timedelta()
+
+    async def tick() -> None:
+        nonlocal elapsed
+        elapsed += timedelta(seconds=8)
+        async_fire_time_changed(hass, start + elapsed)
+        await hass.async_block_till_done()
+
+    # Twenty reconnect cycles, 16 seconds apart (5 minutes 20 seconds in all).
+    for _ in range(20):
+        client.on_disconnect_callback()
+        await tick()
+        client.on_connect_callback()
+        await tick()
+
+    # The poll on the first disconnect, the regular poll at the configured
+    # 5-minute interval, and one merged catch-up when the window ended,
+    # instead of two polls per reconnect cycle.
+    assert device.refresh_count == polls + 3
+
+
+@pytest.mark.asyncio
+async def test_unloading_cancels_a_held_catch_up_poll(
+    hass: HomeAssistant, setup_blueair: Any, fake_mqtt: type[FakeMqtt]
+) -> None:
+    """A catch-up poll held for the end of its window is dropped on unload."""
+    device = make_purifier()
+    entry = await setup_blueair(aws=[device])
+    client = fake_mqtt.instances[0]
+    client.on_disconnect_callback()
+    client.on_connect_callback()
+    client.on_disconnect_callback()
+    await hass.async_block_till_done()
+    polls = device.refresh_count
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await _advance(hass, timedelta(minutes=10))
+
+    assert device.refresh_count == polls
 
 
 @pytest.mark.asyncio

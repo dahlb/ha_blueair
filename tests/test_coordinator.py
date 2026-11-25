@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import patch
 
 from aiohttp import ClientConnectionError
-from blueair_api import LoginError
+from blueair_api import LoginError, RateError
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -124,6 +124,38 @@ async def test_coordinator_name_identifies_the_device(
     await coordinator.async_refresh()
 
     assert coordinator.name == f"{DOMAIN}-Bedroom Fan ({device.uuid})"
+
+
+@pytest.mark.asyncio
+async def test_rate_limited_polls_back_off(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Wait RATE_LIMIT_RETRY_MINUTES before polling again when BlueCloud rate limits."""
+    device = make_purifier()
+    entry = await setup_blueair(aws=[device])
+    coordinator = entry.runtime_data.aws_devices[0]
+    device.refresh_error = RateError("There are too many calls, please try again later")
+
+    await coordinator.async_refresh()
+
+    assert isinstance(coordinator.last_exception, UpdateFailed)
+    assert coordinator.last_exception.retry_after == timedelta(minutes=15).total_seconds()
+    assert hass.states.get("fan.bedroom_fan").state == "unavailable"
+    polls = device.refresh_count
+    device.refresh_error = None
+
+    # The normal interval would poll again here...
+    async_fire_time_changed(
+        hass, dt_util.utcnow() + coordinator.update_interval + timedelta(seconds=1)
+    )
+    await hass.async_block_till_done()
+    assert device.refresh_count == polls
+
+    # ...but the rate limit holds it off until the retry delay has passed.
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=15, seconds=1))
+    await hass.async_block_till_done()
+    assert device.refresh_count == polls + 1
+    assert hass.states.get("fan.bedroom_fan").state == "on"
 
 
 @pytest.mark.asyncio

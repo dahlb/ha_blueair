@@ -24,6 +24,9 @@ DEFAULT_SCAN_INTERVAL: int = 5
 # updates; polling is then only a fallback for missed messages. A longer
 # configured interval is kept.
 MQTT_SCAN_INTERVAL: int = 30
+# How long a device waits before polling again after BlueCloud reported a
+# rate limit (HTTP 429 or 229 "too many calls"), in minutes.
+RATE_LIMIT_RETRY_MINUTES: int = 15
 # How often to check the account for added or removed devices, in minutes.
 DEVICE_LIST_INTERVAL: int = 30
 # Whether fans offer the Night preset. Off leaves Night out of their
