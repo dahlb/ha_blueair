@@ -28,12 +28,12 @@ from homeassistant.const import (
     CONF_USERNAME,
     EVENT_HOMEASSISTANT_STOP,
 )
-from homeassistant.core import Event, HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -104,7 +104,13 @@ class _MqttPolling:
 
     MQTT delivers changes within seconds, so polling is only a fallback for
     missed messages while it is connected. When the connection drops, the
-    devices go back to the configured interval and poll right away.
+    devices go back to the configured interval and poll right away, and they
+    poll again on reconnect to catch up on updates pushed meanwhile.
+
+    Those catch-up polls run at most once per configured interval: one
+    requested sooner is held until the interval has passed, so a connection
+    that keeps dropping can't poll every device on every reconnect attempt
+    and run the account into BlueCloud's rate limit.
     """
 
     def __init__(
@@ -129,6 +135,10 @@ class _MqttPolling:
         self._mqtt_interval = timedelta(minutes=max(interval, MQTT_SCAN_INTERVAL))
         self._connected = False
         self._has_connected = False
+        # Cancels the timer that ends the current catch-up window, if any.
+        self._end_catch_up_window: CALLBACK_TYPE | None = None
+        self._catch_up_pending = False
+        config_entry.async_on_unload(self._cancel_catch_up_window)
 
     def on_connect(self) -> None:
         """Lengthen the polling interval (called on the event loop)."""
@@ -139,7 +149,7 @@ class _MqttPolling:
         self._set_mqtt_connected(True)
         if reconnected:
             # Updates pushed while disconnected were missed.
-            self._request_refresh()
+            self._request_catch_up()
 
     def on_disconnect(self) -> None:
         """Restore the configured polling interval (called on the event loop).
@@ -154,7 +164,40 @@ class _MqttPolling:
         self._set_interval(self._poll_interval)
         self._set_mqtt_connected(False)
         # The next scheduled poll may still be a full MQTT interval away.
+        self._request_catch_up()
+
+    def _request_catch_up(self) -> None:
+        """Poll every device now, or at the end of the current catch-up window.
+
+        The first request polls right away and opens a window as long as the
+        configured interval; requests made during it are merged into one poll
+        when it ends.
+        """
+        if self._end_catch_up_window is not None:
+            self._catch_up_pending = True
+            return
         self._request_refresh()
+        self._end_catch_up_window = async_call_later(
+            self._hass, self._poll_interval, self._on_catch_up_window_end
+        )
+
+    @callback
+    def _on_catch_up_window_end(self, _now: datetime) -> None:
+        """Run the catch-up poll held during the window that just ended.
+
+        Args:
+            _now: When the timer fired.
+        """
+        self._end_catch_up_window = None
+        if self._catch_up_pending:
+            self._catch_up_pending = False
+            self._request_catch_up()
+
+    def _cancel_catch_up_window(self) -> None:
+        """Stop the catch-up window timer when the config entry unloads."""
+        if self._end_catch_up_window is not None:
+            self._end_catch_up_window()
+            self._end_catch_up_window = None
 
     def _set_interval(self, interval: timedelta) -> None:
         """Set every coordinator's polling interval.
