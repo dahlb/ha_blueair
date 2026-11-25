@@ -56,8 +56,8 @@ async def test_humidifier_reports_humidity_and_mode(
 @pytest.mark.parametrize(
     ("mode", "expected"),
     [
-        ("auto", {"fan_auto_mode": True, "standby": False}),
-        ("sleep", {"night_mode": True, "fan_auto_mode": False}),
+        ("auto", {"night_mode": False, "fan_auto_mode": True, "standby": False}),
+        ("sleep", {"night_mode": True, "fan_auto_mode": False, "standby": False}),
         ("fan_speed", {"fan_auto_mode": False, "night_mode": False, "standby": False}),
     ],
 )
@@ -75,6 +75,29 @@ async def test_humidifier_set_mode(
 
     for attribute, value in expected.items():
         assert getattr(device, attribute) is value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("target", ["auto", "fan_speed"])
+async def test_humidifier_leaves_sleep_mode(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any], target: str
+) -> None:
+    """Keep the device running in sleep and clear night mode when leaving it."""
+    device = make_humidifier()
+    await setup_blueair(aws=[device])
+
+    await _call(hass, SERVICE_SET_MODE, HUMIDIFIER, mode="sleep")
+    await hass.async_block_till_done()
+    state = hass.states.get(HUMIDIFIER)
+    assert state.state == "on"
+    assert state.attributes[ATTR_MODE] == "sleep"
+
+    await _call(hass, SERVICE_SET_MODE, HUMIDIFIER, mode=target)
+    await hass.async_block_till_done()
+    state = hass.states.get(HUMIDIFIER)
+    assert state.state == "on"
+    assert state.attributes[ATTR_MODE] == target
+    assert device.night_mode is False
 
 
 @pytest.mark.asyncio
