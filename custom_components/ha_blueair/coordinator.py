@@ -92,18 +92,35 @@ class BlueairUpdateCoordinator(ABC, DataUpdateCoordinator[str]):
                     translation_key="update_failed",
                     translation_placeholders={"error": str(error)},
                 ) from error
+            # The device's name is only known after its first refresh.
+            self.name = self._log_name()
             return str(self.blueair_api_device)
 
         super().__init__(
             hass,
             _LOGGER,
             config_entry=config_entry,
-            name=f"{DOMAIN}-{self.blueair_api_device.name}",
+            name=self._log_name(),
             update_interval=timedelta(minutes=interval),
             update_method=refresh,
             request_refresh_debouncer=request_refresh_debouncer,
             always_update=False,
         )
+
+    def _log_name(self) -> str:
+        """Return the coordinator's name for log messages.
+
+        Includes the device id, so devices sharing a name, or polled before
+        their name is known, can still be told apart.
+
+        Returns:
+            str: ``ha_blueair-<name> (<id>)``, or ``ha_blueair-<id>`` while the
+            device's name is unknown.
+        """
+        device = self.blueair_api_device
+        if device.name:
+            return f"{DOMAIN}-{device.name} ({device.uuid})"
+        return f"{DOMAIN}-{device.uuid}"
 
     async def _async_device_command(self, command: Awaitable[Any]) -> None:
         """Await a device command, turning API failures into Home Assistant errors.
