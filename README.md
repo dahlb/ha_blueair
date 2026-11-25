@@ -10,7 +10,7 @@
 | custom\_components/ha\_blueair/cloud\_region.py            |       13 |        0 |        2 |        0 |    100% |           |
 | custom\_components/ha\_blueair/config\_flow.py             |      105 |        0 |       18 |        0 |    100% |           |
 | custom\_components/ha\_blueair/const.py                    |       34 |        0 |        0 |        0 |    100% |           |
-| custom\_components/ha\_blueair/coordinator.py              |      228 |        1 |        4 |        1 |     99% |126-\>128, 219 |
+| custom\_components/ha\_blueair/coordinator.py              |      234 |        1 |        6 |        1 |     99% |143-\>145, 236 |
 | custom\_components/ha\_blueair/coordinator\_device.py      |      208 |        0 |       24 |        0 |    100% |           |
 | custom\_components/ha\_blueair/coordinator\_device\_aws.py |      280 |        2 |       26 |        2 |     99% |  197, 299 |
 | custom\_components/ha\_blueair/diagnostics.py              |       50 |        0 |       18 |        2 |     97% |72-\>77, 87-\>120 |
@@ -22,7 +22,7 @@
 | custom\_components/ha\_blueair/repairs.py                  |       47 |        0 |        6 |        1 |     98% |   96-\>99 |
 | custom\_components/ha\_blueair/sensor.py                   |      102 |        0 |       10 |        0 |    100% |           |
 | custom\_components/ha\_blueair/switch.py                   |       37 |        0 |        0 |        0 |    100% |           |
-| **TOTAL**                                                  | **2173** |    **3** |  **376** |   **22** | **99%** |           |
+| **TOTAL**                                                  | **2179** |    **3** |  **378** |   **22** | **99%** |           |
 
 
 ## Setup coverage badge
