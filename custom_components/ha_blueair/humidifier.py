@@ -109,13 +109,14 @@ class BlueairAwsHumidifier(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Hum
         """Set the mode."""
         if mode == MODE_AUTO:
             # This mode doesn't apply when off
+            await self.coordinator.set_night_mode(False)
             await self.coordinator.set_fan_auto_mode(True)
             await self.coordinator.set_running(True)
         elif mode == MODE_SLEEP:
             # This mode doesn't apply when off
             await self.coordinator.set_night_mode(True)
             await self.coordinator.set_fan_auto_mode(False)
-            await self.coordinator.set_running(False)
+            await self.coordinator.set_running(True)
         elif mode == MODE_FAN_SPEED:
             # This mode doesn't apply when off
             await self.coordinator.set_fan_auto_mode(False)
