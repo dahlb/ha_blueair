@@ -110,6 +110,23 @@ async def test_failed_polls_make_entities_unavailable_and_log_once(
 
 
 @pytest.mark.asyncio
+async def test_coordinator_name_identifies_the_device(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Name coordinators after their device, adding the name once it is known."""
+    device = make_purifier(name=None)
+    entry = await setup_blueair(aws=[device])
+    coordinator = entry.runtime_data.aws_devices[0]
+
+    assert coordinator.name == f"{DOMAIN}-{device.uuid}"
+
+    device.name = "Bedroom Fan"
+    await coordinator.async_refresh()
+
+    assert coordinator.name == f"{DOMAIN}-Bedroom Fan ({device.uuid})"
+
+
+@pytest.mark.asyncio
 async def test_rejected_login_while_polling_starts_reauthentication(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
