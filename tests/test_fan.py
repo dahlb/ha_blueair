@@ -31,7 +31,14 @@ from custom_components.ha_blueair.fan import (
     _speed_percentage,
 )
 
-from .conftest import entity_object, make_aws_device, make_combo, make_legacy_device, make_purifier
+from .conftest import (
+    FakeAwsApi,
+    entity_object,
+    make_aws_device,
+    make_combo,
+    make_legacy_device,
+    make_purifier,
+)
 
 PURIFIER = "fan.bedroom_fan"
 
@@ -162,6 +169,82 @@ async def test_aws_fan_turn_on_resumes_or_applies_the_request(
     assert device.standby is False
     for attribute, value in expected.items():
         assert getattr(device, attribute) == value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("service", "data", "expected"),
+    [
+        (SERVICE_SET_PERCENTAGE, {ATTR_PERCENTAGE: 30}, {"fan_speed": 28}),
+        (SERVICE_SET_PRESET_MODE, {ATTR_PRESET_MODE: "auto"}, {"fan_auto_mode": True}),
+        (SERVICE_SET_PRESET_MODE, {ATTR_PRESET_MODE: "night"}, {"night_mode": True}),
+        (SERVICE_TURN_ON, {ATTR_PRESET_MODE: "auto"}, {"fan_auto_mode": True}),
+        (SERVICE_TURN_ON, {ATTR_PERCENTAGE: 100}, {"fan_speed": 91}),
+    ],
+)
+async def test_aws_fan_speed_or_preset_turns_an_off_purifier_on(
+    hass: HomeAssistant,
+    setup_blueair: Callable[..., Any],
+    service: str,
+    data: dict[str, Any],
+    expected: dict[str, Any],
+) -> None:
+    """Leave standby once, first, when a speed or preset is set on an off purifier (#443)."""
+    api = FakeAwsApi()
+    device = make_purifier(standby=True, api=api)
+    await setup_blueair(aws=[device])
+
+    await _call(hass, service, PURIFIER, **data)
+
+    assert device.standby is False
+    state = hass.states.get(PURIFIER)
+    assert state is not None
+    assert state.state == "on"
+    for attribute, value in expected.items():
+        assert getattr(device, attribute) == value
+    standby_writes = [write for write in api.writes if write[1] == "standby"]
+    assert standby_writes == [("purifier-1", "standby", False)]
+    assert api.writes[0][1] == "standby"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("service", "data"),
+    [
+        (SERVICE_SET_PERCENTAGE, {ATTR_PERCENTAGE: 30}),
+        (SERVICE_SET_PRESET_MODE, {ATTR_PRESET_MODE: "auto"}),
+    ],
+)
+async def test_aws_fan_speed_or_preset_on_a_running_purifier_skips_power_on(
+    hass: HomeAssistant,
+    setup_blueair: Callable[..., Any],
+    service: str,
+    data: dict[str, Any],
+) -> None:
+    """Send no standby write when the purifier is already on."""
+    api = FakeAwsApi()
+    await setup_blueair(aws=[make_purifier(api=api)])
+
+    await _call(hass, service, PURIFIER, **data)
+
+    assert all(write[1] != "standby" for write in api.writes)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("standby", [True, None])
+async def test_aws_fan_zero_percent_or_unknown_power_does_not_power_on(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any], standby: bool | None
+) -> None:
+    """Leave the power alone for a 0% speed, or while the power state is unknown."""
+    api = FakeAwsApi()
+    device = make_purifier(standby=standby, api=api)
+    await setup_blueair(aws=[device])
+    fan = entity_object(hass, PURIFIER)
+
+    await fan.async_set_percentage(0 if standby else 30)
+
+    assert device.standby is standby
+    assert all(write[1] != "standby" for write in api.writes)
 
 
 @pytest.mark.asyncio
