@@ -586,13 +586,41 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
             return None
         return _speed_percentage(self.coordinator)
 
+    async def _async_power_on_if_off(self) -> bool:
+        """Leave standby when the device reports it is off.
+
+        Setting a speed or a preset on an off purifier should turn it on, as
+        Home Assistant's fan model expects (the HomeKit Bridge relies on it,
+        issue #443). An unknown power state is left alone.
+
+        Returns:
+            bool: True if the device was off and a power-on was sent.
+        """
+        if self.is_on is not False:
+            return False
+        _LOGGER.debug("BlueairAwsFan(%s): powering on before the command", self.coordinator.id)
+        await self.coordinator.set_running(True)
+        return True
+
     async def async_set_percentage(self, percentage: int) -> None:
-        """Set the fan speed percentage."""
+        """Set the fan speed percentage, turning the device on if it is off.
+
+        Args:
+            percentage: Requested speed percentage, 0-100. 0 only writes a
+                speed of 0 and does not turn the device on.
+        """
+        if percentage > 0:
+            await self._async_power_on_if_off()
         await self._presets.leave_presets(self.coordinator)
         await self.coordinator.set_fan_speed(_percentage_speed(self.coordinator, percentage))
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set the preset mode of the fan."""
+        """Set the preset mode of the fan, turning the device on if it is off.
+
+        Args:
+            preset_mode: The preset label.
+        """
+        await self._async_power_on_if_off()
         await self._presets.set_preset_mode(self.coordinator, preset_mode)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -606,9 +634,7 @@ class BlueairAwsFan(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], FanEntity)
         **kwargs: Any,
     ) -> None:
         """Turn the entity on."""
-        was_off = self.is_on is False
-        if was_off:
-            await self.coordinator.set_running(True)
+        was_off = await self._async_power_on_if_off()
         if preset_mode is not None:
             await self.async_set_preset_mode(preset_mode=preset_mode)
         elif percentage is not None:
