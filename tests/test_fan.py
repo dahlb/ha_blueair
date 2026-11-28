@@ -274,6 +274,23 @@ async def test_signature_fan_uses_ap_sub_mode_presets(
 
 
 @pytest.mark.asyncio
+async def test_heater_cooler_fan_has_no_signature_presets(
+    hass: HomeAssistant, setup_blueair: Callable[..., Any]
+) -> None:
+    """Offer no presets on a T10i, whose apsubmode the climate entity controls (#268)."""
+    # Shape of a US T10i (firmware 1.1.6): no automode, nightmode or fanspeed.
+    device = make_aws_device(
+        uuid="t10i-1", name="Bedroom", hw="t10i", standby=False, ap_sub_mode=1, main_mode=0
+    )
+    await setup_blueair(aws=[device])
+
+    state = hass.states.get("fan.bedroom_fan")
+    assert state is not None
+    assert state.attributes.get("preset_modes") is None
+    assert entity_object(hass, "fan.bedroom_fan")._presets is _CLASSIC_PRESETS
+
+
+@pytest.mark.asyncio
 async def test_combo_fan_uses_combo_mode_presets(
     hass: HomeAssistant, setup_blueair: Callable[..., Any]
 ) -> None:
@@ -511,6 +528,7 @@ def _family_coordinator(**attributes: Any) -> SimpleNamespace:
         "combo_mode": NotImplemented,
         "fan_auto_mode": NotImplemented,
         "night_mode": NotImplemented,
+        "main_mode": NotImplemented,
         **attributes,
     }
     setters = {
@@ -532,6 +550,8 @@ def _family_coordinator(**attributes: Any) -> SimpleNamespace:
         ({"ap_sub_mode": 0}, _SIGNATURE_PRESETS),
         # A device with automode as well uses the classic fields, not apsubmode.
         ({"ap_sub_mode": 0, "fan_auto_mode": False}, _CLASSIC_PRESETS),
+        # A T10i heater/cooler has apsubmode in its own climate namespace.
+        ({"ap_sub_mode": 1, "main_mode": 0}, _CLASSIC_PRESETS),
         ({"combo_mode": 1}, _COMBO_PRESETS),
         ({"fan_auto_mode": False, "night_mode": False}, _CLASSIC_PRESETS),
         ({}, _CLASSIC_PRESETS),

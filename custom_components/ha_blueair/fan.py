@@ -358,9 +358,14 @@ def _preset_family(coordinator: BlueairUpdateCoordinatorDeviceAws) -> _PresetFam
     ``automode`` / ``nightmode`` shadow fields. Currently observed on SP4i
     (and assumed on SP1i / SP3i — same ``blue40`` / ``l_blue40`` capability
     shape). The library's ``AP_SUB_MODE_LABELS`` is intentionally
-    Signature-only; T10i / pet_air_pro / 2-in-1 declare ``automode`` and so
-    are excluded by this gate — see the constant's docstring in
+    Signature-only; pet_air_pro / 2-in-1 declare ``automode`` and so are
+    excluded by this gate — see the constant's docstring in
     ``blueair_api/device_aws.py``. Issues: dahlb/ha_blueair#348 and #261.
+
+    T10i / T20i heater/coolers are excluded by their ``mainmode`` field. A
+    T10i (firmware 1.1.6) reports neither ``automode`` nor ``nightmode``, but
+    its ``apsubmode`` only means manual / auto while in fan-only mode, and
+    the climate entity already controls it (issue #268).
 
     2-in-1 combo devices (e.g. DH3i) switch presets via ``mode``, exposed as
     ``combo_mode``. These devices declare neither ``automode`` nor
@@ -380,6 +385,7 @@ def _preset_family(coordinator: BlueairUpdateCoordinatorDeviceAws) -> _PresetFam
         coordinator.ap_sub_mode is not NotImplemented
         and coordinator.fan_auto_mode is NotImplemented
         and coordinator.night_mode is NotImplemented
+        and coordinator.main_mode is NotImplemented
     ):
         return _SIGNATURE_PRESETS
     if coordinator.combo_mode is not NotImplemented:
