@@ -6,10 +6,10 @@
 |----------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
 | custom\_components/ha\_blueair/\_\_init\_\_.py             |      304 |        0 |       70 |        4 |     99% |192-\>exit, 374-\>376, 398-\>400, 670-\>681 |
 | custom\_components/ha\_blueair/binary\_sensor.py           |       31 |        0 |        0 |        0 |    100% |           |
-| custom\_components/ha\_blueair/climate.py                  |      285 |        0 |       96 |        5 |     99% |196-\>exit, 316-\>319, 359-\>exit, 390-\>393, 408-\>413 |
+| custom\_components/ha\_blueair/climate.py                  |      343 |        0 |      110 |        5 |     99% |315-\>exit, 448-\>451, 492-\>exit, 523-\>526, 541-\>546 |
 | custom\_components/ha\_blueair/cloud\_region.py            |       13 |        0 |        2 |        0 |    100% |           |
 | custom\_components/ha\_blueair/config\_flow.py             |      105 |        0 |       18 |        0 |    100% |           |
-| custom\_components/ha\_blueair/const.py                    |       35 |        0 |        0 |        0 |    100% |           |
+| custom\_components/ha\_blueair/const.py                    |       36 |        0 |        0 |        0 |    100% |           |
 | custom\_components/ha\_blueair/coordinator.py              |      236 |        1 |        6 |        1 |     99% |157-\>159, 250 |
 | custom\_components/ha\_blueair/coordinator\_device.py      |      208 |        0 |       24 |        0 |    100% |           |
 | custom\_components/ha\_blueair/coordinator\_device\_aws.py |      280 |        2 |       26 |        2 |     99% |  197, 299 |
@@ -22,7 +22,7 @@
 | custom\_components/ha\_blueair/repairs.py                  |       47 |        0 |        6 |        1 |     98% |   96-\>99 |
 | custom\_components/ha\_blueair/sensor.py                   |      102 |        0 |       10 |        0 |    100% |           |
 | custom\_components/ha\_blueair/switch.py                   |       37 |        0 |        0 |        0 |    100% |           |
-| **TOTAL**                                                  | **2208** |    **3** |  **386** |   **22** | **99%** |           |
+| **TOTAL**                                                  | **2267** |    **3** |  **400** |   **22** | **99%** |           |
 
 
 ## Setup coverage badge
