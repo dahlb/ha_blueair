@@ -217,6 +217,10 @@
           "entry_not_found": "The Blueair config entry no longer exists."
         }
       }
+    },
+    "heat_refused": {
+      "title": "{device_name} did not start heating",
+      "description": "Home Assistant asked {device_name} to heat, but the device stayed in another mode. Some heaters, such as the T10i sold in the United States, do not allow heating to be started remotely for safety reasons; the Blueair app has the same limitation. Start heating on the device itself.\n\nThis notice clears once the device reports that it is heating, or you can dismiss it."
     }
   },
   "exceptions": {

@@ -19,6 +19,9 @@ CONFIG_FLOW_MINOR_VERSION: int = 3
 CONF_CLOUD_REGION: str = "cloud_region"
 # Repair issue raised when devices look like they are on another cloud region.
 ISSUE_CLOUD_REGION_MISMATCH: str = "cloud_region_mismatch"
+# Repair issue raised when a heater stays out of heat mode after Home Assistant
+# asks it to heat (e.g. a US T10i, which blocks remote heating; issue #268).
+ISSUE_HEAT_REFUSED: str = "heat_refused"
 DEFAULT_SCAN_INTERVAL: int = 5
 # Polling interval, in minutes, for AWS devices while MQTT pushes their
 # updates; polling is then only a fallback for missed messages. A longer

@@ -217,6 +217,10 @@
           "entry_not_found": "Blueair-konfigurationsposten finns inte längre."
         }
       }
+    },
+    "heat_refused": {
+      "title": "{device_name} började inte värma",
+      "description": "Home Assistant bad {device_name} att värma, men enheten stannade i ett annat läge. Vissa värmare, till exempel T10i som säljs i USA, tillåter av säkerhetsskäl inte att värmen startas på distans; Blueair-appen har samma begränsning. Starta värmen på själva enheten.\n\nDen här aviseringen försvinner när enheten rapporterar att den värmer, eller så kan du avfärda den."
     }
   },
   "exceptions": {

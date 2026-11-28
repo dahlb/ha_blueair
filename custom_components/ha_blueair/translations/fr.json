@@ -217,6 +217,10 @@
           "entry_not_found": "L'entrée de configuration Blueair n'existe plus."
         }
       }
+    },
+    "heat_refused": {
+      "title": "{device_name} n'a pas commencé à chauffer",
+      "description": "Home Assistant a demandé à {device_name} de chauffer, mais l'appareil est resté dans un autre mode. Certains chauffages, comme le T10i vendu aux États-Unis, ne permettent pas de lancer le chauffage à distance pour des raisons de sécurité ; l'application Blueair a la même limitation. Lancez le chauffage directement sur l'appareil.\n\nCet avis disparaît dès que l'appareil indique qu'il chauffe, ou vous pouvez l'ignorer."
     }
   },
   "exceptions": {
