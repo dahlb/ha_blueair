@@ -2,15 +2,25 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any
 
 from homeassistant.components.climate import HVACMode
 from homeassistant.const import UnitOfTemperature
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.util import dt as dt_util
 import pytest
+from pytest_homeassistant.common import async_fire_time_changed  # type: ignore[import-untyped]
 
-from custom_components.ha_blueair.climate import BlueairThermostat
+from custom_components.ha_blueair.climate import (
+    HEAT_REFUSAL_CHECK_S,
+    HEAT_REFUSAL_GRACE_S,
+    HEAT_REFUSAL_WINDOW_S,
+    BlueairThermostat,
+)
 from custom_components.ha_blueair.config_flow import ConfigFlowHandler
+from custom_components.ha_blueair.const import DOMAIN
 
 from .conftest import entity_object, make_climate_device
 
@@ -351,3 +361,128 @@ async def test_climate_fan_only_resumes_auto_and_follows_new_targets(
     device.heat_temp = 260
     entry.runtime_data.aws_devices[0].async_update_listeners()
     assert entity.target_temperature == 26.0
+
+
+HEAT_REFUSED_ISSUE = "heat_refused_climate-1"
+
+
+def _heat_refused_issue(hass: Any) -> ir.IssueEntry | None:
+    """Return the fake T10i's heat refused repair issue, if raised.
+
+    Args:
+        hass: Home Assistant instance.
+
+    Returns:
+        The issue entry, or None when there is no issue.
+    """
+    return ir.async_get(hass).async_get_issue(DOMAIN, HEAT_REFUSED_ISSUE)
+
+
+@pytest.mark.asyncio
+async def test_climate_flags_a_device_that_refuses_to_heat(hass: Any, setup_blueair: Any) -> None:
+    """Show the device's mode and raise a repair issue when it will not heat (issue #268)."""
+    device = make_climate_device(main_mode=0, ap_sub_mode=2)
+    entry = await setup_blueair(aws=[device])
+    coordinator = entry.runtime_data.aws_devices[0]
+
+    entity = entity_object(hass, CLIMATE)
+
+    await _climate_call(hass, "set_hvac_mode", hvac_mode="heat")
+    assert hass.states.get(CLIMATE).state == "heat"
+
+    # The cloud echoes the old state right after the write; that is no refusal.
+    device.main_mode = 0
+    coordinator.async_update_listeners()
+    assert hass.states.get(CLIMATE).state == "heat"
+    assert _heat_refused_issue(hass) is None
+
+    # A US T10i keeps reporting fan-only once the device has had time to act.
+    entity._heat_requested_at -= HEAT_REFUSAL_GRACE_S
+    coordinator.async_update_listeners()
+    await hass.async_block_till_done()
+
+    assert hass.states.get(CLIMATE).state == "fan_only"
+    issue = _heat_refused_issue(hass)
+    assert issue is not None
+    assert issue.translation_key == "heat_refused"
+    assert issue.translation_placeholders == {"device_name": "Office"}
+
+    # Heating started on the device itself clears the issue.
+    device.main_mode = 1
+    coordinator.async_update_listeners()
+    assert hass.states.get(CLIMATE).state == "heat"
+    assert _heat_refused_issue(hass) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cancel", ["window_passed", "new_mode", "turn_off"])
+async def test_climate_only_flags_heat_refused_while_the_request_is_pending(
+    hass: Any, setup_blueair: Any, cancel: str
+) -> None:
+    """Treat a later mode change as the device's own, not a refused heat request.
+
+    Args:
+        hass: Home Assistant instance.
+        setup_blueair: Fixture that sets up the integration with fake devices.
+        cancel: How the heat request stops waiting for the device.
+    """
+    device = make_climate_device(main_mode=0, ap_sub_mode=2)
+    entry = await setup_blueair(aws=[device])
+    entity = entity_object(hass, CLIMATE)
+
+    await entity.async_set_hvac_mode(HVACMode.HEAT)
+    entity._heat_requested_at -= HEAT_REFUSAL_GRACE_S
+    match cancel:
+        case "window_passed":
+            entity._heat_requested_at -= HEAT_REFUSAL_WINDOW_S
+        case "new_mode":
+            await entity.async_set_hvac_mode(HVACMode.COOL)
+        case "turn_off":
+            await entity.async_turn_off()
+            device.standby = False
+
+    entity._optimistic_until = 0
+    device.main_mode = 0
+    entry.runtime_data.aws_devices[0].async_update_listeners()
+
+    assert entity.hvac_mode == HVACMode.FAN_ONLY
+    assert _heat_refused_issue(hass) is None
+
+
+@pytest.mark.asyncio
+async def test_climate_removes_the_heat_refused_issue_on_unload(
+    hass: Any, setup_blueair: Any
+) -> None:
+    """Drop the heat refused repair issue when the entity goes away."""
+    device = make_climate_device(main_mode=0)
+    entry = await setup_blueair(aws=[device])
+
+    await _climate_call(hass, "set_hvac_mode", hvac_mode="heat")
+    entity_object(hass, CLIMATE)._heat_requested_at -= HEAT_REFUSAL_GRACE_S
+    device.main_mode = 2
+    entry.runtime_data.aws_devices[0].async_update_listeners()
+    assert _heat_refused_issue(hass) is not None
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert _heat_refused_issue(hass) is None
+
+
+@pytest.mark.asyncio
+async def test_climate_polls_to_confirm_heat(hass: Any, setup_blueair: Any) -> None:
+    """Poll after the grace period, since the device may push nothing more over MQTT."""
+    device = make_climate_device(main_mode=0, ap_sub_mode=2)
+    await setup_blueair(aws=[device])
+    entity = entity_object(hass, CLIMATE)
+
+    await _climate_call(hass, "set_hvac_mode", hvac_mode="heat")
+    assert entity._cancel_heat_check is not None
+
+    # The device ignored the write; its state still reads fan-only on the poll.
+    device.main_mode = 0
+    entity._heat_requested_at -= HEAT_REFUSAL_CHECK_S
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=HEAT_REFUSAL_CHECK_S))
+    await hass.async_block_till_done()
+
+    assert entity._cancel_heat_check is None
+    assert hass.states.get(CLIMATE).state == "fan_only"
+    assert _heat_refused_issue(hass) is not None

@@ -217,6 +217,10 @@
           "entry_not_found": "La entrada de configuración de Blueair ya no existe."
         }
       }
+    },
+    "heat_refused": {
+      "title": "{device_name} no empezó a calentar",
+      "description": "Home Assistant pidió a {device_name} que calentara, pero el dispositivo se quedó en otro modo. Algunos calefactores, como el T10i vendido en Estados Unidos, no permiten iniciar la calefacción a distancia por motivos de seguridad; la aplicación de Blueair tiene la misma limitación. Inicia la calefacción en el propio dispositivo.\n\nEste aviso desaparece cuando el dispositivo informa de que está calentando, o puedes descartarlo."
     }
   },
   "exceptions": {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from logging import Logger, getLogger
 import time
 from types import NotImplementedType
@@ -9,11 +10,13 @@ from typing import Any
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 
 from . import BlueairConfigEntry
-from .const import FanMode
+from .const import DOMAIN, ISSUE_HEAT_REFUSED, FanMode
 from .coordinator import BlueairUpdateCoordinator
 from .coordinator_device_aws import BlueairUpdateCoordinatorDeviceAws
 from .entity import BlueairEntity, async_setup_entry_helper
@@ -26,6 +29,16 @@ PARALLEL_UPDATES = 1
 MIN_TEMP_C = 15.0
 MAX_TEMP_C = 37.0
 TEMP_STEP_C = 1.0
+
+# Detecting a heater that refuses to heat (issue #268). After each write the
+# AWS shadow echoes the device's previous state within milliseconds, before
+# the device acts (a US T10i log shows a standby change taking ~0.5 s to be
+# reported). Reports during the grace period are therefore ignored; a poll
+# just after it reads the device's real mode. Reports in another mode count
+# as a refusal until the window ends.
+HEAT_REFUSAL_GRACE_S = 5.0
+HEAT_REFUSAL_CHECK_S = HEAT_REFUSAL_GRACE_S + 1.0
+HEAT_REFUSAL_WINDOW_S = 60.0
 
 FAN_SPEED_BY_STEP: dict[str, int] = {
     FanMode.STEP1.value: 11,
@@ -123,6 +136,11 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
         self._last_fan_mode_cool: str | None = None
         self._last_fan_mode_heat: str | None = None
 
+        # Set when heat is requested, to spot a device that refuses it (#268).
+        self._heat_requested_at: float | None = None
+        self._cancel_heat_check: CALLBACK_TYPE | None = None
+        self._heat_refused_issue_raised: bool = False
+
         self._apply_from_coordinator(force=True)
         self._update_supported_features()
 
@@ -144,6 +162,107 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
 
     def _start_optimistic(self, seconds: float = 10.0) -> None:
         self._optimistic_until = self._now() + seconds
+
+    def _heat_request_age(self) -> float | None:
+        """Return how long ago heat was requested, if still waiting for the device.
+
+        Returns:
+            float | None: Seconds since the request, or None when there is no
+            request or HEAT_REFUSAL_WINDOW_S has passed.
+        """
+        if self._heat_requested_at is None:
+            return None
+        age = self._now() - self._heat_requested_at
+        if age >= HEAT_REFUSAL_WINDOW_S:
+            self._clear_heat_request()
+            return None
+        return age
+
+    def _start_heat_request(self) -> None:
+        """Start waiting for the device to confirm a heat request.
+
+        Schedules a poll just after the grace period, since the device may
+        not push its state over MQTT once the cloud's stale echoes are done.
+        """
+        self._clear_heat_request()
+        self._heat_requested_at = self._now()
+        self._cancel_heat_check = async_call_later(
+            self.hass, HEAT_REFUSAL_CHECK_S, self._async_check_heat
+        )
+
+    def _clear_heat_request(self) -> None:
+        """Stop waiting for a heat request and cancel its scheduled poll."""
+        self._heat_requested_at = None
+        if self._cancel_heat_check is not None:
+            self._cancel_heat_check()
+            self._cancel_heat_check = None
+
+    async def _async_check_heat(self, _now: datetime) -> None:
+        """Poll the device to see whether it started heating.
+
+        Args:
+            _now: Time the check was scheduled for (unused).
+        """
+        self._cancel_heat_check = None
+        _LOGGER.debug("%s: checking that heating started", self.coordinator.device_name)
+        await self.coordinator.async_refresh()
+
+    def _heat_refused_issue_id(self) -> str:
+        """Return the ID of this device's heat refused repair issue.
+
+        Returns:
+            str: The issue ID, unique per device.
+        """
+        return f"{ISSUE_HEAT_REFUSED}_{self.coordinator.id}"
+
+    def _check_heat_refusal(self) -> bool:
+        """Detect a device that stays out of heat mode after being asked to heat.
+
+        blueair_api stores the requested main mode as soon as the cloud accepts
+        the command, so the entity shows heat until the device reports back.
+        Some heaters, such as a US T10i, then report fan-only or cool again
+        because they do not allow heating to be started remotely. Without this
+        check the entity silently drops back to that mode (issue #268).
+
+        Returns:
+            bool: True when the device refused heat, so the caller shows the
+            device's state instead of the optimistic one.
+        """
+        hvac = self._coordinator_hvac_mode()
+        age = self._heat_request_age()
+        if hvac == HVACMode.HEAT:
+            # The stored request reads as heat too; only a later report proves it.
+            if self._heat_refused_issue_raised and age is None:
+                ir.async_delete_issue(self.hass, DOMAIN, self._heat_refused_issue_id())
+                self._heat_refused_issue_raised = False
+            return False
+        if (
+            age is None
+            or age < HEAT_REFUSAL_GRACE_S
+            or hvac not in (HVACMode.FAN_ONLY, HVACMode.COOL)
+        ):
+            return False
+
+        self._clear_heat_request()
+        # Stop showing the requested state so later device reports apply too.
+        self._optimistic_until = 0.0
+        _LOGGER.warning(
+            "%s reported %s after being asked to heat; the device may not allow "
+            "heating to be started remotely",
+            self.coordinator.device_name,
+            hvac,
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            self._heat_refused_issue_id(),
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_HEAT_REFUSED,
+            translation_placeholders={"device_name": self.coordinator.device_name},
+        )
+        self._heat_refused_issue_raised = True
+        return True
 
     def _coordinator_hvac_mode(self) -> HVACMode | None:
         if self.coordinator.is_on is False:
@@ -269,8 +388,18 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
         return self._attr_fan_mode
 
     def _handle_coordinator_update(self) -> None:
-        self._apply_from_coordinator()
+        """Follow the device's latest state, flagging a refused heat request."""
+        refused = self._check_heat_refusal()
+        self._apply_from_coordinator(force=refused)
         super()._handle_coordinator_update()
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Cancel a pending heat check and remove the heat refused repair issue."""
+        self._clear_heat_request()
+        if self._heat_refused_issue_raised:
+            ir.async_delete_issue(self.hass, DOMAIN, self._heat_refused_issue_id())
+            self._heat_refused_issue_raised = False
+        await super().async_will_remove_from_hass()
 
     async def async_turn_on(self) -> None:
         """Turn the entity on."""
@@ -278,10 +407,13 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
 
     async def async_turn_off(self) -> None:
         """Turn the entity off."""
+        self._clear_heat_request()
         await self.coordinator.set_running(False)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the HVAC mode."""
+        # A new request replaces any heat request still waiting for the device.
+        self._clear_heat_request()
         if hvac_mode == HVACMode.OFF:
             self._start_optimistic()
             self._attr_hvac_mode = HVACMode.OFF
@@ -331,6 +463,7 @@ class BlueairThermostat(BlueairEntity[BlueairUpdateCoordinatorDeviceAws], Climat
         await self.coordinator.set_main_mode(mode)
 
         if hvac_mode == HVACMode.HEAT:
+            self._start_heat_request()
             self._remember_last_fan_mode(HVACMode.HEAT, FanMode.AUTO.value)
             self._optimistic_fan_mode = FanMode.AUTO.value
             self._attr_fan_mode = FanMode.AUTO.value
